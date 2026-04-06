@@ -8,10 +8,10 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
-  AreaChart, Area, PieChart, Pie, Cell,
+  AreaChart, Area,
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
-import { TrendingUp, TrendingDown, Minus, BarChart3, AlertTriangle, FileText, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, BarChart3, FileText, Activity } from 'lucide-react';
 
 /* ─── queries ─── */
 function useWeeklySnapshots() {
