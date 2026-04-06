@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Zap, Newspaper, ExternalLink, AlertTriangle, Activity, Shield } from "lucide-react";
+import { Zap, Newspaper, ExternalLink, Activity, Shield } from "lucide-react";
 import { format, formatDistanceStrict } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
