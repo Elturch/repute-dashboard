@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { externalSupabase } from "@/integrations/external-supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
