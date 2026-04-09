@@ -9,6 +9,7 @@ import {
   Search,
   Hospital,
   FileText,
+  Download,
   Settings,
   Users,
   ShieldCheck,
@@ -53,6 +54,7 @@ const coreItems = [
   { title: "Explorador", url: "/dashboard/explorador", icon: Search },
   { title: "Relato IA", url: "/dashboard/relato", icon: FileText },
   { title: "Fund. Jiménez Díaz", url: "/dashboard/fjd", icon: Hospital },
+  { title: "Reportes", url: "/dashboard/reportes", icon: Download },
 ];
 
 const ayusoSubItems = [

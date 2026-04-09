@@ -34,7 +34,7 @@ import Usuarios from "./pages/dashboard/sistema/Usuarios";
 import Configuracion from "./pages/dashboard/sistema/Configuracion";
 import Integridad from "./pages/dashboard/sistema/Integridad";
 import ModoTV from "./pages/dashboard/ModoTV";
-
+import Reportes from "./pages/dashboard/Reportes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +59,7 @@ const App = () => (
             <Route path="explorador" element={<Explorador />} />
             <Route path="fjd" element={<FJD />} />
             <Route path="relato" element={<Relato />} />
+            <Route path="reportes" element={<Reportes />} />
 
             {/* Especiales */}
             <Route path="especiales" element={<EspecialesIndex />} />
