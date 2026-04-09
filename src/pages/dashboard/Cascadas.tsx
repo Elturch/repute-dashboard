@@ -164,7 +164,7 @@ const Cascadas = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full text-left pr-4">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground leading-snug">
-                        {c.topic_description.length > 80 ? c.topic_description.slice(0, 80) + "…" : c.topic_description}
+                        {(c.topic_description ?? "").length > 80 ? (c.topic_description ?? "").slice(0, 80) + "…" : (c.topic_description ?? "Sin descripción")}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Origen: {c.first_source} · Propagación en {propagationTime(c.first_detected_at, c.last_alert_at)}
