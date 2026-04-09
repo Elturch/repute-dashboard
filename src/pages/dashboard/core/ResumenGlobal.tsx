@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
 import {
   BarChart3, AlertTriangle, Activity, Zap, Newspaper, Shield,
   TrendingUp, TrendingDown, Minus, ExternalLink, ArrowRight,
@@ -141,7 +141,7 @@ const ResumenGlobal = () => {
   const navigate = useNavigate();
   const relato = useRelatoAcumulado();
   const contadores = useContadoresSemanales();
-  const trend = useContadoresSemanalesTrend();
+  const _trend = useContadoresSemanalesTrend();
   const cascadasActivas = useCascadasActivasDetalle();
   const eventos = useUltimosEventos();
   const weekly = useWeeklySnapshots();
@@ -157,10 +157,6 @@ const ResumenGlobal = () => {
     n_alertas: { label: "Alertas", color: "hsl(0, 84%, 60%)" },
   };
 
-  const trendConfig = {
-    total_relevantes: { label: "Relevantes", color: "hsl(var(--primary))" },
-    total_riesgo_alto: { label: "Riesgo alto", color: "hsl(0, 84%, 60%)" },
-  };
 
   return (
     <div className="space-y-6">
