@@ -63,10 +63,22 @@ function isActive(s: string) {
   return sl === "active" || sl === "expandiendose";
 }
 
+function safeFormat(dateStr: string, fmt: string): string {
+  if (!dateStr) return "—";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "—";
+    return format(d, fmt, { locale: es });
+  } catch { return "—"; }
+}
+
 function propagationTime(first: string, last: string): string {
   if (!first || !last) return "—";
   try {
-    return formatDistanceStrict(new Date(last), new Date(first), { locale: es });
+    const d1 = new Date(first);
+    const d2 = new Date(last);
+    if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return "—";
+    return formatDistanceStrict(d2, d1, { locale: es });
   } catch { return "—"; }
 }
 
