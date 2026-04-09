@@ -72,10 +72,10 @@ const FJD = () => {
   const totalMentions = channelData.reduce((s, c) => s + c.count, 0);
   const globalNota = channelData.length
     ? +(channelData.reduce((s, c) => s + c.nota * c.count, 0) / (totalMentions || 1)).toFixed(2) : 0;
-  const globalFortaleza = channelData.length
-    ? +(channelData.reduce((s, c) => s + c.fortaleza * c.count, 0) / (totalMentions || 1)).toFixed(2) : 0;
-  const globalRiesgo = channelData.length
-    ? +(channelData.reduce((s, c) => s + c.riesgo * c.count, 0) / (totalMentions || 1)).toFixed(2) : 0;
+  const globalAfinidad = channelData.length
+    ? +(channelData.reduce((s, c) => s + c.afinidad * c.count, 0) / (totalMentions || 1)).toFixed(2) : 0;
+  const globalPreocupacion = channelData.length
+    ? +(channelData.reduce((s, c) => s + c.preocupacion * c.count, 0) / (totalMentions || 1)).toFixed(2) : 0;
   const myBiz = channelData.find(c => c.channel === 'mybusiness');
 
   return (
@@ -160,9 +160,9 @@ const FJD = () => {
                       <span className="font-mono text-sm font-bold text-foreground">{ch.nota}/10</span>
                     </div>
                     <div className="grid grid-cols-3 gap-3">
-                      <ScoreBar label="Fortaleza" value={ch.fortaleza} color={QS_COLOR} />
-                      <ScoreBar label="Riesgo" value={ch.riesgo} color="hsl(0, 60%, 55%)" />
-                      <ScoreBar label="Potencia" value={ch.potencia} color="hsl(45, 80%, 55%)" />
+                      <ScoreBar label="Afinidad" value={ch.afinidad} color={QS_COLOR} />
+                      <ScoreBar label="Preocupación" value={ch.preocupacion} color="hsl(0, 60%, 55%)" />
+                      <ScoreBar label="Impacto" value={ch.impacto} color="hsl(45, 80%, 55%)" />
                     </div>
                   </div>
                 ))}

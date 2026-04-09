@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Radio, Newspaper, Facebook, Instagram, Twitter, Linkedin, MapPin, Music2 } from "lucide-react";
 import { useAllGroups } from "@/hooks/useGroupChannels";
 import { METRIC_KEYS, METRIC_LABELS, type ChannelAgg } from "@/lib/data-aggregation";
-import { avg } from "@/lib/data-aggregation";
+
 
 const CHANNEL_ICONS: Record<string, React.ElementType> = {
   noticias: Newspaper,
