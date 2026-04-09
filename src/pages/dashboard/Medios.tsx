@@ -115,11 +115,14 @@ const Medios = () => {
   };
 
   const chartData = useMemo(() =>
-    [...medios].sort((a, b) => a.n_articulos - b.n_articulos).map((m) => ({
-      medio: m.medio,
-      articulos: m.n_articulos,
-      tono: m.tono_dominante,
-    })),
+    [...medios]
+      .filter((m) => m.medio != null)
+      .sort((a, b) => (a.n_articulos ?? 0) - (b.n_articulos ?? 0))
+      .map((m) => ({
+        medio: m.medio ?? "Desconocido",
+        articulos: m.n_articulos ?? 0,
+        tono: m.tono_dominante ?? "",
+      })),
   [medios]);
 
   const SortHeader = ({ label, k }: { label: string; k: SortKey }) => (
