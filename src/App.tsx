@@ -36,6 +36,8 @@ import Integridad from "./pages/dashboard/sistema/Integridad";
 import ModoTV from "./pages/dashboard/ModoTV";
 import Reportes from "./pages/dashboard/Reportes";
 import Notificaciones from "./pages/dashboard/Notificaciones";
+import Docs from "./pages/dashboard/Docs";
+import Estado from "./pages/dashboard/sistema/Estado";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +64,7 @@ const App = () => (
             <Route path="relato" element={<Relato />} />
             <Route path="reportes" element={<Reportes />} />
             <Route path="notificaciones" element={<Notificaciones />} />
+            <Route path="docs" element={<Docs />} />
 
             {/* Especiales */}
             <Route path="especiales" element={<EspecialesIndex />} />
@@ -86,6 +89,7 @@ const App = () => (
             <Route path="sistema/usuarios" element={<Usuarios />} />
             <Route path="sistema/configuracion" element={<Configuracion />} />
             <Route path="sistema/integridad" element={<Integridad />} />
+            <Route path="sistema/estado" element={<Estado />} />
 
             {/* Legacy redirect */}
             <Route path="admin" element={<Navigate to="/dashboard/sistema/admin" replace />} />
