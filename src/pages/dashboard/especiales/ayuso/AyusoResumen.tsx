@@ -1,9 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NavLink } from "@/components/NavLink";
 import {
-  BarChart3, AlertTriangle, Activity, Zap, ArrowRight,
+  BarChart3, Zap, ArrowRight,
   FileText, TrendingUp, Newspaper, Users, GitBranch, Clock,
 } from "lucide-react";
 import {
@@ -68,7 +68,7 @@ const AyusoResumen = () => {
 
   const c = contadores.data as Record<string, any> | null;
   const nota = Number(relato.data?.nota_media_ponderada ?? 0);
-  const lastWeek = weekly.data?.length ? (weekly.data[weekly.data.length - 1] as any) : null;
+  const _lastWeek = weekly.data?.length ? (weekly.data[weekly.data.length - 1] as any) : null;
 
   return (
     <div className="space-y-6">

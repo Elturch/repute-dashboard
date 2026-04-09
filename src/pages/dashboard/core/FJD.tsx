@@ -1,13 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Hospital, Newspaper, Star, Shield, AlertTriangle, TrendingUp } from "lucide-react";
-import { useFJDChannels, useFJDvsPublicos, useFJDAlerts, ChannelAgg } from "@/hooks/useFJDData";
+import { Hospital, Newspaper, Star, Shield, AlertTriangle } from "lucide-react";
+import { useFJDChannels, useFJDvsPublicos, useFJDAlerts } from "@/hooks/useFJDData";
 import { safeFormatDistance } from "@/lib/safe-format";
 
 /* ── helpers ── */
 const QS_COLOR = "hsl(217, 91%, 60%)";
-const NEUTRAL = "hsl(215, 15%, 50%)";
+
 
 function notaColor(n: number): string {
   if (n < 3) return "hsl(142, 71%, 45%)";
