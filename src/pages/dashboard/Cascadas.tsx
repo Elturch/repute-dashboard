@@ -213,7 +213,6 @@ const Cascadas = () => {
                                 <p className="text-xs text-muted-foreground">
                                   {safeFormat(s.detected_at, "dd/MM/yyyy HH:mm")}
                                 </p>
-                                </p>
                               </div>
                               {s.url && (
                                 <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs flex-shrink-0 flex items-center gap-0.5">
