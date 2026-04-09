@@ -3,7 +3,6 @@ import { externalSupabase } from "@/integrations/external-supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Activity, Database, CheckCircle2, XCircle, RefreshCw, Clock, Server, Wifi
 } from "lucide-react";
