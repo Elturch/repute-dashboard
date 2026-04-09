@@ -180,7 +180,7 @@ const Metricas = () => {
     });
     return Object.entries(byDay)
       .map(([day, v]) => ({
-        dia: format(new Date(day), "dd/MM", { locale: es }),
+        dia: (() => { try { const d = new Date(day); return isNaN(d.getTime()) ? day : format(d, "dd/MM", { locale: es }); } catch { return day; } })(),
         Preocupación: parseFloat((v.preocupacion / v.count).toFixed(2)),
         Rechazo: parseFloat((v.rechazo / v.count).toFixed(2)),
         Descrédito: parseFloat((v.descredito / v.count).toFixed(2)),
@@ -340,13 +340,13 @@ const Metricas = () => {
                     {topEvents.map((ev, i) => (
                       <TableRow key={i}>
                         <TableCell className="text-xs whitespace-nowrap">
-                          {format(new Date(ev.fecha), "dd/MM/yy", { locale: es })}
+                          {(() => { try { const d = new Date(ev.fecha); return isNaN(d.getTime()) ? "—" : format(d, "dd/MM/yy", { locale: es }); } catch { return "—"; } })()}
                         </TableCell>
                         <TableCell className="text-xs">{ev.medio_plataforma}</TableCell>
                         <TableCell className="text-sm">
                           {ev.url ? (
                             <a href={ev.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-start gap-1">
-                              {ev.titular_o_texto?.length > 70 ? ev.titular_o_texto.slice(0, 70) + "…" : ev.titular_o_texto}
+                              {(ev.titular_o_texto ?? "").length > 70 ? (ev.titular_o_texto ?? "").slice(0, 70) + "…" : (ev.titular_o_texto ?? "")}
                               <ExternalLink className="h-3 w-3 mt-0.5 flex-shrink-0" />
                             </a>
                           ) : (

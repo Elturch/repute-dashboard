@@ -51,8 +51,11 @@ function recomendacionColor(rec: string): string {
 
 function formatDate(d: string) {
   if (!d) return "";
-  const date = new Date(d);
-  return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}`;
+  try {
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return "—";
+    return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}`;
+  } catch { return "—"; }
 }
 
 function truncate(s: string, max: number) {
@@ -288,7 +291,7 @@ const Resumen = () => {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Último: {c.last_alert_at ? new Date(c.last_alert_at).toLocaleString("es-ES", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}
+                    Último: {(() => { if (!c.last_alert_at) return "—"; try { const d = new Date(c.last_alert_at); return isNaN(d.getTime()) ? "—" : d.toLocaleString("es-ES", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); } catch { return "—"; } })()}
                   </p>
                 </div>
               ))

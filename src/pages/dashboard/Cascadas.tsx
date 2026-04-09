@@ -104,7 +104,9 @@ const Cascadas = () => {
   const weeklyData = useMemo(() => {
     const byWeek: Record<string, { cascadas: number; medios: number }> = {};
     cascades.forEach((c) => {
+      if (!c.first_detected_at) return;
       const d = new Date(c.first_detected_at);
+      if (isNaN(d.getTime())) return;
       const weekStart = new Date(d);
       weekStart.setDate(d.getDate() - d.getDay() + 1);
       const key = format(weekStart, "dd/MM", { locale: es });

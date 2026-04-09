@@ -291,9 +291,10 @@ const Admin = () => {
           { label: "Cascadas", value: stats.totalCascadas, icon: BarChart3 },
           {
             label: "Último Evento",
-            value: stats.ultimoEvento
-              ? formatDistanceToNow(new Date(stats.ultimoEvento), { locale: es, addSuffix: true })
-              : "—",
+            value: (() => {
+              if (!stats.ultimoEvento) return "—";
+              try { const d = new Date(stats.ultimoEvento); return isNaN(d.getTime()) ? "—" : formatDistanceToNow(d, { locale: es, addSuffix: true }); } catch { return "—"; }
+            })(),
             icon: BarChart3,
             isText: true,
           },
@@ -348,7 +349,7 @@ const Admin = () => {
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {new Date(u.created_at).toLocaleDateString("es-ES")}
+                    {(() => { try { const d = new Date(u.created_at); return isNaN(d.getTime()) ? "—" : d.toLocaleDateString("es-ES"); } catch { return "—"; } })()}
                   </TableCell>
                   <TableCell className="text-right space-x-1">
                     <Button size="icon" variant="ghost" onClick={() => openEditUser(u)}>
@@ -406,7 +407,7 @@ const Admin = () => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {new Date(s.created_at).toLocaleDateString("es-ES")}
+                    {(() => { try { const d = new Date(s.created_at); return isNaN(d.getTime()) ? "—" : d.toLocaleDateString("es-ES"); } catch { return "—"; } })()}
                   </TableCell>
                   <TableCell className="text-right space-x-1">
                     <Button size="icon" variant="ghost" onClick={() => openEditScenario(s)}>

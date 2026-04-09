@@ -56,7 +56,11 @@ function riesgoBadge(r: string) {
 
 function formatDate(d: string) {
   if (!d) return "—";
-  return format(new Date(d), "dd/MM/yyyy");
+  try {
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return "—";
+    return format(date, "dd/MM/yyyy");
+  } catch { return "—"; }
 }
 
 function tonoBarColor(tono: string): string {
@@ -96,7 +100,7 @@ const Medios = () => {
     let result = [...medios];
     if (search) {
       const s = search.toLowerCase();
-      result = result.filter((m) => m.medio.toLowerCase().includes(s));
+      result = result.filter((m) => (m.medio ?? "").toLowerCase().includes(s));
     }
     result.sort((a, b) => {
       let va: any = a[sortKey];
@@ -328,7 +332,7 @@ function MedioDetailSheet({ medio, onClose }: { medio: MediaProfile | null; onCl
                       {riesgoBadge(ev.riesgo_reputacional)}
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>{ev.fecha ? format(new Date(ev.fecha), "dd/MM/yyyy HH:mm", { locale: es }) : "—"}</span>
+                      <span>{(() => { if (!ev.fecha) return "—"; try { const d = new Date(ev.fecha); return isNaN(d.getTime()) ? "—" : format(d, "dd/MM/yyyy HH:mm", { locale: es }); } catch { return "—"; } })()}</span>
                       {ev.m_nota_ponderada != null && <span className="font-mono">Nota: {ev.m_nota_ponderada.toFixed(2)}</span>}
                     </div>
                   </div>

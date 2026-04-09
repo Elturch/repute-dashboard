@@ -98,7 +98,7 @@ const Hitos = () => {
   const filtered = useMemo(() => {
     let result = [...milestones];
     if (tipoFilter !== "all") result = result.filter((m) => m.tipo_hito === tipoFilter);
-    if (impactoFilter !== "all") result = result.filter((m) => m.impacto.toLowerCase() === impactoFilter.toLowerCase());
+    if (impactoFilter !== "all") result = result.filter((m) => (m.impacto ?? "").toLowerCase() === impactoFilter.toLowerCase());
     if (dateFrom) result = result.filter((m) => new Date(m.fecha) >= dateFrom);
     if (dateTo) {
       const end = new Date(dateTo); end.setHours(23, 59, 59);
@@ -122,7 +122,7 @@ const Hitos = () => {
     milestones.forEach((m) => {
       if (!map[m.tipo_hito]) map[m.tipo_hito] = { total: 0, alto: 0 };
       map[m.tipo_hito].total++;
-      if (m.impacto.toLowerCase() === "alto") map[m.tipo_hito].alto++;
+      if ((m.impacto ?? "").toLowerCase() === "alto") map[m.tipo_hito].alto++;
     });
     return Object.entries(map).sort((a, b) => b[1].total - a[1].total);
   }, [milestones]);
@@ -222,7 +222,7 @@ const Hitos = () => {
           <div className="space-y-8">
             {filtered.map((m, i) => {
               const isLeft = i % 2 === 0;
-              const isAlto = m.impacto.toLowerCase() === "alto";
+              const isAlto = (m.impacto ?? "").toLowerCase() === "alto";
               return (
                 <div key={m.id} className="relative">
                   {/* Dot */}
@@ -234,7 +234,7 @@ const Hitos = () => {
 
                   {/* Date badge on line */}
                   <div className="hidden md:block absolute left-1/2 -translate-x-1/2 top-0">
-                    <Badge variant="outline" className="text-xs bg-background">{format(new Date(m.fecha), "dd/MM/yyyy")}</Badge>
+                    <Badge variant="outline" className="text-xs bg-background">{(() => { try { const d = new Date(m.fecha); return isNaN(d.getTime()) ? "—" : format(d, "dd/MM/yyyy"); } catch { return "—"; } })()}</Badge>
                   </div>
 
                   {/* Card */}
@@ -246,7 +246,7 @@ const Hitos = () => {
                       <CardContent className={cn("pt-4 pb-4 space-y-2", isAlto ? "px-5" : "px-4")}>
                         {/* Mobile date */}
                         <div className="flex items-center gap-2 md:hidden">
-                          <Badge variant="outline" className="text-xs">{format(new Date(m.fecha), "dd/MM/yyyy")}</Badge>
+                          <Badge variant="outline" className="text-xs">{(() => { try { const d = new Date(m.fecha); return isNaN(d.getTime()) ? "—" : format(d, "dd/MM/yyyy"); } catch { return "—"; } })()}</Badge>
                           <span className="text-xs text-muted-foreground">{m.semana}</span>
                         </div>
 
@@ -311,7 +311,7 @@ const Hitos = () => {
               <TableBody>
                 {filtered.map((m) => (
                   <TableRow key={m.id}>
-                    <TableCell className="text-xs whitespace-nowrap">{format(new Date(m.fecha), "dd/MM/yyyy")}</TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">{(() => { try { const d = new Date(m.fecha); return isNaN(d.getTime()) ? "—" : format(d, "dd/MM/yyyy"); } catch { return "—"; } })()}</TableCell>
                     <TableCell className="text-xs">{m.semana}</TableCell>
                     <TableCell>{tipoBadge(m.tipo_hito)}</TableCell>
                     <TableCell className="text-sm font-medium max-w-[300px]">{m.titulo}</TableCell>

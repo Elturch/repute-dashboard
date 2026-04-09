@@ -44,7 +44,10 @@ function useRelatoAcumulado() {
 }
 
 /* ─── helpers ─── */
-const fmtDate = (d: string | null) => d ? format(parseISO(d), 'dd/MM') : '—';
+const fmtDate = (d: string | null) => {
+  if (!d) return '—';
+  try { const parsed = parseISO(d); return isNaN(parsed.getTime()) ? '—' : format(parsed, 'dd/MM'); } catch { return '—'; }
+};
 
 const tonoBadge = (tono: string | null) => {
   if (!tono) return <Badge variant="outline" className="text-muted-foreground">—</Badge>;
