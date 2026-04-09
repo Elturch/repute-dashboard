@@ -47,6 +47,37 @@ export function useCascadasActivas() {
   });
 }
 
+export function useCascadasActivasDetalle() {
+  return useQuery({
+    queryKey: ['cascadas_activas_detalle'],
+    queryFn: async () => {
+      const { data, error } = await externalSupabase
+        .from('alert_cascades')
+        .select('topic_key, topic_description, alert_count, max_riesgo, last_alert_at, first_source, status')
+        .eq('status', 'active')
+        .order('last_alert_at', { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useContadoresSemanalesTrend() {
+  return useQuery({
+    queryKey: ['contadores_semanales_trend'],
+    queryFn: async () => {
+      const { data, error } = await externalSupabase
+        .from('contadores_semanales')
+        .select('semana, total_escaneadas, total_relevantes, total_riesgo_alto, total_riesgo_medio, total_riesgo_bajo')
+        .order('semana', { ascending: false })
+        .limit(4);
+      if (error) throw error;
+      return (data ?? []).reverse();
+    },
+  });
+}
+
 export function useUltimosEventos() {
   return useQuery({
     queryKey: ['ultimos_eventos'],
