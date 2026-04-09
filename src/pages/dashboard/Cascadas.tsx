@@ -63,10 +63,22 @@ function isActive(s: string) {
   return sl === "active" || sl === "expandiendose";
 }
 
+function safeFormat(dateStr: string, fmt: string): string {
+  if (!dateStr) return "—";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "—";
+    return format(d, fmt, { locale: es });
+  } catch { return "—"; }
+}
+
 function propagationTime(first: string, last: string): string {
   if (!first || !last) return "—";
   try {
-    return formatDistanceStrict(new Date(last), new Date(first), { locale: es });
+    const d1 = new Date(first);
+    const d2 = new Date(last);
+    if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return "—";
+    return formatDistanceStrict(d2, d1, { locale: es });
   } catch { return "—"; }
 }
 
@@ -199,7 +211,7 @@ const Cascadas = () => {
                               <div className="min-w-0">
                                 <p className="text-sm font-medium text-foreground">{s.medio}</p>
                                 <p className="text-xs text-muted-foreground">
-                                  {format(new Date(s.detected_at), "dd/MM/yyyy HH:mm", { locale: es })}
+                                  {safeFormat(s.detected_at, "dd/MM/yyyy HH:mm")}
                                 </p>
                               </div>
                               {s.url && (
@@ -232,8 +244,8 @@ const Cascadas = () => {
                           Ver artículo original <ExternalLink className="h-3 w-3" />
                         </a>
                       )}
-                      <span>Detectada: {format(new Date(c.first_detected_at), "dd/MM/yyyy HH:mm", { locale: es })}</span>
-                      <span>Última: {format(new Date(c.last_alert_at), "dd/MM/yyyy HH:mm", { locale: es })}</span>
+                      <span>Detectada: {safeFormat(c.first_detected_at, "dd/MM/yyyy HH:mm")}</span>
+                      <span>Última: {safeFormat(c.last_alert_at, "dd/MM/yyyy HH:mm")}</span>
                     </div>
                   </div>
                 </AccordionContent>
