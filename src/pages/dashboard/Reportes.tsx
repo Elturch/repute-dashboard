@@ -65,9 +65,9 @@ const Reportes = () => {
           modulo: "Benchmarking",
           grupo: r.label,
           nota_media: r.nota_media,
-          fortaleza: r.fortaleza,
-          riesgo: r.riesgo,
-          potencia: r.potencia,
+          afinidad: r.afinidad,
+          fiabilidad: r.fiabilidad,
+          admiracion: r.admiracion,
           registros: r.count,
         });
       });

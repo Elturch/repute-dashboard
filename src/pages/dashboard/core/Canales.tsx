@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+
 import { Skeleton } from "@/components/ui/skeleton";
-import { Radio, Newspaper, Facebook, Instagram, Twitter, Linkedin, MapPin, Music2 } from "lucide-react";
+import { Newspaper, Facebook, Instagram, Twitter, Linkedin, MapPin, Music2 } from "lucide-react";
 import { useAllGroups } from "@/hooks/useGroupChannels";
-import { METRIC_KEYS, type ChannelAgg } from "@/lib/data-aggregation";
+
 import { Link } from "react-router-dom";
 
 const CHANNEL_CONFIG = [
