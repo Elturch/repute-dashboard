@@ -1,40 +1,75 @@
 
 
-# Plan: Auditoría SQL completa de la BD externa
+# Plan: Implementar capa de datos + 5 dashboards con datos reales
 
-## Problema
-No puedo ejecutar queries contra la base de datos externa (`pbzojbamztzdhlvxwhyw.supabase.co`) desde el modo actual. El tool `supabase--read_query` solo accede a la BD interna de Lovable Cloud. Necesito modo implementación para lanzar las consultas via curl o script.
+## Bloque 1: Capa de datos compartida (3 archivos nuevos)
 
-## Paso 1: Extraer definiciones SQL de las 54 vistas
+### `src/lib/data-aggregation.ts`
+Funciones compartidas extraídas de `useFJDData.ts`: `normalize()` (maneja PascalCase/snake_case), `avg()`, `aggregateChannel()`. Reutilizables por todos los hooks.
 
-Ejecutar via curl contra la API REST de la BD externa (usando la anon key ya configurada) o, preferiblemente, via un script Node que use `externalSupabase.rpc()`. Sin embargo, `pg_views` y `information_schema` no están expuestos via PostgREST con anon key.
+### `src/hooks/useGroupChannels.ts`
+Hook genérico que dado un grupo (`quironsalud`, `sermas`, `catsalut`, etc.) consulta TODOS sus canales (noticias + FB + IG + TikTok + X + LinkedIn + MyBusiness). Configuración por grupo:
 
-**Alternativa viable**: Crear un script temporal que haga `curl` contra el endpoint REST probando cada vista con `?select=*&limit=1` para extraer columnas reales, y luego inferir los filtros comparando columnas y datos entre vistas hermanas.
+```text
+quironsalud  → 5 vistas (noticias + 4 redes)
+gh_privados  → 5 vistas
+sermas       → 7 vistas (+ linkedin + my_business)
+gestion_qs   → 5 vistas
+catsalut     → 5 vistas
+catsalut_qs  → 5 vistas
+fjd          → 6 vistas (ya en useFJDData, se reutiliza)
+general      → 6 vistas (_general_filtradas + linkedin_gh)
+alta_compl   → 1 vista (solo noticias)
+```
 
-**Queries a ejecutar** (5 scripts curl en paralelo):
-1. Para cada una de las 54 vistas: `GET /rest/v1/{view}?select=*&limit=3` → extraer columnas + muestra de datos
-2. `GET /rest/v1/keywords?select=*&limit=100` → taxonomía completa
-3. `GET /rest/v1/tipo_hospital?select=*` → mapeo hospital → grupo
-4. `GET /rest/v1/dominios?select=*&limit=50` → dominios de medios
-5. `GET /rest/v1/sites?select=*&limit=50` → fuentes configuradas
+### `src/hooks/useAuxiliaryData.ts`
+Hooks para tablas auxiliares: `useCrossAmplification()`, `useMediaProfiles()`, `useKeywords()`, `useTipoHospital()`.
 
-## Paso 2: Documentar el modelo
+## Bloque 2: Refactor de `useFJDData.ts`
+Importar `normalize`/`avg`/`aggregateChannel` desde `data-aggregation.ts` en lugar de definirlos inline. Sin cambio funcional.
 
-Con los datos extraídos, generar un documento `/mnt/documents/database_audit.md` con:
-1. Qué representa cada vista
-2. Qué filtros aplica (inferidos de los datos: qué `Grupo_hospitalario`, `titularidad`, keywords aparecen)
-3. Campos de segmentación disponibles
-4. Ambigüedades y solapes detectados (ej: CatSalut vs CatSalut_QS vs CatSalut_solo_QS)
-5. Modelo de filtros globales recomendado
+## Bloque 3: Reescritura de 5 dashboards
 
-## Paso 3: Guardar en memoria del proyecto
+### 1. Ecosistema (`Ecosistema.tsx`)
+- Grid de 9 grupos con KPIs reales (nota, fortaleza, riesgo, volumen por canal)
+- Quironsalud destacado como grupo primario
+- Tabla comparativa con 9 metricas emocionales
+- Datos de `useGroupChannels` para cada grupo
 
-Crear `mem://reference/db-schema-full` con el inventario completo para uso en todas las implementaciones posteriores.
+### 2. Canales (`Canales.tsx`)
+- Una fila por canal (Noticias, FB, IG, TikTok, X, LinkedIn, MyBusiness)
+- Volumen total sumando todos los grupos, nota media, riesgo
+- Comparativa entre grupos dentro de cada canal
 
-## Archivos generados
-- `/mnt/documents/database_audit.md` — Auditoría completa
-- `mem://reference/db-schema-full` — Referencia persistente para el proyecto
+### 3. MediosGlobal (`MediosGlobal.tsx`)
+- `noticias_general_filtradas` para panoramica de todos los medios
+- Agrupacion por `Paper`/medio
+- Top medios por volumen, nota media, distribucion de riesgo
 
-## Limitación
-`pg_views.definition` (el SQL real de cada vista) NO es accesible via PostgREST con anon key. Solo el propietario de la BD puede verlo. Si necesitas el SQL exacto de los filtros, tendrías que facilitarme la service_role key o pegar aquí el resultado de `SELECT viewname, definition FROM pg_views WHERE schemaname = 'public'`. Sin eso, inferiré la lógica de filtrado analizando los datos reales que devuelve cada vista.
+### 4. EvolucionGlobal (`EvolucionGlobal.tsx`)
+- `weekly_snapshots` (39 semanas) + `contadores_semanales` (4 semanas)
+- Graficos de area con Recharts
+- `relato_acumulado` para contexto narrativo
+
+### 5. Riesgo (`Riesgo.tsx`)
+- `alert_cascades` (12 cascadas con datos reales)
+- `cross_amplification` para amplificacion entre plataformas
+- Distribucion por nivel de riesgo, estado y fuente
+
+## Archivos modificados/creados
+
+| Archivo | Accion |
+|---------|--------|
+| `src/lib/data-aggregation.ts` | CREAR |
+| `src/hooks/useGroupChannels.ts` | CREAR |
+| `src/hooks/useAuxiliaryData.ts` | CREAR |
+| `src/hooks/useFJDData.ts` | REFACTOR (importar compartidos) |
+| `src/pages/dashboard/core/Ecosistema.tsx` | REESCRIBIR |
+| `src/pages/dashboard/core/Canales.tsx` | REESCRIBIR |
+| `src/pages/dashboard/core/MediosGlobal.tsx` | REESCRIBIR |
+| `src/pages/dashboard/core/EvolucionGlobal.tsx` | REESCRIBIR |
+| `src/pages/dashboard/core/Riesgo.tsx` | REESCRIBIR |
+
+## Resultado
+76 vistas consumidas. Cero placeholders. Todos los dashboards core con datos reales y universos separados.
 
