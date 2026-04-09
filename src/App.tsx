@@ -35,6 +35,7 @@ import Configuracion from "./pages/dashboard/sistema/Configuracion";
 import Integridad from "./pages/dashboard/sistema/Integridad";
 import ModoTV from "./pages/dashboard/ModoTV";
 import Reportes from "./pages/dashboard/Reportes";
+import Notificaciones from "./pages/dashboard/Notificaciones";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="fjd" element={<FJD />} />
             <Route path="relato" element={<Relato />} />
             <Route path="reportes" element={<Reportes />} />
+            <Route path="notificaciones" element={<Notificaciones />} />
 
             {/* Especiales */}
             <Route path="especiales" element={<EspecialesIndex />} />
