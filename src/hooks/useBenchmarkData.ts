@@ -57,9 +57,6 @@ export interface GroupAggregated {
   admiracion: number;
   impacto: number;
   influencia: number;
-  fortaleza: number;
-  riesgo: number;
-  potencia: number;
   peligro_alto_pct: number;
 }
 
@@ -70,15 +67,6 @@ function avg(arr: (number | null)[]): number {
 
 function aggregate(key: string, label: string, primary: boolean, rows: GroupRow[]): GroupAggregated {
   const n = rows.length;
-  const nota = avg(rows.map(r => r.Nota_media_Ponderada));
-  const preocupacion = avg(rows.map(r => r.Preocupacion));
-  const rechazo = avg(rows.map(r => r.Rechazo));
-  const descredito = avg(rows.map(r => r.Descredito));
-  const afinidad = avg(rows.map(r => r.Afinidad));
-  const fiabilidad = avg(rows.map(r => r.Fiabilidad));
-  const admiracion = avg(rows.map(r => r.Admiracion));
-  const impacto = avg(rows.map(r => r.Impacto));
-  const influencia = avg(rows.map(r => r.Influencia));
   const peligroAlto = rows.filter(r => {
     const p = (r.Peligro_reputacional ?? '').toLowerCase();
     return p.includes('alto') || p.includes('criti') || p.includes('críti');
@@ -86,18 +74,15 @@ function aggregate(key: string, label: string, primary: boolean, rows: GroupRow[
 
   return {
     key, label, primary, count: n,
-    nota_media: +nota.toFixed(2),
-    preocupacion: +preocupacion.toFixed(2),
-    rechazo: +rechazo.toFixed(2),
-    descredito: +descredito.toFixed(2),
-    afinidad: +afinidad.toFixed(2),
-    fiabilidad: +fiabilidad.toFixed(2),
-    admiracion: +admiracion.toFixed(2),
-    impacto: +impacto.toFixed(2),
-    influencia: +influencia.toFixed(2),
-    fortaleza: +((nota + afinidad + fiabilidad + admiracion) / 4).toFixed(2),
-    riesgo: +((preocupacion + descredito + rechazo) / 3).toFixed(2),
-    potencia: +((influencia + impacto) / 2).toFixed(2),
+    nota_media: +avg(rows.map(r => r.Nota_media_Ponderada)).toFixed(2),
+    preocupacion: +avg(rows.map(r => r.Preocupacion)).toFixed(2),
+    rechazo: +avg(rows.map(r => r.Rechazo)).toFixed(2),
+    descredito: +avg(rows.map(r => r.Descredito)).toFixed(2),
+    afinidad: +avg(rows.map(r => r.Afinidad)).toFixed(2),
+    fiabilidad: +avg(rows.map(r => r.Fiabilidad)).toFixed(2),
+    admiracion: +avg(rows.map(r => r.Admiracion)).toFixed(2),
+    impacto: +avg(rows.map(r => r.Impacto)).toFixed(2),
+    influencia: +avg(rows.map(r => r.Influencia)).toFixed(2),
     peligro_alto_pct: n ? +((peligroAlto / n) * 100).toFixed(1) : 0,
   };
 }

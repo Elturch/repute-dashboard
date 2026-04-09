@@ -17,6 +17,15 @@ import Explorador from "./pages/dashboard/core/Explorador";
 import FJD from "./pages/dashboard/core/FJD";
 import Relato from "./pages/dashboard/core/Relato";
 
+// Channel pages
+import NoticiasChannel from "./pages/dashboard/canales/NoticiasChannel";
+import FacebookChannel from "./pages/dashboard/canales/FacebookChannel";
+import InstagramChannel from "./pages/dashboard/canales/InstagramChannel";
+import TikTokChannel from "./pages/dashboard/canales/TikTokChannel";
+import TwitterChannel from "./pages/dashboard/canales/TwitterChannel";
+import LinkedInChannel from "./pages/dashboard/canales/LinkedInChannel";
+import MyBusinessChannel from "./pages/dashboard/canales/MyBusinessChannel";
+
 // Especiales
 import EspecialesIndex from "./pages/dashboard/especiales/EspecialesIndex";
 import AyusoResumen from "./pages/dashboard/especiales/ayuso/AyusoResumen";
@@ -56,6 +65,13 @@ const App = () => (
             <Route path="benchmarking" element={<Benchmarking />} />
             <Route path="ecosistema" element={<Ecosistema />} />
             <Route path="canales" element={<Canales />} />
+            <Route path="canales/noticias" element={<NoticiasChannel />} />
+            <Route path="canales/facebook" element={<FacebookChannel />} />
+            <Route path="canales/instagram" element={<InstagramChannel />} />
+            <Route path="canales/tiktok" element={<TikTokChannel />} />
+            <Route path="canales/twitter" element={<TwitterChannel />} />
+            <Route path="canales/linkedin" element={<LinkedInChannel />} />
+            <Route path="canales/mybusiness" element={<MyBusinessChannel />} />
             <Route path="medios" element={<MediosGlobal />} />
             <Route path="evolucion" element={<EvolucionGlobal />} />
             <Route path="riesgo" element={<Riesgo />} />
@@ -77,7 +93,7 @@ const App = () => (
             <Route path="especiales/ayuso/hitos" element={<Hitos />} />
             <Route path="especiales/ayuso/evolucion" element={<EvolucionAyuso />} />
 
-            {/* Legacy redirects — old Ayuso routes → new location */}
+            {/* Legacy redirects */}
             <Route path="eventos" element={<Navigate to="/dashboard/especiales/ayuso/eventos" replace />} />
             <Route path="metricas" element={<Navigate to="/dashboard/especiales/ayuso/metricas" replace />} />
             <Route path="cascadas" element={<Navigate to="/dashboard/especiales/ayuso/cascadas" replace />} />
