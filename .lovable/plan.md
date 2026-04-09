@@ -1,68 +1,111 @@
 
 
-# Plan: Métricas reales y separación por canal
+# Plan: Upgrade v4.0 to match Looker v2.0 detail level
 
-## Problema actual
+## What I learned from the Looker dashboards
 
-1. **Métricas inventadas**: "Fortaleza", "Riesgo" y "Potencia" son composites arbitrarios que no existen en la BD. Los campos reales son las **9 métricas emocionales individuales** + `nota_media_ponderada` + `peligro_reputacional`.
-2. **Sin separación por canal**: Todo se agrega en un número por grupo. No se distingue Noticias de Facebook de Instagram, etc.
+The v2.0 "Grupo Quirón reputation life panel" has this structure visible in the sidebar:
 
-## Cambios
-
-### 1. `src/lib/data-aggregation.ts` — Eliminar métricas inventadas
-
-Reemplazar `ChannelAgg` para exponer las 9 métricas reales individualmente:
-
-```typescript
-export interface ChannelAgg {
-  channel: string;
-  label: string;
-  count: number;
-  nota: number;           // nota_media_ponderada (real)
-  preocupacion: number;   // real
-  rechazo: number;        // real
-  descredito: number;     // real
-  afinidad: number;       // real
-  fiabilidad: number;     // real
-  admiracion: number;     // real
-  impacto: number;        // real
-  influencia: number;     // real
-  compromiso: number;     // real
-  peligroAltoPct: number; // % peligro alto/critico (real)
-  avgRating: number|null; // solo MyBusiness
-}
+```text
+├── Vista general Privados + Gestión...
+├── P-1 Grupos Hospitalarios
+├── Vistas singulares
+├── NEWS          ← dedicated full page per channel
+├── FACEBOOK      ← with charts, tables, individual mentions
+├── INSTAGRAM     ← broken down by group within each channel
+├── X (Twitter)   ← date range filtering
+├── TikTok
+├── LinkedIn
+├── My Business
+└── Base de informes
 ```
 
-Eliminar los campos `fortaleza`, `riesgo`, `potencia` de `ChannelAgg` y `GroupAgg`. La función `aggregateChannel` devolverá cada métrica real por separado sin inventar composites.
+Each channel page has: per-group breakdown, time series charts, individual mention tables with titulares/URLs, and date range filtering.
 
-### 2. `src/pages/dashboard/core/Ecosistema.tsx` — Métricas reales + desglose por canal
+## What's missing in v4.0
 
-Cada grupo mostrará:
-- `nota_media_ponderada` como KPI principal
-- Una tabla con cada canal (Noticias, FB, IG, TikTok, X, LinkedIn, MyBusiness) mostrando: menciones, nota, y las 9 métricas emocionales reales
-- `peligro_reputacional` como badge por canal
-- Sin "Fortaleza", "Riesgo" ni "Potencia"
+1. **No dedicated per-channel pages** — Canales.tsx only shows summary badges, not the full detail the v2.0 has per platform
+2. **No date range filtering** — v2.0 has date range selector on every page
+3. **No individual mention listings** — no titulares, URLs, or drill-down to individual items
+4. **Benchmarking still uses invented metrics** (fortaleza, riesgo, potencia) — these composite indices were supposed to be removed
+5. **Explorador is a placeholder** — empty page
+6. **No "Vistas singulares"** concept — per-hospital/entity views
 
-### 3. `src/pages/dashboard/core/Canales.tsx` — Desglose real por plataforma
+## Changes
 
-Cada fila de canal mostrará las 9 métricas reales, no composites inventados. La comparativa entre grupos dentro de cada canal usará los campos tal cual vienen de la BD.
+### 1. Create 7 dedicated channel pages (NEW)
 
-### 4. Actualizar `GroupAgg` en data-aggregation
+Create `src/pages/dashboard/canales/` directory with:
+- `NoticiasChannel.tsx` — Full noticias analysis: per-group table, top medios, time series chart, individual mention listing with titulares/URLs
+- `FacebookChannel.tsx` — FB analysis per group, mention listing with captions
+- `InstagramChannel.tsx` — IG analysis per group
+- `TikTokChannel.tsx` — TikTok analysis per group
+- `TwitterChannel.tsx` — X/Twitter analysis per group
+- `LinkedInChannel.tsx` — LinkedIn analysis per group
+- `MyBusinessChannel.tsx` — My Business with ratings
 
-Eliminar `fortaleza`, `riesgo`, `potencia` de `GroupAgg`. Agregar las 9 métricas reales como promedios ponderados por volumen.
+Each page will:
+- Fetch data from ALL group views for that channel (e.g. NoticiasChannel fetches from `noticias_quironsalud`, `noticias_sermas`, `noticias_gh_privados`, etc.)
+- Show KPI summary cards (total mentions, avg nota, % peligro alto)
+- Show per-group comparison table with 9 real metrics
+- Show time series chart (mentions over time)
+- Show scrollable table of individual mentions (titular, medio, fecha, nota, peligro, URL link)
+- Include date range filter (date picker component)
 
-## Archivos a modificar
+### 2. Add global date range filter component (NEW)
 
-| Archivo | Cambio |
-|---------|--------|
-| `src/lib/data-aggregation.ts` | Eliminar composites, exponer 9 métricas reales |
-| `src/hooks/useGroupChannels.ts` | Sin cambios (ya funciona bien) |
-| `src/pages/dashboard/core/Ecosistema.tsx` | Mostrar métricas reales + desglose por canal |
-| `src/pages/dashboard/core/Canales.tsx` | Métricas reales por plataforma |
-| `src/pages/dashboard/core/MediosGlobal.tsx` | Actualizar a nuevos campos |
-| `src/pages/dashboard/core/Riesgo.tsx` | Actualizar a nuevos campos |
-| `src/pages/dashboard/core/EvolucionGlobal.tsx` | Actualizar a nuevos campos |
+Create `src/components/DateRangeFilter.tsx` — reusable date range picker that can be placed on any page. Uses React state + context to filter data client-side.
 
-## Resultado
-Cero métricas inventadas. Cada dashboard muestra los campos exactos de la BD (9 emocionales + nota + peligro), desglosados por canal y por grupo.
+### 3. Fix Benchmarking — remove invented metrics
+
+Update `src/hooks/useBenchmarkData.ts` and `src/pages/dashboard/core/Benchmarking.tsx`:
+- Remove `fortaleza`, `riesgo`, `potencia` composite fields
+- Replace with the 9 real emotional metrics
+- Radar chart shows all 9 metrics + nota
+- Bar charts show individual real metrics, not composites
+- Ranking based on `nota_media` (primary) and individual emotional metrics
+
+### 4. Update Canales.tsx as channel index
+
+Transform current `Canales.tsx` into a channel index/overview that links to each dedicated channel page. Each channel card becomes a navigation link showing summary KPIs.
+
+### 5. Update routing and sidebar
+
+- Add routes for `/dashboard/canales/noticias`, `/dashboard/canales/facebook`, etc.
+- Update `AppSidebar.tsx` to show channel sub-items under "Canales" (collapsible, like Ayuso)
+
+### 6. Build Explorador with real search
+
+Replace the placeholder `Explorador.tsx` with:
+- Text search across all views (filter by titular/text)
+- Dropdown filters: grupo, canal, nivel de riesgo, date range
+- Results table with clickable URLs
+
+## Files to create/modify
+
+| File | Action |
+|------|--------|
+| `src/pages/dashboard/canales/NoticiasChannel.tsx` | CREATE |
+| `src/pages/dashboard/canales/FacebookChannel.tsx` | CREATE |
+| `src/pages/dashboard/canales/InstagramChannel.tsx` | CREATE |
+| `src/pages/dashboard/canales/TikTokChannel.tsx` | CREATE |
+| `src/pages/dashboard/canales/TwitterChannel.tsx` | CREATE |
+| `src/pages/dashboard/canales/LinkedInChannel.tsx` | CREATE |
+| `src/pages/dashboard/canales/MyBusinessChannel.tsx` | CREATE |
+| `src/components/DateRangeFilter.tsx` | CREATE |
+| `src/components/ChannelPage.tsx` | CREATE (shared layout for all channel pages) |
+| `src/hooks/useChannelData.ts` | CREATE (hook to fetch all groups for a specific channel) |
+| `src/pages/dashboard/core/Canales.tsx` | REWRITE (index with links) |
+| `src/pages/dashboard/core/Benchmarking.tsx` | REWRITE (remove invented metrics) |
+| `src/hooks/useBenchmarkData.ts` | REWRITE (remove composites) |
+| `src/pages/dashboard/core/Explorador.tsx` | REWRITE (real search) |
+| `src/App.tsx` | ADD 7 new routes |
+| `src/components/AppSidebar.tsx` | ADD channel sub-nav |
+
+## Technical details
+
+- `ChannelPage.tsx` is a shared component that takes a channel key and renders the full detail view. Each channel page file is a thin wrapper passing the right config.
+- `useChannelData(channelKey)` hook fetches from all group views for that channel type, using the existing `GROUP_VIEWS` config from `useGroupChannels.ts`.
+- Date filtering is client-side: the hook fetches all data, the `DateRangeFilter` filters the normalized rows by date field before aggregation.
+- Individual mention table shows: fecha, titular (truncated), medio/plataforma, nota, peligro (badge), URL (external link icon).
 
