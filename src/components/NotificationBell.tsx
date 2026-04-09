@@ -1,4 +1,4 @@
-import { Bell, Check, CheckCheck, Settings2, Volume2, VolumeX } from "lucide-react";
+import { Bell, Check, CheckCheck, Volume2, VolumeX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

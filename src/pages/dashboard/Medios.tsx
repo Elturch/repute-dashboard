@@ -13,7 +13,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Search, Check, Minus, ExternalLink, Building, FileText, Star, ArrowUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { cn } from "@/lib/utils";
 
 interface MediaProfile {
   id: number;

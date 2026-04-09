@@ -10,14 +10,13 @@ import {
   Hospital,
   FileText,
   Download,
+  BookOpen,
   Settings,
   Users,
   ShieldCheck,
+  Server,
   ChevronDown,
   Newspaper,
-  Zap,
-  Share2,
-  Flag,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -55,6 +54,7 @@ const coreItems = [
   { title: "Relato IA", url: "/dashboard/relato", icon: FileText },
   { title: "Fund. Jiménez Díaz", url: "/dashboard/fjd", icon: Hospital },
   { title: "Reportes", url: "/dashboard/reportes", icon: Download },
+  { title: "Documentación", url: "/dashboard/docs", icon: BookOpen },
 ];
 
 const ayusoSubItems = [
@@ -73,6 +73,7 @@ const sistemaItems = [
   { title: "Usuarios", url: "/dashboard/sistema/usuarios", icon: Users },
   { title: "Configuración", url: "/dashboard/sistema/configuracion", icon: Settings },
   { title: "Integridad", url: "/dashboard/sistema/integridad", icon: ShieldCheck },
+  { title: "Estado", url: "/dashboard/sistema/estado", icon: Server },
 ];
 
 export function AppSidebar() {
@@ -81,7 +82,7 @@ export function AppSidebar() {
   const isSuperadmin = localStorage.getItem("mr_is_superadmin") === "true";
   const location = useLocation();
   const isInAyuso = location.pathname.startsWith("/dashboard/especiales/ayuso");
-  const isInEspeciales = location.pathname.startsWith("/dashboard/especiales");
+  
 
   const [ayusoOpen, setAyusoOpen] = useState(isInAyuso);
 

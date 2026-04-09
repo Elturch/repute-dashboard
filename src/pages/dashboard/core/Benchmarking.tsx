@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Trophy, Shield, TrendingUp, AlertTriangle, Star } from "lucide-react";
-import { useBenchmarkData, GroupAggregated, GROUPS } from "@/hooks/useBenchmarkData";
+import { useBenchmarkData, GroupAggregated } from "@/hooks/useBenchmarkData";
 
 /* ── Visual constants ── */
 const QS_COLOR = "hsl(217, 91%, 60%)"; // primary
