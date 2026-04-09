@@ -1,13 +1,22 @@
 import {
   Home,
-  Newspaper,
   BarChart3,
+  Network,
+  Radio,
   Building2,
+  TrendingUp,
+  ShieldAlert,
+  Search,
+  Hospital,
+  FileText,
+  Settings,
+  Users,
+  ShieldCheck,
+  ChevronDown,
+  Newspaper,
   Zap,
   Share2,
   Flag,
-  TrendingUp,
-  Settings,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -20,55 +29,85 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { useState } from "react";
 
-const navItems = [
-  { title: "Resumen", url: "/dashboard", icon: Home },
-  { title: "Eventos", url: "/dashboard/eventos", icon: Newspaper },
-  { title: "Métricas", url: "/dashboard/metricas", icon: BarChart3 },
+const coreItems = [
+  { title: "Resumen global", url: "/dashboard", icon: Home, end: true },
+  { title: "Benchmarking", url: "/dashboard/benchmarking", icon: BarChart3 },
+  { title: "Ecosistema", url: "/dashboard/ecosistema", icon: Network },
+  { title: "Canales", url: "/dashboard/canales", icon: Radio },
   { title: "Medios", url: "/dashboard/medios", icon: Building2 },
-  { title: "Cascadas", url: "/dashboard/cascadas", icon: Zap },
-  { title: "Social", url: "/dashboard/social", icon: Share2 },
-  { title: "Hitos", url: "/dashboard/hitos", icon: Flag },
   { title: "Evolución", url: "/dashboard/evolucion", icon: TrendingUp },
+  { title: "Riesgo y alertas", url: "/dashboard/riesgo", icon: ShieldAlert },
+  { title: "Explorador", url: "/dashboard/explorador", icon: Search },
+  { title: "Fund. Jiménez Díaz", url: "/dashboard/fjd", icon: Hospital },
 ];
 
-const adminItems = [
-  { title: "Administración", url: "/dashboard/admin", icon: Settings },
+const ayusoSubItems = [
+  { title: "Resumen", url: "/dashboard/especiales/ayuso" },
+  { title: "Eventos", url: "/dashboard/especiales/ayuso/eventos" },
+  { title: "Métricas", url: "/dashboard/especiales/ayuso/metricas" },
+  { title: "Medios", url: "/dashboard/especiales/ayuso/medios" },
+  { title: "Cascadas", url: "/dashboard/especiales/ayuso/cascadas" },
+  { title: "Social", url: "/dashboard/especiales/ayuso/social" },
+  { title: "Hitos", url: "/dashboard/especiales/ayuso/hitos" },
+  { title: "Evolución", url: "/dashboard/especiales/ayuso/evolucion" },
+];
+
+const sistemaItems = [
+  { title: "Administración", url: "/dashboard/sistema/admin", icon: Settings },
+  { title: "Usuarios", url: "/dashboard/sistema/usuarios", icon: Users },
+  { title: "Configuración", url: "/dashboard/sistema/configuracion", icon: Settings },
+  { title: "Integridad", url: "/dashboard/sistema/integridad", icon: ShieldCheck },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const isSuperadmin = localStorage.getItem("mr_is_superadmin") === "true";
+  const location = useLocation();
+  const isInAyuso = location.pathname.startsWith("/dashboard/especiales/ayuso");
+  const isInEspeciales = location.pathname.startsWith("/dashboard/especiales");
+
+  const [ayusoOpen, setAyusoOpen] = useState(isInAyuso);
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
         {!collapsed && (
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-sidebar-foreground/60 uppercase tracking-wider">
-              Estudio activo
+          <div className="space-y-0.5">
+            <p className="text-xs font-bold text-sidebar-primary uppercase tracking-wider">
+              Quirónsalud 4.0
             </p>
-            <p className="text-sm font-semibold text-sidebar-primary-foreground truncate">
-              Quirónsalud / Ayuso
+            <p className="text-[11px] text-sidebar-foreground/50">
+              Monitor Reputacional
             </p>
           </div>
         )}
       </SidebarHeader>
       <SidebarContent>
+        {/* ── Core Quirón ── */}
         <SidebarGroup>
-          <SidebarGroupLabel>Navegación</SidebarGroupLabel>
+          <SidebarGroupLabel>Core Quirón</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+              {coreItems.map((item) => (
+                <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      end={item.url === "/dashboard"}
+                      end={item.end}
                       className="hover:bg-sidebar-accent/50"
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                     >
@@ -82,13 +121,70 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* ── Especiales ── */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Especiales</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to="/dashboard/especiales"
+                    end
+                    className="hover:bg-sidebar-accent/50"
+                    activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>Índice</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              {!collapsed && (
+                <Collapsible open={ayusoOpen || isInAyuso} onOpenChange={setAyusoOpen}>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton className="hover:bg-sidebar-accent/50 w-full justify-between">
+                        <span className="flex items-center">
+                          <Newspaper className="mr-2 h-4 w-4" />
+                          <span>Especial Ayuso</span>
+                        </span>
+                        <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${ayusoOpen || isInAyuso ? "rotate-180" : ""}`} />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {ayusoSubItems.map((sub) => (
+                          <SidebarMenuSubItem key={sub.url}>
+                            <SidebarMenuSubButton asChild>
+                              <NavLink
+                                to={sub.url}
+                                end={sub.url === "/dashboard/especiales/ayuso"}
+                                className="hover:bg-sidebar-accent/50 text-xs"
+                                activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                              >
+                                {sub.title}
+                              </NavLink>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              )}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* ── Sistema ── */}
         {isSuperadmin && (
           <SidebarGroup>
             <SidebarGroupLabel>Sistema</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {adminItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
+                {sistemaItems.map((item) => (
+                  <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild>
                       <NavLink
                         to={item.url}
