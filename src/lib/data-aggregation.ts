@@ -51,38 +51,62 @@ export function avg(arr: (number | null | undefined)[]): number {
   return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(2) : 0;
 }
 
+/** Métricas emocionales reales de la BD */
+export const METRIC_KEYS = [
+  'preocupacion', 'rechazo', 'descredito',
+  'afinidad', 'fiabilidad', 'admiracion',
+  'impacto', 'influencia', 'compromiso',
+] as const;
+
+export type MetricKey = typeof METRIC_KEYS[number];
+
+export const METRIC_LABELS: Record<MetricKey, string> = {
+  preocupacion: 'Preocupación',
+  rechazo: 'Rechazo',
+  descredito: 'Descrédito',
+  afinidad: 'Afinidad',
+  fiabilidad: 'Fiabilidad',
+  admiracion: 'Admiración',
+  impacto: 'Impacto',
+  influencia: 'Influencia',
+  compromiso: 'Compromiso',
+};
+
 export interface ChannelAgg {
   channel: string;
   label: string;
   count: number;
   nota: number;
-  fortaleza: number;
-  riesgo: number;
-  potencia: number;
+  preocupacion: number;
+  rechazo: number;
+  descredito: number;
+  afinidad: number;
+  fiabilidad: number;
+  admiracion: number;
+  impacto: number;
+  influencia: number;
+  compromiso: number;
   peligroAltoPct: number;
   avgRating: number | null;
 }
 
 export function aggregateChannel(channel: string, label: string, rows: RawRow[]): ChannelAgg {
   const n = rows.map(normalize);
-  const nota = avg(n.map(r => r.nota));
-  const afinidad = avg(n.map(r => r.afinidad));
-  const fiabilidad = avg(n.map(r => r.fiabilidad));
-  const admiracion = avg(n.map(r => r.admiracion));
-  const preocupacion = avg(n.map(r => r.preocupacion));
-  const rechazo = avg(n.map(r => r.rechazo));
-  const descredito = avg(n.map(r => r.descredito));
-  const impacto = avg(n.map(r => r.impacto));
-  const influencia = avg(n.map(r => r.influencia));
   const peligroAlto = n.filter(r => r.peligro.includes('alto') || r.peligro.includes('criti')).length;
   const ratings = n.map(r => r.rating).filter((x): x is number => x != null);
 
   return {
     channel, label, count: rows.length,
-    nota,
-    fortaleza: +((nota + afinidad + fiabilidad + admiracion) / 4).toFixed(2),
-    riesgo: +((preocupacion + descredito + rechazo) / 3).toFixed(2),
-    potencia: +((influencia + impacto) / 2).toFixed(2),
+    nota: avg(n.map(r => r.nota)),
+    preocupacion: avg(n.map(r => r.preocupacion)),
+    rechazo: avg(n.map(r => r.rechazo)),
+    descredito: avg(n.map(r => r.descredito)),
+    afinidad: avg(n.map(r => r.afinidad)),
+    fiabilidad: avg(n.map(r => r.fiabilidad)),
+    admiracion: avg(n.map(r => r.admiracion)),
+    impacto: avg(n.map(r => r.impacto)),
+    influencia: avg(n.map(r => r.influencia)),
+    compromiso: avg(n.map(r => r.compromiso)),
     peligroAltoPct: rows.length ? +((peligroAlto / rows.length) * 100).toFixed(1) : 0,
     avgRating: ratings.length ? +(ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : null,
   };
@@ -94,15 +118,21 @@ export interface GroupAgg {
   channels: ChannelAgg[];
   totalCount: number;
   nota: number;
-  fortaleza: number;
-  riesgo: number;
-  potencia: number;
+  preocupacion: number;
+  rechazo: number;
+  descredito: number;
+  afinidad: number;
+  fiabilidad: number;
+  admiracion: number;
+  impacto: number;
+  influencia: number;
+  compromiso: number;
   peligroAltoPct: number;
 }
 
 export function aggregateGroup(groupKey: string, label: string, channels: ChannelAgg[]): GroupAgg {
   const totalCount = channels.reduce((s, c) => s + c.count, 0);
-  const weighted = (field: keyof Pick<ChannelAgg, 'nota' | 'fortaleza' | 'riesgo' | 'potencia'>) => {
+  const weighted = (field: MetricKey | 'nota') => {
     if (totalCount === 0) return 0;
     const sum = channels.reduce((s, c) => s + c[field] * c.count, 0);
     return +(sum / totalCount).toFixed(2);
@@ -112,9 +142,15 @@ export function aggregateGroup(groupKey: string, label: string, channels: Channe
   return {
     groupKey, label, channels, totalCount,
     nota: weighted('nota'),
-    fortaleza: weighted('fortaleza'),
-    riesgo: weighted('riesgo'),
-    potencia: weighted('potencia'),
+    preocupacion: weighted('preocupacion'),
+    rechazo: weighted('rechazo'),
+    descredito: weighted('descredito'),
+    afinidad: weighted('afinidad'),
+    fiabilidad: weighted('fiabilidad'),
+    admiracion: weighted('admiracion'),
+    impacto: weighted('impacto'),
+    influencia: weighted('influencia'),
+    compromiso: weighted('compromiso'),
     peligroAltoPct: totalCount ? +((peligroAltoTotal / totalCount) * 100).toFixed(1) : 0,
   };
 }
