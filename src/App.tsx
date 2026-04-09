@@ -15,6 +15,7 @@ import EvolucionGlobal from "./pages/dashboard/core/EvolucionGlobal";
 import Riesgo from "./pages/dashboard/core/Riesgo";
 import Explorador from "./pages/dashboard/core/Explorador";
 import FJD from "./pages/dashboard/core/FJD";
+import Relato from "./pages/dashboard/core/Relato";
 
 // Especiales
 import EspecialesIndex from "./pages/dashboard/especiales/EspecialesIndex";
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="riesgo" element={<Riesgo />} />
             <Route path="explorador" element={<Explorador />} />
             <Route path="fjd" element={<FJD />} />
+            <Route path="relato" element={<Relato />} />
 
             {/* Especiales */}
             <Route path="especiales" element={<EspecialesIndex />} />
