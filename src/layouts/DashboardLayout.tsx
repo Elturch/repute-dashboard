@@ -1,8 +1,9 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Monitor } from "lucide-react";
+import { Monitor, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ExportButton } from "@/components/ExportButton";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -18,10 +19,16 @@ const DashboardLayout = () => {
                 Quirónsalud 4.0
               </span>
             </div>
-            <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => navigate("/dashboard/tv")}>
-              <Monitor className="h-3.5 w-3.5" />
-              Modo TV P
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => navigate("/dashboard/reportes")}>
+                <Download className="h-3.5 w-3.5" />
+                Reportes
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => navigate("/dashboard/tv")}>
+                <Monitor className="h-3.5 w-3.5" />
+                Modo TV P
+              </Button>
+            </div>
           </header>
           <main className="flex-1 p-6">
             <Outlet />
