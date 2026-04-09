@@ -78,7 +78,7 @@ export function AppSidebar() {
   const isSuperadmin = localStorage.getItem("mr_is_superadmin") === "true";
   const location = useLocation();
   const isInAyuso = location.pathname.startsWith("/dashboard/especiales/ayuso");
-  const isInEspeciales = location.pathname.startsWith("/dashboard/especiales");
+  
 
   const [ayusoOpen, setAyusoOpen] = useState(isInAyuso);
 

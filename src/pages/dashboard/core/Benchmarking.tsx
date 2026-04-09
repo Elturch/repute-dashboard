@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Trophy, Shield, TrendingUp, AlertTriangle } from "lucide-react";
+import { Trophy, Shield, TrendingUp, AlertTriangle, Star } from "lucide-react";
 import { useBenchmarkData, GroupAggregated } from "@/hooks/useBenchmarkData";
 
 /* ── Visual constants ── */
