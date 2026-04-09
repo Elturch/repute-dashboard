@@ -3,7 +3,6 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Monitor, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ExportButton } from "@/components/ExportButton";
 import { NotificationBell } from "@/components/NotificationBell";
 
 const DashboardLayout = () => {

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { externalSupabase } from "@/integrations/external-supabase/client";
 import { toast } from "sonner";
-import { Shield, Plus, Pencil, Trash2, Download, Users, BookOpen, BarChart3, ExternalLink } from "lucide-react";
+import { Shield, Plus, Pencil, Trash2, Download, Users, BookOpen, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

@@ -15,9 +15,6 @@ import {
   ShieldCheck,
   ChevronDown,
   Newspaper,
-  Zap,
-  Share2,
-  Flag,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
