@@ -1,13 +1,56 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Network, TrendingUp, ShieldAlert, Zap, Building2 } from "lucide-react";
+import { Network, Building2 } from "lucide-react";
 import { useAllGroups } from "@/hooks/useGroupChannels";
-import type { GroupAgg } from "@/lib/data-aggregation";
+import { METRIC_KEYS, METRIC_LABELS, type GroupAgg, type ChannelAgg } from "@/lib/data-aggregation";
 
 function NotaIndicator({ value }: { value: number }) {
   const color = value >= 7 ? 'text-green-400' : value >= 5 ? 'text-yellow-400' : 'text-red-400';
   return <span className={`text-2xl font-bold ${color}`}>{value.toFixed(1)}</span>;
+}
+
+function MetricCell({ value }: { value: number }) {
+  const color = value >= 7 ? 'text-green-400' : value >= 5 ? 'text-yellow-400' : value > 0 ? 'text-red-400' : 'text-muted-foreground';
+  return <td className={`text-center py-1 px-1 ${color} text-xs`}>{value > 0 ? value.toFixed(1) : '—'}</td>;
+}
+
+function ChannelTable({ channels }: { channels: ChannelAgg[] }) {
+  const active = channels.filter(c => c.count > 0);
+  if (!active.length) return null;
+
+  return (
+    <div className="overflow-x-auto mt-2">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-border/50">
+            <th className="text-left py-1 pr-2 text-muted-foreground">Canal</th>
+            <th className="text-center py-1 px-1 text-muted-foreground">N</th>
+            <th className="text-center py-1 px-1 text-muted-foreground">Nota</th>
+            {METRIC_KEYS.map(k => (
+              <th key={k} className="text-center py-1 px-1 text-muted-foreground" title={METRIC_LABELS[k]}>
+                {METRIC_LABELS[k].slice(0, 4)}
+              </th>
+            ))}
+            <th className="text-center py-1 px-1 text-muted-foreground">%Pel</th>
+          </tr>
+        </thead>
+        <tbody>
+          {active.map(ch => (
+            <tr key={ch.channel} className="border-b border-border/20">
+              <td className="py-1 pr-2 text-foreground">{ch.label}</td>
+              <td className="text-center py-1 px-1 text-muted-foreground">{ch.count}</td>
+              <MetricCell value={ch.nota} />
+              {METRIC_KEYS.map(k => <MetricCell key={k} value={ch[k]} />)}
+              <td className="text-center py-1 px-1 text-red-400 text-xs">
+                {ch.peligroAltoPct > 0 ? `${ch.peligroAltoPct}%` : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 function GroupCard({ group, highlight }: { group: GroupAgg; highlight?: boolean }) {
@@ -20,35 +63,12 @@ function GroupCard({ group, highlight }: { group: GroupAgg; highlight?: boolean 
           {highlight && <Badge variant="default" className="text-xs">Principal</Badge>}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2">
         <div className="flex items-baseline justify-between">
           <NotaIndicator value={group.nota} />
           <span className="text-xs text-muted-foreground">{group.totalCount} menciones</span>
         </div>
-        <div className="grid grid-cols-3 gap-2 text-xs">
-          <div className="text-center">
-            <TrendingUp className="h-3 w-3 mx-auto text-green-400 mb-1" />
-            <p className="text-muted-foreground">Fortaleza</p>
-            <p className="font-medium text-foreground">{group.fortaleza.toFixed(1)}</p>
-          </div>
-          <div className="text-center">
-            <ShieldAlert className="h-3 w-3 mx-auto text-orange-400 mb-1" />
-            <p className="text-muted-foreground">Riesgo</p>
-            <p className="font-medium text-foreground">{group.riesgo.toFixed(1)}</p>
-          </div>
-          <div className="text-center">
-            <Zap className="h-3 w-3 mx-auto text-blue-400 mb-1" />
-            <p className="text-muted-foreground">Potencia</p>
-            <p className="font-medium text-foreground">{group.potencia.toFixed(1)}</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {group.channels.filter(c => c.count > 0).map(ch => (
-            <Badge key={ch.channel} variant="outline" className="text-[10px]">
-              {ch.label}: {ch.count}
-            </Badge>
-          ))}
-        </div>
+        <ChannelTable channels={group.channels} />
       </CardContent>
     </Card>
   );
@@ -61,10 +81,8 @@ const Ecosistema = () => {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-foreground">Ecosistema Hospitalario</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <Skeleton key={i} className="h-48" />
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-48" />)}
         </div>
       </div>
     );
@@ -93,7 +111,7 @@ const Ecosistema = () => {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Ecosistema Hospitalario</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Visión global de {groups.length} universos · {groups.reduce((s, g) => s + g.totalCount, 0).toLocaleString()} menciones totales
+          {groups.length} universos · {groups.reduce((s, g) => s + g.totalCount, 0).toLocaleString()} menciones · 9 métricas emocionales + nota + peligro
         </p>
       </div>
 
@@ -101,7 +119,7 @@ const Ecosistema = () => {
         <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
           <Network className="h-5 w-5 text-primary" /> Perímetro Quirónsalud
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {primary.map(g => (
             <GroupCard key={g.groupKey} group={g} highlight={g.groupKey === 'quironsalud'} />
           ))}
@@ -110,7 +128,7 @@ const Ecosistema = () => {
 
       <div>
         <h2 className="text-lg font-semibold text-foreground mb-3">Contexto competitivo y público</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {others.map(g => (
             <GroupCard key={g.groupKey} group={g} />
           ))}
@@ -119,7 +137,7 @@ const Ecosistema = () => {
 
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="text-sm">Comparativa de métricas por grupo</CardTitle>
+          <CardTitle className="text-sm">Comparativa global por grupo</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -127,24 +145,24 @@ const Ecosistema = () => {
               <thead>
                 <tr className="border-b border-border/50">
                   <th className="text-left py-2 pr-4 text-muted-foreground">Grupo</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground">Menciones</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground">Nota</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground">Fortaleza</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground">Riesgo</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground">Potencia</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground">% Peligro alto</th>
+                  <th className="text-center py-2 px-1 text-muted-foreground">N</th>
+                  <th className="text-center py-2 px-1 text-muted-foreground">Nota</th>
+                  {METRIC_KEYS.map(k => (
+                    <th key={k} className="text-center py-2 px-1 text-muted-foreground" title={METRIC_LABELS[k]}>
+                      {METRIC_LABELS[k].slice(0, 4)}
+                    </th>
+                  ))}
+                  <th className="text-center py-2 px-1 text-muted-foreground">%Pel</th>
                 </tr>
               </thead>
               <tbody>
                 {groups.map(g => (
                   <tr key={g.groupKey} className="border-b border-border/30">
                     <td className="py-2 pr-4 font-medium text-foreground">{g.label}</td>
-                    <td className="text-center py-2 px-2 text-foreground">{g.totalCount}</td>
-                    <td className="text-center py-2 px-2 text-foreground">{g.nota.toFixed(1)}</td>
-                    <td className="text-center py-2 px-2 text-green-400">{g.fortaleza.toFixed(1)}</td>
-                    <td className="text-center py-2 px-2 text-orange-400">{g.riesgo.toFixed(1)}</td>
-                    <td className="text-center py-2 px-2 text-blue-400">{g.potencia.toFixed(1)}</td>
-                    <td className="text-center py-2 px-2 text-red-400">{g.peligroAltoPct.toFixed(1)}%</td>
+                    <td className="text-center py-2 px-1 text-foreground">{g.totalCount}</td>
+                    <MetricCell value={g.nota} />
+                    {METRIC_KEYS.map(k => <MetricCell key={k} value={g[k]} />)}
+                    <td className="text-center py-2 px-1 text-red-400">{g.peligroAltoPct.toFixed(1)}%</td>
                   </tr>
                 ))}
               </tbody>

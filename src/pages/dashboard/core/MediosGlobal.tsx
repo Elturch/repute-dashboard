@@ -2,14 +2,20 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNoticiasGeneralFiltradas } from "@/hooks/useAuxiliaryData";
-import { normalize, avg, type RawRow } from "@/lib/data-aggregation";
+import { normalize, avg, METRIC_KEYS, METRIC_LABELS, type RawRow } from "@/lib/data-aggregation";
 
 interface MedioAgg {
   medio: string;
   count: number;
   nota: number;
+  metrics: Record<string, number>;
   riesgoAlto: number;
   riesgoPct: number;
+}
+
+function MetricCell({ value }: { value: number }) {
+  const color = value >= 7 ? 'text-green-400' : value >= 5 ? 'text-yellow-400' : value > 0 ? 'text-red-400' : 'text-muted-foreground';
+  return <td className={`text-center py-2 px-1 ${color} text-xs`}>{value > 0 ? value.toFixed(1) : '—'}</td>;
 }
 
 const MediosGlobal = () => {
@@ -27,8 +33,10 @@ const MediosGlobal = () => {
     for (const [medio, rows] of map) {
       const normalized = rows.map(normalize);
       const nota = avg(normalized.map(r => r.nota));
+      const metrics: Record<string, number> = {};
+      for (const k of METRIC_KEYS) metrics[k] = avg(normalized.map(r => r[k]));
       const riesgoAlto = normalized.filter(r => r.peligro.includes('alto') || r.peligro.includes('criti')).length;
-      result.push({ medio, count: rows.length, nota, riesgoAlto, riesgoPct: rows.length ? +((riesgoAlto / rows.length) * 100).toFixed(1) : 0 });
+      result.push({ medio, count: rows.length, nota, metrics, riesgoAlto, riesgoPct: rows.length ? +((riesgoAlto / rows.length) * 100).toFixed(1) : 0 });
     }
     return result.sort((a, b) => b.count - a.count);
   }, [noticias]);
@@ -80,7 +88,7 @@ const MediosGlobal = () => {
 
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="text-sm">Top 20 medios por volumen</CardTitle>
+          <CardTitle className="text-sm">Top 20 medios por volumen — métricas reales</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -89,26 +97,27 @@ const MediosGlobal = () => {
                 <tr className="border-b border-border/50">
                   <th className="text-left py-2 pr-4 text-muted-foreground text-xs">#</th>
                   <th className="text-left py-2 pr-4 text-muted-foreground text-xs">Medio</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground text-xs">Noticias</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground text-xs">Nota media</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground text-xs">Riesgo alto</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground text-xs">% Riesgo</th>
+                  <th className="text-center py-2 px-1 text-muted-foreground text-xs">N</th>
+                  <th className="text-center py-2 px-1 text-muted-foreground text-xs">Nota</th>
+                  {METRIC_KEYS.map(k => (
+                    <th key={k} className="text-center py-2 px-1 text-muted-foreground text-xs" title={METRIC_LABELS[k]}>
+                      {METRIC_LABELS[k].slice(0, 4)}
+                    </th>
+                  ))}
+                  <th className="text-center py-2 px-1 text-muted-foreground text-xs">%Riesgo</th>
                 </tr>
               </thead>
               <tbody>
-                {top20.map((m, i) => {
-                  const notaColor = m.nota >= 7 ? 'text-green-400' : m.nota >= 5 ? 'text-yellow-400' : 'text-red-400';
-                  return (
-                    <tr key={m.medio} className="border-b border-border/30">
-                      <td className="py-2 pr-4 text-muted-foreground">{i + 1}</td>
-                      <td className="py-2 pr-4 font-medium text-foreground">{m.medio}</td>
-                      <td className="text-center py-2 px-2 text-foreground">{m.count}</td>
-                      <td className={`text-center py-2 px-2 font-medium ${notaColor}`}>{m.nota.toFixed(1)}</td>
-                      <td className="text-center py-2 px-2 text-red-400">{m.riesgoAlto}</td>
-                      <td className="text-center py-2 px-2 text-muted-foreground">{m.riesgoPct.toFixed(1)}%</td>
-                    </tr>
-                  );
-                })}
+                {top20.map((m, i) => (
+                  <tr key={m.medio} className="border-b border-border/30">
+                    <td className="py-2 pr-4 text-muted-foreground">{i + 1}</td>
+                    <td className="py-2 pr-4 font-medium text-foreground text-xs">{m.medio}</td>
+                    <td className="text-center py-2 px-1 text-foreground text-xs">{m.count}</td>
+                    <MetricCell value={m.nota} />
+                    {METRIC_KEYS.map(k => <MetricCell key={k} value={m.metrics[k]} />)}
+                    <td className="text-center py-2 px-1 text-red-400 text-xs">{m.riesgoPct.toFixed(1)}%</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

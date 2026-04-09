@@ -1,8 +1,10 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Radio, Newspaper, Facebook, Instagram, Twitter, Linkedin, MapPin, Music2 } from "lucide-react";
 import { useAllGroups } from "@/hooks/useGroupChannels";
+import { METRIC_KEYS, METRIC_LABELS, type ChannelAgg } from "@/lib/data-aggregation";
+
 
 const CHANNEL_ICONS: Record<string, React.ElementType> = {
   noticias: Newspaper,
@@ -15,14 +17,24 @@ const CHANNEL_ICONS: Record<string, React.ElementType> = {
 };
 
 const CHANNEL_ORDER = ['noticias', 'facebook', 'instagram', 'tiktok', 'twitter', 'linkedin', 'mybusiness'];
+const CHANNEL_LABELS: Record<string, string> = {
+  noticias: 'Noticias', facebook: 'Facebook', instagram: 'Instagram',
+  tiktok: 'TikTok', twitter: 'X / Twitter', linkedin: 'LinkedIn', mybusiness: 'My Business',
+};
 
-interface ChannelRow {
+interface ChannelCross {
   channel: string;
   label: string;
   totalCount: number;
-  avgNota: number;
-  avgRiesgo: number;
+  nota: number;
+  metrics: Record<string, number>;
+  peligroAltoPct: number;
   groups: { groupKey: string; label: string; count: number; nota: number }[];
+}
+
+function MetricCell({ value }: { value: number }) {
+  const color = value >= 7 ? 'text-green-400' : value >= 5 ? 'text-yellow-400' : value > 0 ? 'text-red-400' : 'text-muted-foreground';
+  return <td className={`text-center py-1.5 px-1 ${color} text-xs`}>{value > 0 ? value.toFixed(1) : '—'}</td>;
 }
 
 const Canales = () => {
@@ -53,34 +65,62 @@ const Canales = () => {
     );
   }
 
-  const channelMap = new Map<string, ChannelRow>();
-  for (const ch of CHANNEL_ORDER) {
-    channelMap.set(ch, { channel: ch, label: '', totalCount: 0, avgNota: 0, avgRiesgo: 0, groups: [] });
-  }
+  // Aggregate channels across all groups
+  const channelMap = new Map<string, { channels: ChannelAgg[]; groups: { groupKey: string; label: string; ch: ChannelAgg }[] }>();
 
   for (const group of groups) {
     for (const ch of group.channels) {
-      let row = channelMap.get(ch.channel);
-      if (!row) {
-        row = { channel: ch.channel, label: ch.label, totalCount: 0, avgNota: 0, avgRiesgo: 0, groups: [] };
-        channelMap.set(ch.channel, row);
-      }
-      if (!row.label) row.label = ch.label;
-      row.totalCount += ch.count;
-      row.groups.push({ groupKey: group.groupKey, label: group.label, count: ch.count, nota: ch.nota });
+      if (ch.count === 0) continue;
+      if (!channelMap.has(ch.channel)) channelMap.set(ch.channel, { channels: [], groups: [] });
+      const entry = channelMap.get(ch.channel)!;
+      entry.channels.push(ch);
+      entry.groups.push({ groupKey: group.groupKey, label: group.label, ch });
     }
   }
 
-  const channelRows = Array.from(channelMap.values())
-    .filter(r => r.totalCount > 0)
-    .map(r => {
-      const withData = r.groups.filter(g => g.count > 0);
-      const totalMentions = withData.reduce((s, g) => s + g.count, 0);
-      r.avgNota = totalMentions > 0 
-        ? +(withData.reduce((s, g) => s + g.nota * g.count, 0) / totalMentions).toFixed(2) 
-        : 0;
-      return r;
+  const channelRows: ChannelCross[] = CHANNEL_ORDER
+    .filter(ch => channelMap.has(ch))
+    .map(ch => {
+      const entry = channelMap.get(ch)!;
+      const totalCount = entry.channels.reduce((s, c) => s + c.count, 0);
+      const weightedAvg = (field: keyof ChannelAgg) => {
+        if (totalCount === 0) return 0;
+        const sum = entry.channels.reduce((s, c) => s + (c[field] as number) * c.count, 0);
+        return +(sum / totalCount).toFixed(2);
+      };
+      const metrics: Record<string, number> = {};
+      for (const k of METRIC_KEYS) metrics[k] = weightedAvg(k);
+      const peligroTotal = entry.channels.reduce((s, c) => s + Math.round(c.peligroAltoPct * c.count / 100), 0);
+
+      return {
+        channel: ch,
+        label: CHANNEL_LABELS[ch] || ch,
+        totalCount,
+        nota: weightedAvg('nota'),
+        metrics,
+        peligroAltoPct: totalCount ? +((peligroTotal / totalCount) * 100).toFixed(1) : 0,
+        groups: entry.groups.map(g => ({ groupKey: g.groupKey, label: g.label, count: g.ch.count, nota: g.ch.nota })),
+      };
     });
+
+  // Also add any channels not in CHANNEL_ORDER
+  for (const [ch, entry] of channelMap) {
+    if (!CHANNEL_ORDER.includes(ch)) {
+      const totalCount = entry.channels.reduce((s, c) => s + c.count, 0);
+      const weightedAvg = (field: keyof ChannelAgg) => {
+        if (totalCount === 0) return 0;
+        const sum = entry.channels.reduce((s, c) => s + (c[field] as number) * c.count, 0);
+        return +(sum / totalCount).toFixed(2);
+      };
+      const metrics: Record<string, number> = {};
+      for (const k of METRIC_KEYS) metrics[k] = weightedAvg(k);
+      channelRows.push({
+        channel: ch, label: ch, totalCount, nota: weightedAvg('nota'), metrics,
+        peligroAltoPct: 0,
+        groups: entry.groups.map(g => ({ groupKey: g.groupKey, label: g.label, count: g.ch.count, nota: g.ch.nota })),
+      });
+    }
+  }
 
   const totalMentions = channelRows.reduce((s, r) => s + r.totalCount, 0);
 
@@ -93,40 +133,59 @@ const Canales = () => {
         </p>
       </div>
 
-      <div className="space-y-3">
-        {channelRows.map(row => {
-          const Icon = CHANNEL_ICONS[row.channel] || Radio;
-          const topGroups = row.groups.filter(g => g.count > 0).sort((a, b) => b.count - a.count).slice(0, 5);
-          const notaColor = row.avgNota >= 7 ? 'text-green-400' : row.avgNota >= 5 ? 'text-yellow-400' : 'text-red-400';
+      {channelRows.map(row => {
+        const Icon = CHANNEL_ICONS[row.channel] || Radio;
+        const notaColor = row.nota >= 7 ? 'text-green-400' : row.nota >= 5 ? 'text-yellow-400' : 'text-red-400';
+        const topGroups = row.groups.sort((a, b) => b.count - a.count).slice(0, 6);
 
-          return (
-            <Card key={row.channel} className="border-border/50">
-              <CardContent className="py-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-3 min-w-[140px]">
-                    <Icon className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium text-foreground">{row.label}</p>
-                      <p className="text-xs text-muted-foreground">{row.totalCount.toLocaleString()} menciones</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 min-w-[80px]">
-                    <span className={`text-lg font-bold ${notaColor}`}>{row.avgNota.toFixed(1)}</span>
-                    <span className="text-xs text-muted-foreground">nota</span>
-                  </div>
-                  <div className="flex-1 flex flex-wrap gap-1">
-                    {topGroups.map(g => (
-                      <Badge key={g.groupKey} variant="outline" className="text-[10px]">
-                        {g.label}: {g.count}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+        return (
+          <Card key={row.channel} className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-3">
+                <Icon className="h-5 w-5 text-muted-foreground" />
+                {row.label}
+                <span className="text-xs text-muted-foreground font-normal ml-auto">
+                  {row.totalCount.toLocaleString()} menciones
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Global metrics for this channel */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border/50">
+                      <th className="text-center py-1 px-1 text-muted-foreground">Nota</th>
+                      {METRIC_KEYS.map(k => (
+                        <th key={k} className="text-center py-1 px-1 text-muted-foreground" title={METRIC_LABELS[k]}>
+                          {METRIC_LABELS[k].slice(0, 4)}
+                        </th>
+                      ))}
+                      <th className="text-center py-1 px-1 text-muted-foreground">%Peligro</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className={`text-center py-1 px-1 font-bold ${notaColor}`}>{row.nota.toFixed(1)}</td>
+                      {METRIC_KEYS.map(k => <MetricCell key={k} value={row.metrics[k]} />)}
+                      <td className="text-center py-1 px-1 text-red-400">{row.peligroAltoPct > 0 ? `${row.peligroAltoPct}%` : '—'}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Breakdown by group */}
+              <div className="flex flex-wrap gap-1">
+                {topGroups.map(g => (
+                  <Badge key={g.groupKey} variant="outline" className="text-[10px]">
+                    {g.label}: {g.count} ({g.nota.toFixed(1)})
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 };
