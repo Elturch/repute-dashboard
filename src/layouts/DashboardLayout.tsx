@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Monitor, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExportButton } from "@/components/ExportButton";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ const DashboardLayout = () => {
               </span>
             </div>
             <div className="flex items-center gap-2">
+              <NotificationBell />
               <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => navigate("/dashboard/reportes")}>
                 <Download className="h-3.5 w-3.5" />
                 Reportes
