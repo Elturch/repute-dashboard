@@ -1,75 +1,68 @@
 
 
-# Plan: Implementar capa de datos + 5 dashboards con datos reales
+# Plan: Métricas reales y separación por canal
 
-## Bloque 1: Capa de datos compartida (3 archivos nuevos)
+## Problema actual
 
-### `src/lib/data-aggregation.ts`
-Funciones compartidas extraídas de `useFJDData.ts`: `normalize()` (maneja PascalCase/snake_case), `avg()`, `aggregateChannel()`. Reutilizables por todos los hooks.
+1. **Métricas inventadas**: "Fortaleza", "Riesgo" y "Potencia" son composites arbitrarios que no existen en la BD. Los campos reales son las **9 métricas emocionales individuales** + `nota_media_ponderada` + `peligro_reputacional`.
+2. **Sin separación por canal**: Todo se agrega en un número por grupo. No se distingue Noticias de Facebook de Instagram, etc.
 
-### `src/hooks/useGroupChannels.ts`
-Hook genérico que dado un grupo (`quironsalud`, `sermas`, `catsalut`, etc.) consulta TODOS sus canales (noticias + FB + IG + TikTok + X + LinkedIn + MyBusiness). Configuración por grupo:
+## Cambios
 
-```text
-quironsalud  → 5 vistas (noticias + 4 redes)
-gh_privados  → 5 vistas
-sermas       → 7 vistas (+ linkedin + my_business)
-gestion_qs   → 5 vistas
-catsalut     → 5 vistas
-catsalut_qs  → 5 vistas
-fjd          → 6 vistas (ya en useFJDData, se reutiliza)
-general      → 6 vistas (_general_filtradas + linkedin_gh)
-alta_compl   → 1 vista (solo noticias)
+### 1. `src/lib/data-aggregation.ts` — Eliminar métricas inventadas
+
+Reemplazar `ChannelAgg` para exponer las 9 métricas reales individualmente:
+
+```typescript
+export interface ChannelAgg {
+  channel: string;
+  label: string;
+  count: number;
+  nota: number;           // nota_media_ponderada (real)
+  preocupacion: number;   // real
+  rechazo: number;        // real
+  descredito: number;     // real
+  afinidad: number;       // real
+  fiabilidad: number;     // real
+  admiracion: number;     // real
+  impacto: number;        // real
+  influencia: number;     // real
+  compromiso: number;     // real
+  peligroAltoPct: number; // % peligro alto/critico (real)
+  avgRating: number|null; // solo MyBusiness
+}
 ```
 
-### `src/hooks/useAuxiliaryData.ts`
-Hooks para tablas auxiliares: `useCrossAmplification()`, `useMediaProfiles()`, `useKeywords()`, `useTipoHospital()`.
+Eliminar los campos `fortaleza`, `riesgo`, `potencia` de `ChannelAgg` y `GroupAgg`. La función `aggregateChannel` devolverá cada métrica real por separado sin inventar composites.
 
-## Bloque 2: Refactor de `useFJDData.ts`
-Importar `normalize`/`avg`/`aggregateChannel` desde `data-aggregation.ts` en lugar de definirlos inline. Sin cambio funcional.
+### 2. `src/pages/dashboard/core/Ecosistema.tsx` — Métricas reales + desglose por canal
 
-## Bloque 3: Reescritura de 5 dashboards
+Cada grupo mostrará:
+- `nota_media_ponderada` como KPI principal
+- Una tabla con cada canal (Noticias, FB, IG, TikTok, X, LinkedIn, MyBusiness) mostrando: menciones, nota, y las 9 métricas emocionales reales
+- `peligro_reputacional` como badge por canal
+- Sin "Fortaleza", "Riesgo" ni "Potencia"
 
-### 1. Ecosistema (`Ecosistema.tsx`)
-- Grid de 9 grupos con KPIs reales (nota, fortaleza, riesgo, volumen por canal)
-- Quironsalud destacado como grupo primario
-- Tabla comparativa con 9 metricas emocionales
-- Datos de `useGroupChannels` para cada grupo
+### 3. `src/pages/dashboard/core/Canales.tsx` — Desglose real por plataforma
 
-### 2. Canales (`Canales.tsx`)
-- Una fila por canal (Noticias, FB, IG, TikTok, X, LinkedIn, MyBusiness)
-- Volumen total sumando todos los grupos, nota media, riesgo
-- Comparativa entre grupos dentro de cada canal
+Cada fila de canal mostrará las 9 métricas reales, no composites inventados. La comparativa entre grupos dentro de cada canal usará los campos tal cual vienen de la BD.
 
-### 3. MediosGlobal (`MediosGlobal.tsx`)
-- `noticias_general_filtradas` para panoramica de todos los medios
-- Agrupacion por `Paper`/medio
-- Top medios por volumen, nota media, distribucion de riesgo
+### 4. Actualizar `GroupAgg` en data-aggregation
 
-### 4. EvolucionGlobal (`EvolucionGlobal.tsx`)
-- `weekly_snapshots` (39 semanas) + `contadores_semanales` (4 semanas)
-- Graficos de area con Recharts
-- `relato_acumulado` para contexto narrativo
+Eliminar `fortaleza`, `riesgo`, `potencia` de `GroupAgg`. Agregar las 9 métricas reales como promedios ponderados por volumen.
 
-### 5. Riesgo (`Riesgo.tsx`)
-- `alert_cascades` (12 cascadas con datos reales)
-- `cross_amplification` para amplificacion entre plataformas
-- Distribucion por nivel de riesgo, estado y fuente
+## Archivos a modificar
 
-## Archivos modificados/creados
-
-| Archivo | Accion |
+| Archivo | Cambio |
 |---------|--------|
-| `src/lib/data-aggregation.ts` | CREAR |
-| `src/hooks/useGroupChannels.ts` | CREAR |
-| `src/hooks/useAuxiliaryData.ts` | CREAR |
-| `src/hooks/useFJDData.ts` | REFACTOR (importar compartidos) |
-| `src/pages/dashboard/core/Ecosistema.tsx` | REESCRIBIR |
-| `src/pages/dashboard/core/Canales.tsx` | REESCRIBIR |
-| `src/pages/dashboard/core/MediosGlobal.tsx` | REESCRIBIR |
-| `src/pages/dashboard/core/EvolucionGlobal.tsx` | REESCRIBIR |
-| `src/pages/dashboard/core/Riesgo.tsx` | REESCRIBIR |
+| `src/lib/data-aggregation.ts` | Eliminar composites, exponer 9 métricas reales |
+| `src/hooks/useGroupChannels.ts` | Sin cambios (ya funciona bien) |
+| `src/pages/dashboard/core/Ecosistema.tsx` | Mostrar métricas reales + desglose por canal |
+| `src/pages/dashboard/core/Canales.tsx` | Métricas reales por plataforma |
+| `src/pages/dashboard/core/MediosGlobal.tsx` | Actualizar a nuevos campos |
+| `src/pages/dashboard/core/Riesgo.tsx` | Actualizar a nuevos campos |
+| `src/pages/dashboard/core/EvolucionGlobal.tsx` | Actualizar a nuevos campos |
 
 ## Resultado
-76 vistas consumidas. Cero placeholders. Todos los dashboards core con datos reales y universos separados.
+Cero métricas inventadas. Cada dashboard muestra los campos exactos de la BD (9 emocionales + nota + peligro), desglosados por canal y por grupo.
 
