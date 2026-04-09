@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
 import {
-  BookOpen, AlertTriangle, Shield, TrendingUp, Search, List, LayoutGrid,
+  BookOpen, AlertTriangle, Search, List, LayoutGrid,
   ChevronDown, ChevronUp,
 } from "lucide-react";
 import { useRelatoTimeline, RelatoEntry } from "@/hooks/useRelatoTimeline";
@@ -72,7 +72,7 @@ const Relato = () => {
   const toggleExpand = (id: number) => {
     setExpandedIds(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
       return next;
     });
   };
