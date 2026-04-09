@@ -1,10 +1,11 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const DashboardLayout = () => {
+  const navigate = useNavigate();
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -17,9 +18,9 @@ const DashboardLayout = () => {
                 Quirónsalud 4.0
               </span>
             </div>
-            <Button variant="outline" size="sm" className="gap-2 text-xs" disabled title="Modo TV — Próximamente">
+            <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => navigate("/dashboard/tv")}>
               <Monitor className="h-3.5 w-3.5" />
-              Modo TV
+              Modo TV P
             </Button>
           </header>
           <main className="flex-1 p-6">
