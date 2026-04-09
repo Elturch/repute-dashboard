@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
-  CalendarIcon, FileText, FileSpreadsheet, Image, Download, Clock, CheckCircle2, AlertCircle, Loader2
+  CalendarIcon, FileText, FileSpreadsheet, Download, Clock, CheckCircle2, AlertCircle, Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -60,16 +60,15 @@ const Reportes = () => {
     const rows: Record<string, unknown>[] = [];
 
     if (selectedModules.includes("benchmarking") && benchData) {
-      const allRows = [
-        ...(benchData.noticiasPrivados || []),
-        ...(benchData.noticiasQuiron || []),
-      ];
-      allRows.forEach((r: any) => {
+      benchData.forEach((r) => {
         rows.push({
           modulo: "Benchmarking",
-          grupo: r.grupo_hospitalario ?? r.medio ?? "",
-          nota_ia: r.nota_ia ?? r.nota_media_ia ?? "",
-          menciones: r.total_noticias ?? r.menciones ?? "",
+          grupo: r.label,
+          nota_media: r.nota_media,
+          fortaleza: r.fortaleza,
+          riesgo: r.riesgo,
+          potencia: r.potencia,
+          registros: r.count,
         });
       });
     }
