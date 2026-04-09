@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Monitor, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/NotificationBell";
+import { OnboardingModal } from "@/components/OnboardingModal";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -34,6 +35,7 @@ const DashboardLayout = () => {
           <main className="flex-1 p-6">
             <Outlet />
           </main>
+          <OnboardingModal />
         </div>
       </div>
     </SidebarProvider>
