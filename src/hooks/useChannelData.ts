@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { externalSupabase } from '@/integrations/external-supabase/client';
-import { normalize, avg, METRIC_KEYS, type NormalizedRow, type RawRow } from '@/lib/data-aggregation';
+import { normalize, avg, type NormalizedRow, type RawRow } from '@/lib/data-aggregation';
 import { GROUP_VIEWS } from '@/hooks/useGroupChannels';
 
 export interface ChannelMention extends NormalizedRow {
