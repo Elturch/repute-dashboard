@@ -210,7 +210,7 @@ const Social = () => {
                     <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-12">Sin señales</TableCell></TableRow>
                   ) : signals.map((s) => (
                     <TableRow key={s.id} className="cursor-pointer" onClick={() => setSelected(s)}>
-                      <TableCell className="text-xs whitespace-nowrap">{format(new Date(s.fecha), "dd/MM HH:mm", { locale: es })}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{(() => { try { const d = new Date(s.fecha); return isNaN(d.getTime()) ? "—" : format(d, "dd/MM HH:mm", { locale: es }); } catch { return "—"; } })()}</TableCell>
                       <TableCell>{platformBadge(s.plataforma)}</TableCell>
                       <TableCell className="text-xs font-medium">{s.cuenta}</TableCell>
                       <TableCell className="text-sm max-w-[300px] truncate">{s.texto}</TableCell>
@@ -247,7 +247,7 @@ const Social = () => {
                 <CardContent className="pt-5 space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs text-muted-foreground">{format(new Date(a.fecha), "dd/MM/yyyy", { locale: es })}</p>
+                      <p className="text-xs text-muted-foreground">{(() => { try { const d = new Date(a.fecha); return isNaN(d.getTime()) ? "—" : format(d, "dd/MM/yyyy", { locale: es }); } catch { return "—"; } })()}</p>
                       <p className="text-sm text-foreground leading-relaxed mt-1">{a.resumen}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -356,7 +356,7 @@ function SignalDetailSheet({ signal, onClose }: { signal: SocialSignal | null; o
             <Badge variant="outline" className="text-xs">{signal.tipo_senal}</Badge>
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <div><p className="text-muted-foreground text-xs">Fecha</p><p className="text-foreground">{format(new Date(signal.fecha), "dd/MM/yyyy HH:mm", { locale: es })}</p></div>
+            <div><p className="text-muted-foreground text-xs">Fecha</p><p className="text-foreground">{(() => { try { const d = new Date(signal.fecha); return isNaN(d.getTime()) ? "—" : format(d, "dd/MM/yyyy HH:mm", { locale: es }); } catch { return "—"; } })()}</p></div>
             <div><p className="text-muted-foreground text-xs">Alcance</p><p className="text-foreground font-bold">{formatAlcance(signal.alcance_estimado)}</p></div>
           </div>
           <div><p className="text-xs text-muted-foreground mb-1">Texto completo</p><p className="text-sm text-foreground leading-relaxed">{signal.texto}</p></div>

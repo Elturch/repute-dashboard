@@ -80,7 +80,11 @@ function notaColor(n: number | null) {
 
 function formatFecha(d: string) {
   if (!d) return "";
-  return format(new Date(d), "dd/MM/yyyy HH:mm", { locale: es });
+  try {
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return "—";
+    return format(date, "dd/MM/yyyy HH:mm", { locale: es });
+  } catch { return "—"; }
 }
 
 const Eventos = () => {
