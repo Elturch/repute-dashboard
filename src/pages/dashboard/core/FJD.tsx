@@ -101,11 +101,11 @@ const FJD = () => {
         </Card>
         <Card className="border-border/50">
           <CardContent className="pt-5 pb-4">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Fortaleza</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Afinidad</p>
             {isLoading ? <Skeleton className="h-10 w-full" /> : (
               <div className="flex items-center gap-3">
                 <Star className="h-5 w-5 text-primary" />
-                <span className="text-3xl font-bold text-foreground">{globalFortaleza}</span>
+                <span className="text-3xl font-bold text-foreground">{globalAfinidad}</span>
                 <span className="text-sm text-muted-foreground">/10</span>
               </div>
             )}
@@ -113,11 +113,11 @@ const FJD = () => {
         </Card>
         <Card className="border-border/50">
           <CardContent className="pt-5 pb-4">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Riesgo</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Preocupación</p>
             {isLoading ? <Skeleton className="h-10 w-full" /> : (
               <div className="flex items-center gap-3">
                 <Shield className="h-5 w-5 text-emerald-400" />
-                <span className="text-3xl font-bold text-foreground">{globalRiesgo}</span>
+                <span className="text-3xl font-bold text-foreground">{globalPreocupacion}</span>
                 <span className="text-sm text-muted-foreground">/10</span>
               </div>
             )}
