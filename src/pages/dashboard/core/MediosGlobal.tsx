@@ -1,10 +1,8 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, TrendingUp, ShieldAlert } from "lucide-react";
 import { useNoticiasGeneralFiltradas } from "@/hooks/useAuxiliaryData";
-import { normalize, avg, riesgoBadgeVariant, type RawRow } from "@/lib/data-aggregation";
+import { normalize, avg, type RawRow } from "@/lib/data-aggregation";
 
 interface MedioAgg {
   medio: string;

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { externalSupabase } from '@/integrations/external-supabase/client';
-import { aggregateChannel, aggregateGroup, type ChannelAgg, type GroupAgg, type RawRow } from '@/lib/data-aggregation';
+import { aggregateChannel, aggregateGroup, type GroupAgg, type RawRow } from '@/lib/data-aggregation';
 
 interface ViewDef {
   key: string;

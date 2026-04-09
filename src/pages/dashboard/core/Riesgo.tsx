@@ -2,14 +2,14 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ShieldAlert, AlertTriangle, TrendingUp, Radio } from "lucide-react";
+import { ShieldAlert, AlertTriangle, Radio } from "lucide-react";
 import { useAlertCascades, useCrossAmplification } from "@/hooks/useAuxiliaryData";
 import { riesgoBadgeVariant } from "@/lib/data-aggregation";
 import { safeFormat } from "@/lib/safe-format";
 
 const Riesgo = () => {
   const { data: cascades, isLoading: loadingCasc } = useAlertCascades(50);
-  const { data: amplifications, isLoading: loadingAmp } = useCrossAmplification();
+  const { data: amplifications } = useCrossAmplification();
 
   const stats = useMemo(() => {
     if (!cascades?.length) return null;

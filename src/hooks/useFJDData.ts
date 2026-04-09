@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { externalSupabase } from '@/integrations/external-supabase/client';
-import { normalize, avg, aggregateChannel, type RawRow, type ChannelAgg } from '@/lib/data-aggregation';
+import { aggregateChannel, type ChannelAgg } from '@/lib/data-aggregation';
 
 export type { ChannelAgg };
 
