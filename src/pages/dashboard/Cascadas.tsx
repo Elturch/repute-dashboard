@@ -211,7 +211,8 @@ const Cascadas = () => {
                               <div className="min-w-0">
                                 <p className="text-sm font-medium text-foreground">{s.medio}</p>
                                 <p className="text-xs text-muted-foreground">
-                                  {format(new Date(s.detected_at), "dd/MM/yyyy HH:mm", { locale: es })}
+                                  {safeFormat(s.detected_at, "dd/MM/yyyy HH:mm")}
+                                </p>
                                 </p>
                               </div>
                               {s.url && (
@@ -244,8 +245,8 @@ const Cascadas = () => {
                           Ver artículo original <ExternalLink className="h-3 w-3" />
                         </a>
                       )}
-                      <span>Detectada: {format(new Date(c.first_detected_at), "dd/MM/yyyy HH:mm", { locale: es })}</span>
-                      <span>Última: {format(new Date(c.last_alert_at), "dd/MM/yyyy HH:mm", { locale: es })}</span>
+                      <span>Detectada: {safeFormat(c.first_detected_at, "dd/MM/yyyy HH:mm")}</span>
+                      <span>Última: {safeFormat(c.last_alert_at, "dd/MM/yyyy HH:mm")}</span>
                     </div>
                   </div>
                 </AccordionContent>
