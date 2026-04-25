@@ -10,6 +10,20 @@ import {
   type GrupoPrivado,
 } from '@/lib/clasificacion';
 import { ArrowUpRight, ArrowDownRight, Minus, AlertTriangle } from 'lucide-react';
+import { BiNews } from 'react-icons/bi';
+import { SiInstagram, SiTiktok, SiFacebook, SiLinkedin, SiGoogle } from 'react-icons/si';
+import { FaXTwitter } from 'react-icons/fa6';
+
+/** Configuración de canales con su logo oficial y color corporativo. */
+export const CHANNEL_CFG = {
+  medios:    { label: 'Medios',      Icon: BiNews,       brandColor: '#1F2937' },
+  instagram: { label: 'Instagram',   Icon: SiInstagram,  brandColor: '#E4405F' },
+  twitter:   { label: 'X',           Icon: FaXTwitter,   brandColor: '#000000' },
+  tiktok:    { label: 'TikTok',      Icon: SiTiktok,     brandColor: '#000000' },
+  facebook:  { label: 'Facebook',    Icon: SiFacebook,   brandColor: '#1877F2' },
+  linkedin:  { label: 'LinkedIn',    Icon: SiLinkedin,   brandColor: '#0A66C2' },
+  mybusiness:{ label: 'My Business', Icon: SiGoogle,     brandColor: '#4285F4' },
+} as const;
 
 interface Row {
   Tema: string | null;
@@ -17,7 +31,7 @@ interface Row {
 }
 
 const PAGE_SIZE = 1000;
-const MAX_PAGES = 30;
+const MAX_PAGES = 3;
 
 function fmt(n: number): string {
   return n.toLocaleString('es-ES');
@@ -143,11 +157,23 @@ export default function PrivadosNoticias() {
       {/* Hero */}
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-          <span>Sanidad privada · Medios</span>
+          <span className="inline-flex items-center gap-1.5">
+            <CHANNEL_CFG.medios.Icon
+              className="h-3.5 w-3.5"
+              style={{ color: CHANNEL_CFG.medios.brandColor }}
+            />
+            Sanidad privada · {CHANNEL_CFG.medios.label}
+          </span>
           <span>·</span>
           <span>{rangoActual}</span>
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Menciones en medios</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
+          <CHANNEL_CFG.medios.Icon
+            className="h-6 w-6"
+            style={{ color: CHANNEL_CFG.medios.brandColor }}
+          />
+          Menciones en medios
+        </h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
           {stats && stats.qsCount > 0 ? (
             <>
