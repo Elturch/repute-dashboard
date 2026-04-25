@@ -6,7 +6,7 @@ import { externalSupabase } from '@/integrations/external-supabase/client';
 import { useKeywordsClassification } from '@/hooks/useKeywordsClassification';
 import { NOMBRES_GRUPOS_PRIVADOS, COLOR_POR_GRUPO_PRIVADO, type GrupoPrivado } from '@/lib/clasificacion';
 import { AlertTriangle, Wrench } from 'lucide-react';
-import { SiInstagram, SiTiktok, SiFacebook, SiLinkedin, SiGoogle } from 'react-icons/si';
+import { SiInstagram, SiTiktok, SiFacebook, SiLinkedin as SiLinkedInIcon, SiGoogle } from 'react-icons/si';
 import { FaXTwitter } from 'react-icons/fa6';
 import { BiNews } from 'react-icons/bi';
 import type { IconType } from 'react-icons';
@@ -52,7 +52,7 @@ const CHANNELS: ChannelConfig[] = [
     view: 'fb_posts_general_filtradas', dateField: 'date_posted',
     preclassified: false, termField: 'termino' },
   { key: 'linkedin', label: 'LinkedIn', short: 'LinkedIn',
-    Icon: SiLinkedin, brandColor: '#0A66C2',
+    Icon: SiLinkedInIcon, brandColor: '#0A66C2',
     view: 'linkedin_gh_filtradas', dateField: 'posted_date',
     preclassified: false, termField: 'termino' },
   { key: 'mybusiness', label: 'Google My Business', short: 'My Business',
