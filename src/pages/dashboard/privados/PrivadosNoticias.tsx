@@ -11,8 +11,8 @@ import {
 } from '@/lib/clasificacion';
 import { ArrowUpRight, ArrowDownRight, Minus, AlertTriangle } from 'lucide-react';
 import { BiNews } from 'react-icons/bi';
-import { SiInstagram, SiTiktok, SiFacebook, SiLinkedin, SiGoogle } from 'react-icons/si';
-import { FaXTwitter } from 'react-icons/fa6';
+import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from 'react-icons/si';
+import { FaXTwitter, FaLinkedin } from 'react-icons/fa6';
 
 /** Configuración de canales con su logo oficial y color corporativo. */
 export const CHANNEL_CFG = {
@@ -21,7 +21,7 @@ export const CHANNEL_CFG = {
   twitter:   { label: 'X',           Icon: FaXTwitter,   brandColor: '#000000' },
   tiktok:    { label: 'TikTok',      Icon: SiTiktok,     brandColor: '#000000' },
   facebook:  { label: 'Facebook',    Icon: SiFacebook,   brandColor: '#1877F2' },
-  linkedin:  { label: 'LinkedIn',    Icon: SiLinkedin,   brandColor: '#0A66C2' },
+  linkedin:  { label: 'LinkedIn',    Icon: FaLinkedin,   brandColor: '#0A66C2' },
   mybusiness:{ label: 'My Business', Icon: SiGoogle,     brandColor: '#4285F4' },
 } as const;
 
