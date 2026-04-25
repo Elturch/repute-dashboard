@@ -79,6 +79,23 @@ export function AppSidebar() {
         )}
       </SidebarHeader>
       <SidebarContent>
+        {/* ── Comparativa privados ── */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Comparativa privados</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/dashboard/privados/noticias" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                    <Newspaper className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>Medios</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         {/* ── Core Quirón ── */}
         <SidebarGroup>
           <SidebarGroupLabel>Core Quirón</SidebarGroupLabel>

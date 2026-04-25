@@ -26,6 +26,9 @@ import TwitterChannel from "./pages/dashboard/canales/TwitterChannel";
 import LinkedInChannel from "./pages/dashboard/canales/LinkedInChannel";
 import MyBusinessChannel from "./pages/dashboard/canales/MyBusinessChannel";
 
+// Privados
+import PrivadosNoticias from "./pages/dashboard/privados/PrivadosNoticias";
+
 // Especiales
 import EspecialesIndex from "./pages/dashboard/especiales/EspecialesIndex";
 import AyusoResumen from "./pages/dashboard/especiales/ayuso/AyusoResumen";
@@ -72,6 +75,7 @@ const App = () => (
             <Route path="canales/twitter" element={<TwitterChannel />} />
             <Route path="canales/linkedin" element={<LinkedInChannel />} />
             <Route path="canales/mybusiness" element={<MyBusinessChannel />} />
+            <Route path="privados/noticias" element={<PrivadosNoticias />} />
             <Route path="medios" element={<MediosGlobal />} />
             <Route path="evolucion" element={<EvolucionGlobal />} />
             <Route path="riesgo" element={<Riesgo />} />
