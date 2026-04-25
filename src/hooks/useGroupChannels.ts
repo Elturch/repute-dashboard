@@ -12,17 +12,17 @@ const GROUP_VIEWS: Record<string, { label: string; views: ViewDef[] }> = {
   quironsalud: {
     label: 'Quirónsalud (propios)',
     views: [
-      { key: 'noticias', label: 'Noticias', view: 'noticias_quironsalud' },
+      { key: 'noticias', label: 'Noticias', view: 'noticias_quironsalud_agrupadas' },
       { key: 'facebook', label: 'Facebook', view: 'fb_posts_quironsalud_agrupados' },
       { key: 'instagram', label: 'Instagram', view: 'ig_posts_quironsalud_agrupados' },
-      { key: 'tiktok', label: 'TikTok', view: 'tiktok_posts_quironsalud_agrupados' },
-      { key: 'twitter', label: 'X / Twitter', view: 'x_twitter_posts_quironsalud_agrupados' },
+      { key: 'tiktok', label: 'TikTok', view: 'tiktok_posts_quironsalud_agrupado' },
+      { key: 'twitter', label: 'X / Twitter', view: 'x_twitter_posts_quironsalud_agrupado' },
     ],
   },
   gh_privados: {
     label: 'Grupos Privados',
     views: [
-      { key: 'noticias', label: 'Noticias', view: 'noticias_grupos_hospitalarios_privados' },
+      { key: 'noticias', label: 'Noticias', view: 'noticias_gh_privados' },
       { key: 'facebook', label: 'Facebook', view: 'fb_posts_gh_agrupados' },
       { key: 'instagram', label: 'Instagram', view: 'ig_posts_gh_agrupados' },
       { key: 'tiktok', label: 'TikTok', view: 'tiktok_posts_gh_agrupados' },
@@ -37,18 +37,18 @@ const GROUP_VIEWS: Record<string, { label: string; views: ViewDef[] }> = {
       { key: 'instagram', label: 'Instagram', view: 'ig_posts_sermas' },
       { key: 'tiktok', label: 'TikTok', view: 'tiktok_posts_sermas' },
       { key: 'twitter', label: 'X / Twitter', view: 'x_twitter_posts_sermas' },
-      { key: 'linkedin', label: 'LinkedIn', view: 'linkedin_posts_sermas' },
-      { key: 'mybusiness', label: 'My Business', view: 'my_business_sermas' },
+      { key: 'linkedin', label: 'LinkedIn', view: 'linkedin_sermas' },
+      { key: 'mybusiness', label: 'My Business', view: 'my_business_reviews_sermas' },
     ],
   },
   gestion_qs: {
     label: 'Públicos gestión QS',
     views: [
       { key: 'noticias', label: 'Noticias', view: 'noticias_sermas_gestion_quironsalud' },
-      { key: 'facebook', label: 'Facebook', view: 'fb_posts_sermas_gestion_qs' },
-      { key: 'instagram', label: 'Instagram', view: 'ig_posts_sermas_gestion_qs' },
-      { key: 'tiktok', label: 'TikTok', view: 'tiktok_posts_sermas_gestion_qs' },
-      { key: 'twitter', label: 'X / Twitter', view: 'x_twitter_posts_sermas_gestion_qs' },
+      { key: 'facebook', label: 'Facebook', view: 'fb_posts_sermas_gestion_quironsalud' },
+      { key: 'instagram', label: 'Instagram', view: 'ig_posts_gestion_sermas_quironsalud' },
+      { key: 'tiktok', label: 'TikTok', view: 'tiktok_posts_sermas_gestion_quironsalud' },
+      { key: 'twitter', label: 'X / Twitter', view: 'x_twitter_posts_sermas_gestion_quironsalud' },
     ],
   },
   catsalut: {
@@ -56,19 +56,19 @@ const GROUP_VIEWS: Record<string, { label: string; views: ViewDef[] }> = {
     views: [
       { key: 'noticias', label: 'Noticias', view: 'noticias_catsalut' },
       { key: 'facebook', label: 'Facebook', view: 'fb_catsalut' },
-      { key: 'instagram', label: 'Instagram', view: 'ig_posts_catsalut' },
-      { key: 'tiktok', label: 'TikTok', view: 'tiktok_posts_catsalut' },
-      { key: 'twitter', label: 'X / Twitter', view: 'x_twitter_posts_catsalut' },
+      { key: 'instagram', label: 'Instagram', view: 'ig_catsalut' },
+      { key: 'tiktok', label: 'TikTok', view: 'tiktok_catsalut' },
+      { key: 'twitter', label: 'X / Twitter', view: 'x_twitter_catsalut' },
     ],
   },
   catsalut_qs: {
     label: 'CATSALUT concierto QS',
     views: [
-      { key: 'noticias', label: 'Noticias', view: 'noticias_catsalut_solo_qs' },
+      { key: 'noticias', label: 'Noticias', view: 'noticias_catsalut_solo_QS' },
       { key: 'facebook', label: 'Facebook', view: 'fb_catsalut_QS' },
-      { key: 'instagram', label: 'Instagram', view: 'ig_posts_catsalut_qs' },
-      { key: 'tiktok', label: 'TikTok', view: 'tiktok_posts_catsalut_qs' },
-      { key: 'twitter', label: 'X / Twitter', view: 'x_twitter_posts_catsalut_qs' },
+      { key: 'instagram', label: 'Instagram', view: 'ig_catsalut_QS' },
+      { key: 'tiktok', label: 'TikTok', view: 'tiktok_catsalut_QS' },
+      { key: 'twitter', label: 'X / Twitter', view: 'x_twitter_catsalut_QS' },
     ],
   },
   fjd: {
@@ -87,10 +87,10 @@ const GROUP_VIEWS: Record<string, { label: string; views: ViewDef[] }> = {
     views: [
       { key: 'noticias', label: 'Noticias', view: 'noticias_general_filtradas' },
       { key: 'facebook', label: 'Facebook', view: 'fb_posts_general_filtradas' },
-      { key: 'instagram', label: 'Instagram', view: 'ig_posts_general_filtradas' },
+      { key: 'instagram', label: 'Instagram', view: 'ig_posts_general_filtrada' },
       { key: 'tiktok', label: 'TikTok', view: 'tiktok_posts_general_filtradas' },
-      { key: 'twitter', label: 'X / Twitter', view: 'x_twitter_posts_general_filtradas' },
-      { key: 'linkedin', label: 'LinkedIn', view: 'linkedin_gh' },
+      { key: 'twitter', label: 'X / Twitter', view: 'x_twitter_posts_general_filtrado' },
+      { key: 'linkedin', label: 'LinkedIn', view: 'linkedin_gh_filtradas' },
     ],
   },
   alta_complejidad: {
