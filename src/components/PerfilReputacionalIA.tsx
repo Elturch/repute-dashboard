@@ -28,11 +28,7 @@ const ALL_METRICAS = [...POSITIVAS, ...NEGATIVAS];
 const COLOR_GOOD = '#10b981';
 const COLOR_FLAT = '#9ca3af';
 const COLOR_BAD  = '#ef4444';
-
-// Colores de las tres capas del radar
-const COLOR_TOTAL = '#e5e7eb'; // blanco translúcido
-const COLOR_SINQS = '#9ca3af'; // gris medio
-// COLOR_QS viene de highlightColor (#3b82f6)
+const COLOR_SINQS = '#475569';
 
 function fmt(n: number) { return n.toLocaleString('es-ES'); }
 function fmtNum(n: number | null, d = 2): string { return n == null ? '—' : n.toFixed(d); }
@@ -99,10 +95,8 @@ export default function PerfilReputacionalIA({
     );
   }
 
-  // Datos para los 3 polígonos del radar
   const radarData = ALL_METRICAS.map(m => ({
     metric: m.label,
-    total: total.promedios[m.key] ?? 0,
     qs: highlight.promedios[m.key] ?? 0,
     sinqs: resto.promedios[m.key] ?? 0,
     fullMark: 10,
@@ -114,34 +108,31 @@ export default function PerfilReputacionalIA({
         Perfil reputacional IA{contextLabel ? ` · ${contextLabel}` : ''}
       </p>
 
-      {/* Header 3 columnas — números grandes */}
       <div className="grid grid-cols-3 gap-4 mb-8 bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
-        <ColumnCounter label="Grupos hospitalarios" value={fmt(total.menciones)} accentColor={COLOR_TOTAL} />
+        <ColumnCounter label="Grupos hospitalarios" value={fmt(total.menciones)} />
         <ColumnCounter label={highlightLabel} value={fmt(highlight.menciones)} highlight color={highlightColor} />
-        <ColumnCounter label={`Sin ${highlightLabel === 'Quirónsalud' ? 'Quirónsalud' : highlightLabel}`} value={fmt(resto.menciones)} accentColor={COLOR_SINQS} />
+        <ColumnCounter label={`Sin ${highlightLabel === 'Quirónsalud' ? 'Quirónsalud' : highlightLabel}`} value={fmt(resto.menciones)} />
       </div>
 
-      {/* Titular */}
-      <div className="px-7 py-5 mb-6 rounded-xl border border-white/5 bg-gradient-to-r from-[#3b82f6]/[0.08] via-transparent to-transparent">
-        <p className="text-[28px] font-light leading-snug">
-          <span style={{ color: highlightColor }} className="font-bold">{highlightLabel} lidera</span> en{' '}
-          <span className="font-bold tabular-nums text-[#10b981]">{summary.lidera}</span> de{' '}
-          <span className="font-bold tabular-nums">{summary.total}</span> dimensiones
+      <div className="px-7 py-6 mb-6 rounded-xl border border-[#3b82f6]/15 bg-[#3b82f6]/[0.05]">
+        <p className="text-[30px] font-semibold leading-snug text-white">
+          <span style={{ color: highlightColor }}>{highlightLabel} lidera</span> en{' '}
+          <span className="tabular-nums text-[#10b981]">{summary.lidera}</span> de{' '}
+          <span className="tabular-nums">{summary.total}</span> dimensiones
           {summary.atencion > 0 && (
             <>
-              {' '}— por debajo del sector en{' '}
-              <span className="text-[#ef4444] font-bold tabular-nums">{summary.atencion}</span>
+              <span className="text-white/60">  ·  </span>
+              <span className="text-[#ef4444] tabular-nums">{summary.atencion}</span>
+              <span className="text-white/80"> por debajo del sector</span>
             </>
           )}.
         </p>
       </div>
 
-      {/* Radar con 3 capas */}
       <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6 mb-6">
-        <div className="flex items-center justify-center gap-10 mb-4">
-          <LegendItem color={COLOR_TOTAL} dashed label="GRUPOS HOSPITALARIOS (TOTAL)" />
-          <LegendItem color={highlightColor} label={highlightLabel.toUpperCase()} bold />
-          <LegendItem color={COLOR_SINQS} label={`SIN ${highlightLabel === 'Quirónsalud' ? 'QUIRÓNSALUD' : highlightLabel.toUpperCase()}`} />
+        <div className="flex items-center justify-center gap-12 mb-4">
+          <LegendItem color={highlightColor} label={highlightLabel.toUpperCase()} filled fillOpacity={0.65} />
+          <LegendItem color={COLOR_SINQS} label={`SIN ${highlightLabel === 'Quirónsalud' ? 'QS' : highlightLabel.toUpperCase()}`} filled fillOpacity={0.30} />
         </div>
         <div className="w-full" style={{ height: 540 }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -153,39 +144,28 @@ export default function PerfilReputacionalIA({
               />
               <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fill: '#4b5563', fontSize: 10 }} stroke="rgba(255,255,255,0.05)" />
 
-              {/* Capa 1: TOTAL — la más sutil, dashed */}
-              <Radar name="Grupos hospitalarios"
-                     dataKey="total"
-                     stroke={COLOR_TOTAL}
-                     fill={COLOR_TOTAL}
-                     fillOpacity={0.06}
-                     strokeWidth={1.5}
-                     strokeDasharray="5 4" />
-
-              {/* Capa 2: SIN QS — gris medio */}
               <Radar name="Sin QS"
                      dataKey="sinqs"
                      stroke={COLOR_SINQS}
                      fill={COLOR_SINQS}
-                     fillOpacity={0.18}
-                     strokeWidth={1.8} />
+                     fillOpacity={0.30}
+                     strokeWidth={2} />
 
-              {/* Capa 3: QS — la más prominente, encima de todo */}
               <Radar name={highlightLabel}
                      dataKey="qs"
                      stroke={highlightColor}
                      fill={highlightColor}
-                     fillOpacity={0.42}
-                     strokeWidth={2.8} />
+                     fillOpacity={0.65}
+                     strokeWidth={3} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
-        <p className="text-[11px] text-[#6b7280] text-center uppercase tracking-wider mt-2">
-          Escala 0 — 10 · Color del eje: verde si {highlightLabel} lidera, rojo si está por debajo
+        <p className="text-[12px] text-[#9ca3af] text-center mt-3 leading-relaxed">
+          Las áreas donde el polígono <span className="font-bold" style={{ color: highlightColor }}>azul sobresale</span> indican dónde {highlightLabel} lidera.<br/>
+          Color del eje: <span className="text-[#10b981] font-bold">verde</span> si {highlightLabel} lidera, <span className="text-[#ef4444] font-bold">rojo</span> si está por debajo.
         </p>
       </div>
 
-      {/* Tabla numérica precisa */}
       <NumericTable
         positivas={POSITIVAS}
         negativas={NEGATIVAS}
@@ -196,7 +176,6 @@ export default function PerfilReputacionalIA({
         highlightLabel={highlightLabel}
       />
 
-      {/* Leyenda de iconos */}
       <div className="mt-6 pt-4 border-t border-white/5 flex items-center gap-8 text-sm text-[#9ca3af]">
         <span className="flex items-center gap-1.5"><span className="text-[#10b981] font-bold text-base">★</span> {highlightLabel} lidera</span>
         <span className="flex items-center gap-1.5"><span className="text-[#9ca3af] font-bold text-base">●</span> En línea con el sector</span>
@@ -206,33 +185,31 @@ export default function PerfilReputacionalIA({
   );
 }
 
-function LegendItem({ color, label, dashed, bold }: { color: string; label: string; dashed?: boolean; bold?: boolean }) {
+function LegendItem({ color, label, filled, fillOpacity = 1 }: { color: string; label: string; filled?: boolean; fillOpacity?: number }) {
   return (
-    <div className="flex items-center gap-2.5">
+    <div className="flex items-center gap-3">
       <span
-        className="w-4 h-4 rounded-sm"
+        className="w-6 h-6 rounded-md border-2"
         style={{
-          backgroundColor: dashed ? 'transparent' : color,
-          opacity: dashed ? 1 : 0.7,
-          border: dashed ? `1.5px dashed ${color}` : `1px solid ${color}`,
+          backgroundColor: filled ? color : 'transparent',
+          opacity: filled ? fillOpacity : 1,
+          borderColor: color,
         }}
       />
-      <span
-        className={`uppercase tracking-wider text-[11px] ${bold ? 'font-bold text-white' : 'text-[#d1d5db]'}`}
-      >
+      <span className="uppercase tracking-wider text-[12px] font-bold text-white">
         {label}
       </span>
     </div>
   );
 }
 
-function ColumnCounter({ label, value, highlight, color, accentColor }: {
-  label: string; value: string; highlight?: boolean; color?: string; accentColor?: string;
+function ColumnCounter({ label, value, highlight, color }: {
+  label: string; value: string; highlight?: boolean; color?: string;
 }) {
   return (
     <div className={`flex flex-col items-center justify-center py-7 px-4 ${highlight ? 'bg-[#3b82f6]/[0.06] border-x border-[#3b82f6]/20' : ''}`}>
-      <p className={`text-[12px] uppercase tracking-[0.2em] mb-2 ${highlight ? 'font-bold' : ''}`}
-         style={highlight ? { color } : { color: accentColor ?? '#9ca3af' }}>
+      <p className={`text-[12px] uppercase tracking-[0.2em] mb-2 ${highlight ? 'font-bold' : 'text-[#9ca3af]'}`}
+         style={highlight ? { color } : {}}>
         {label}
       </p>
       <p className="text-[10px] text-[#6b7280] mb-3 uppercase tracking-wider">Nº de menciones</p>
@@ -250,13 +227,13 @@ function ColoredAxisTick(props: any) {
   return (
     <g>
       <text x={x} y={y} textAnchor={textAnchor}>
-        <tspan x={x} dy="0" fontSize="12" fontWeight="600" fill="#d1d5db" letterSpacing="0.5">
+        <tspan x={x} dy="0" fontSize="12" fontWeight="700" fill="#d1d5db" letterSpacing="0.5">
           {payload.value.toUpperCase()}
         </tspan>
-        <tspan x={x} dy="1.4em" fontSize="20" fontWeight="800" fill={info.color}>
+        <tspan x={x} dy="1.4em" fontSize="22" fontWeight="800" fill={info.color}>
           {info.value != null ? info.value.toFixed(2) : '—'}
         </tspan>
-        <tspan dx="6" fontSize="18" fontWeight="800" fill={info.color}>
+        <tspan dx="6" fontSize="20" fontWeight="800" fill={info.color}>
           {info.icon}
         </tspan>
       </text>
@@ -281,14 +258,10 @@ function NumericTable({
       </div>
 
       <SectionHeader label="Positivas" sub="más alto = mejor" color={COLOR_GOOD} />
-      {positivas.map((m) => (
-        <Row key={m.key} m={m} t={total} h={highlight} r={resto} />
-      ))}
+      {positivas.map((m) => <Row key={m.key} m={m} t={total} h={highlight} r={resto} />)}
 
       <SectionHeader label="Negativas" sub="más bajo = mejor" color={COLOR_BAD} />
-      {negativas.map((m, i) => (
-        <Row key={m.key} m={m} t={total} h={highlight} r={resto} isLast={i === negativas.length - 1} />
-      ))}
+      {negativas.map((m, i) => <Row key={m.key} m={m} t={total} h={highlight} r={resto} isLast={i === negativas.length - 1} />)}
     </div>
   );
 }
