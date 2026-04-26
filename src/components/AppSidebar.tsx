@@ -3,6 +3,8 @@ import {
   Hospital, FileText, Download, BookOpen, Settings, Users, ShieldCheck, Server,
   ChevronDown, Newspaper, Facebook, Instagram, Twitter, Music2, Linkedin, MapPin,
 } from "lucide-react";
+import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from "react-icons/si";
+import { FaXTwitter, FaLinkedin } from "react-icons/fa6";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -89,6 +91,54 @@ export function AppSidebar() {
                   <NavLink to="/dashboard/privados/noticias" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                     <Newspaper className="mr-2 h-4 w-4" />
                     {!collapsed && <span>Medios</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/dashboard/privados/instagram" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                    <SiInstagram className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>Instagram</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/dashboard/privados/twitter" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                    <FaXTwitter className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>X (Twitter)</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/dashboard/privados/tiktok" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                    <SiTiktok className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>TikTok</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/dashboard/privados/facebook" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                    <SiFacebook className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>Facebook</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/dashboard/privados/linkedin" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                    <FaLinkedin className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>LinkedIn</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/dashboard/privados/mybusiness" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                    <SiGoogle className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>My Business</span>}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
