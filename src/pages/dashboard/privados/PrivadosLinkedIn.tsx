@@ -1,7 +1,7 @@
 import { FaLinkedin } from 'react-icons/fa6';
 import PrivadosChannelPage, { type PrivadosChannelConfig } from './PrivadosChannelPage';
 
-const CFG: PrivadosChannelConfig = {
+export const CFG_LINKEDIN: PrivadosChannelConfig = {
   key: 'linkedin',
   label: 'LinkedIn',
   short: 'LinkedIn',
@@ -14,5 +14,5 @@ const CFG: PrivadosChannelConfig = {
 };
 
 export default function PrivadosLinkedIn() {
-  return <PrivadosChannelPage cfg={CFG} />;
+  return <PrivadosChannelPage cfg={CFG_LINKEDIN} />;
 }
