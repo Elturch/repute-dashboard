@@ -29,6 +29,7 @@ import MyBusinessChannel from "./pages/dashboard/canales/MyBusinessChannel";
 // Privados
 import PrivadosNoticias from "./pages/dashboard/privados/PrivadosNoticias";
 import PrivadosResumen from "./pages/dashboard/privados/PrivadosResumen";
+import PrivadosMetricasIA from "./pages/dashboard/privados/PrivadosMetricasIA";
 import PrivadosInstagram from "./pages/dashboard/privados/PrivadosInstagram";
 import PrivadosTwitter from "./pages/dashboard/privados/PrivadosTwitter";
 import PrivadosTikTok from "./pages/dashboard/privados/PrivadosTikTok";
@@ -83,6 +84,7 @@ const App = () => (
             <Route path="canales/linkedin" element={<LinkedInChannel />} />
             <Route path="canales/mybusiness" element={<MyBusinessChannel />} />
             <Route path="privados" element={<PrivadosResumen />} />
+            <Route path="privados/metricas" element={<PrivadosMetricasIA />} />
             <Route path="privados/noticias" element={<PrivadosNoticias />} />
             <Route path="privados/instagram" element={<PrivadosInstagram />} />
             <Route path="privados/twitter" element={<PrivadosTwitter />} />
