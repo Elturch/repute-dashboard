@@ -2,6 +2,7 @@ import {
   Home, BarChart3, Network, Radio, Building2, TrendingUp, ShieldAlert, Search,
   Hospital, FileText, Download, BookOpen, Settings, Users, ShieldCheck, Server,
   ChevronDown, Newspaper, Facebook, Instagram, Twitter, Music2, Linkedin, MapPin,
+  LayoutDashboard,
 } from "lucide-react";
 import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from "react-icons/si";
 import { FaXTwitter, FaLinkedin } from "react-icons/fa6";
@@ -86,6 +87,14 @@ export function AppSidebar() {
           <SidebarGroupLabel>Comparativa privados</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/dashboard/privados" end className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>Resumen 30d</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <NavLink to="/dashboard/privados/noticias" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
