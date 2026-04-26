@@ -1,14 +1,14 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { externalSupabase } from '@/integrations/external-supabase/client';
 import { NOMBRES_GRUPOS_PRIVADOS, type GrupoPrivado } from '@/lib/clasificacion';
-import RadarMetricasIA, { METRICAS_CANONICAS, type RadarSerie } from '@/components/RadarMetricasIA';
 
 interface MvRow {
   canal: string;
   titularidad: string | null;
   grupo_hospitalario: string | null;
   menciones: number;
-  nota_media: number | null;
   preocupacion: number | null;
   rechazo: number | null;
   descredito: number | null;
@@ -18,24 +18,40 @@ interface MvRow {
   impacto: number | null;
   influencia: number | null;
   compromiso: number | null;
+  fecha_max: string | null;
 }
+
+interface MetricaDef { key: string; label: string; positive: boolean }
+
+const POSITIVAS: MetricaDef[] = [
+  { key: 'influencia',   label: 'Influencia',   positive: true },
+  { key: 'fiabilidad',   label: 'Fiabilidad',   positive: true },
+  { key: 'afinidad',     label: 'Afinidad',     positive: true },
+  { key: 'admiracion',   label: 'Admiración',   positive: true },
+  { key: 'impacto',      label: 'Impacto',      positive: true },
+  { key: 'compromiso',   label: 'Compromiso',   positive: true },
+];
+const NEGATIVAS: MetricaDef[] = [
+  { key: 'rechazo',      label: 'Rechazo',      positive: false },
+  { key: 'preocupacion', label: 'Preocupación', positive: false },
+  { key: 'descredito',   label: 'Descrédito',   positive: false },
+];
+const ALL_METRICAS = [...POSITIVAS, ...NEGATIVAS];
+
+interface Bucket { label: string; menciones: number; promedios: Record<string, number | null> }
 
 function fmt(n: number) { return n.toLocaleString('es-ES'); }
+function fmtCompact(n: number) { return n >= 1000 ? `${(n/1000).toFixed(1)}k` : fmt(n); }
 function fmtNum(n: number | null, d = 2): string { return n == null ? '—' : n.toFixed(d); }
-
-interface Bucket {
-  label: string;
-  menciones: number;
-  promedios: Record<string, number | null>;
-}
+function fmtFecha(d: Date) { return format(d, 'd MMM yyyy', { locale: es }); }
 
 function aggregate(rows: MvRow[], label: string): Bucket {
   const sums: Record<string, { weighted: number; count: number }> = {};
-  METRICAS_CANONICAS.forEach(m => sums[m.key] = { weighted: 0, count: 0 });
-  let totalMenciones = 0;
+  ALL_METRICAS.forEach(m => sums[m.key] = { weighted: 0, count: 0 });
+  let total = 0;
   for (const r of rows) {
-    totalMenciones += r.menciones;
-    METRICAS_CANONICAS.forEach(m => {
+    total += r.menciones;
+    ALL_METRICAS.forEach(m => {
       const v = (r as any)[m.key] as number | null;
       if (v != null) {
         sums[m.key].weighted += v * r.menciones;
@@ -44,32 +60,50 @@ function aggregate(rows: MvRow[], label: string): Bucket {
     });
   }
   const promedios: Record<string, number | null> = {};
-  METRICAS_CANONICAS.forEach(m => {
+  ALL_METRICAS.forEach(m => {
     promedios[m.key] = sums[m.key].count > 0 ? sums[m.key].weighted / sums[m.key].count : null;
   });
-  return { label, menciones: totalMenciones, promedios };
+  return { label, menciones: total, promedios };
 }
 
-async function fetchPrivadosMetricas(): Promise<{ total: Bucket; qs: Bucket; resto: Bucket }> {
+async function fetchPrivadosMetricas() {
   const { data, error } = await externalSupabase
     .from('mv_dashboard_resumen_30d')
-    .select('canal, titularidad, grupo_hospitalario, menciones, nota_media, preocupacion, rechazo, descredito, afinidad, fiabilidad, admiracion, impacto, influencia, compromiso')
+    .select('*')
     .eq('titularidad', 'Privado');
-
   if (error) {
-    console.error('[PrivadosMetricasIA] error:', error);
+    console.error(error);
     const empty: Bucket = { label: '', menciones: 0, promedios: {} };
-    return { total: empty, qs: empty, resto: empty };
+    return { total: empty, qs: empty, resto: empty, maxDate: new Date(), minDate: new Date() };
   }
-
   const rows = (data ?? []) as MvRow[];
   const validas = rows.filter(r => r.grupo_hospitalario && NOMBRES_GRUPOS_PRIVADOS.includes(r.grupo_hospitalario as GrupoPrivado));
-
+  let maxDate = new Date(0);
+  for (const r of validas) {
+    if (r.fecha_max) {
+      const d = new Date(r.fecha_max);
+      if (d > maxDate) maxDate = d;
+    }
+  }
+  const minDate = new Date(maxDate);
+  minDate.setDate(minDate.getDate() - 30);
   return {
     total: aggregate(validas, 'Total privados'),
     qs: aggregate(validas.filter(r => r.grupo_hospitalario === 'Quirónsalud'), 'Quirónsalud'),
     resto: aggregate(validas.filter(r => r.grupo_hospitalario !== 'Quirónsalud'), 'Privados sin QS'),
+    maxDate: maxDate.getTime() === 0 ? new Date() : maxDate,
+    minDate,
   };
+}
+
+function statusFor(metric: MetricaDef, qs: number | null, resto: number | null): { icon: string; tone: 'up' | 'flat' | 'down'; diff: number | null } {
+  if (qs == null || resto == null) return { icon: '—', tone: 'flat', diff: null };
+  const raw = qs - resto;
+  const adjusted = metric.positive ? raw : -raw;
+  const threshold = 0.3;
+  if (adjusted > threshold) return { icon: '★', tone: 'up', diff: raw };
+  if (adjusted < -threshold) return { icon: '⚠', tone: 'down', diff: raw };
+  return { icon: '●', tone: 'flat', diff: raw };
 }
 
 export default function PrivadosMetricasIA() {
@@ -85,23 +119,30 @@ export default function PrivadosMetricasIA() {
     refetchOnMount: false,
   });
 
-  const series: RadarSerie[] = stats ? [
-    { key: 'total', label: stats.total.label, color: '#9ca3af', values: stats.total.promedios },
-    { key: 'qs',    label: stats.qs.label,    color: '#3b82f6', values: stats.qs.promedios, highlight: true },
-    { key: 'resto', label: stats.resto.label, color: '#6b7280', values: stats.resto.promedios },
-  ] : [];
+  const summary = (() => {
+    if (!stats) return { lidera: 0, enlinea: 0, atencion: 0, total: ALL_METRICAS.length };
+    let lidera = 0, enlinea = 0, atencion = 0;
+    for (const m of ALL_METRICAS) {
+      const s = statusFor(m, stats.qs.promedios[m.key], stats.resto.promedios[m.key]);
+      if (s.tone === 'up') lidera++;
+      else if (s.tone === 'down') atencion++;
+      else enlinea++;
+    }
+    return { lidera, enlinea, atencion, total: ALL_METRICAS.length };
+  })();
+
+  const rangoActual = stats ? `${fmtFecha(stats.minDate)} — ${fmtFecha(stats.maxDate)}` : '—';
 
   return (
     <div className="p-6 space-y-6 bg-[#0b0f17] min-h-screen text-white">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      {/* Hero */}
+      <div className="flex items-start justify-between gap-4 flex-wrap border-b border-[#1f2937] pb-5">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#6b7280] mb-1">
-            Sanidad privada · Métricas IA · Últimos 30 días
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#6b7280] mb-2">
+            Perfil reputacional · Sanidad privada · IA
           </p>
-          <h1 className="text-2xl font-semibold">Perfil reputacional comparado</h1>
-          <p className="text-sm text-[#9ca3af] mt-1 max-w-2xl">
-            9 dimensiones IA agregadas en los 7 canales. Quirónsalud (azul) frente al resto de privados (gris) y al total agregado.
-          </p>
+          <h1 className="text-3xl font-semibold tracking-tight">9 dimensiones</h1>
+          <p className="text-sm text-[#9ca3af] mt-1">{rangoActual}</p>
         </div>
         <div className="flex items-center gap-2">
           {isFetching ? (
@@ -111,73 +152,103 @@ export default function PrivadosMetricasIA() {
             </span>
           ) : (
             <span className="text-[10px] uppercase tracking-wider text-[#6b7280]">
-              Auto-refresh 10 min · última: {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '—'}
+              auto-refresh 10 min · última {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '—'}
             </span>
           )}
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ['privados_metricas'] })}
             className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-white ml-3"
           >
-            🔄 Recargar
+            🔄
           </button>
         </div>
       </div>
 
-      {/* 3 radares */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {(stats ? [stats.total, stats.qs, stats.resto] : [null, null, null]).map((b, i) => {
-          const colors = ['#9ca3af', '#3b82f6', '#6b7280'];
-          const labels = ['TOTAL', 'QUIRÓNSALUD', 'PRIVADOS SIN QS'];
-          const isQS = i === 1;
+      {/* Titular narrativo */}
+      <div className="rounded border border-[#1f2937] bg-[#0f1420] p-5">
+        <p className="text-lg leading-relaxed text-[#e5e7eb]">
+          Quirónsalud lidera en{' '}
+          <span className="text-emerald-400 font-semibold">{summary.lidera}</span> de{' '}
+          <span className="text-white font-semibold">{summary.total}</span> dimensiones
+          {summary.atencion > 0 && (
+            <>
+              {' '}— por debajo del sector en{' '}
+              <span className="text-amber-400 font-semibold">{summary.atencion}</span>
+            </>
+          )}.
+        </p>
+      </div>
+
+      {/* Cabecera de columnas con menciones */}
+      <div className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-2 px-4 py-3 border-b border-[#1f2937]">
+        <p className="text-[10px] uppercase tracking-wider text-[#6b7280]">Métrica</p>
+        <div className="text-right">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b7280]">Total</p>
+          <p className="text-sm tabular-nums text-[#9ca3af]">
+            {stats ? fmtCompact(stats.total.menciones) : '—'}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] uppercase tracking-wider text-blue-400">Quirónsalud</p>
+          <p className="text-sm tabular-nums text-blue-400 font-medium">
+            {stats ? fmtCompact(stats.qs.menciones) : '—'}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b7280]">Sin QS</p>
+          <p className="text-sm tabular-nums text-[#9ca3af]">
+            {stats ? fmtCompact(stats.resto.menciones) : '—'}
+          </p>
+        </div>
+      </div>
+
+      {/* Bloques de métricas */}
+      <div className="space-y-6">
+        <MetricsBlock title="Dimensiones positivas" metricas={POSITIVAS} stats={stats} />
+        <MetricsBlock title="Dimensiones negativas" metricas={NEGATIVAS} stats={stats} />
+      </div>
+
+      {/* Leyenda */}
+      <div className="pt-4 border-t border-[#1f2937] space-y-2">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] uppercase tracking-wider text-[#6b7280]">
+          <span><span className="text-emerald-400">★</span> Quirónsalud lidera</span>
+          <span><span className="text-[#6b7280]">●</span> En línea con el sector</span>
+          <span><span className="text-amber-400">⚠</span> Por debajo del sector</span>
+        </div>
+        <p className="text-[10px] uppercase tracking-wider text-[#4b5563]">
+          Fuente: mv_dashboard_resumen_30d · agregado por menciones
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MetricsBlock({ title, metricas, stats }: { title: string; metricas: MetricaDef[]; stats: any }) {
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-wider text-[#6b7280] mb-2 px-4">{title}</p>
+      <div className="rounded border border-[#1f2937] bg-[#0f1420] overflow-hidden">
+        {metricas.map((m, i) => {
+          const total = stats?.total.promedios[m.key] ?? null;
+          const qs = stats?.qs.promedios[m.key] ?? null;
+          const resto = stats?.resto.promedios[m.key] ?? null;
+          const status = stats ? statusFor(m, qs, resto) : { icon: '—', tone: 'flat' as const, diff: null };
+          const iconColor = status.tone === 'up' ? '#10b981' : status.tone === 'down' ? '#f59e0b' : '#6b7280';
           return (
-            <div key={i} className={`rounded border p-4 ${isQS ? 'border-blue-500/40 bg-blue-500/[0.03]' : 'border-[#1f2937] bg-[#0f1420]'}`}>
-              <p className="text-[10px] uppercase tracking-wider text-[#6b7280] mb-1" style={{ color: colors[i] }}>
-                {labels[i]}
-              </p>
-              <p className="text-2xl font-semibold mb-3">{b ? fmt(b.menciones) : '—'}<span className="text-xs text-[#6b7280] ml-1">menciones</span></p>
-              {b && (
-                <RadarMetricasIA
-                  size={260}
-                  series={[{ key: 'one', label: labels[i], color: colors[i], highlight: isQS, values: b.promedios }]}
-                />
-              )}
+            <div
+              key={m.key}
+              className={`grid grid-cols-[2fr_1fr_1fr_1fr] gap-2 px-4 py-3 items-center text-sm ${i < metricas.length - 1 ? 'border-b border-[#1f2937]/50' : ''}`}
+            >
+              <span className="text-[#e5e7eb]">{m.label}</span>
+              <span className="text-right tabular-nums text-[#9ca3af]">{fmtNum(total)}</span>
+              <span className="text-right tabular-nums text-blue-400 font-medium flex items-center justify-end gap-2">
+                <span>{fmtNum(qs)}</span>
+                <span style={{ color: iconColor }} className="text-base leading-none w-4 inline-block">{status.icon}</span>
+              </span>
+              <span className="text-right tabular-nums text-[#9ca3af]">{fmtNum(resto)}</span>
             </div>
           );
         })}
-      </div>
-
-      {/* Radar comparado */}
-      <div className="rounded border border-[#1f2937] bg-[#0f1420] p-4">
-        <p className="text-[10px] uppercase tracking-wider text-[#6b7280] mb-3">Comparativa superpuesta</p>
-        {series.length > 0 && <RadarMetricasIA size={420} series={series} />}
-      </div>
-
-      {/* Tabla numérica */}
-      <div className="rounded border border-[#1f2937] bg-[#0f1420] overflow-hidden">
-        <div className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-2 px-4 py-2 border-b border-[#1f2937] text-[10px] uppercase tracking-wider text-[#6b7280]">
-          <span>Métrica</span>
-          <span className="text-right">Total</span>
-          <span className="text-right">Quirónsalud</span>
-          <span className="text-right">Privados sin QS</span>
-        </div>
-        {METRICAS_CANONICAS.map(m => (
-          <div key={m.key} className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-2 px-4 py-2 border-b border-[#1f2937]/50 text-sm last:border-b-0">
-            <span className="flex items-center gap-2">
-              <span>{m.label}</span>
-              <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded ${m.positive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                {m.positive ? 'positiva' : 'negativa'}
-              </span>
-            </span>
-            <span className="text-right tabular-nums text-[#9ca3af]">{stats ? fmtNum(stats.total.promedios[m.key]) : '—'}</span>
-            <span className="text-right tabular-nums text-blue-400 font-medium">{stats ? fmtNum(stats.qs.promedios[m.key]) : '—'}</span>
-            <span className="text-right tabular-nums text-[#9ca3af]">{stats ? fmtNum(stats.resto.promedios[m.key]) : '—'}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] uppercase tracking-wider text-[#4b5563] pt-2">
-        <span>Fuente: MySQL · Make · Supabase · Vista: mv_dashboard_resumen_30d</span>
-        <span>Filtrado: titularidad = Privado · agregado por menciones</span>
       </div>
     </div>
   );
