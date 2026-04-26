@@ -71,45 +71,6 @@ async function fetchMaxDate(cfg: PrivadosChannelConfig): Promise<Date> {
   }
 }
 
-async function countForGroup(
-  cfg: PrivadosChannelConfig,
-  kw: KwData,
-  grupo: GrupoPrivado,
-  fromISO: string,
-  toISO: string,
-  exclusiveTop: boolean,
-): Promise<number> {
-  let q = externalSupabase
-    .from(cfg.view)
-    .select('*', { count: 'exact', head: true })
-    .gte(cfg.dateField, fromISO);
-  q = exclusiveTop ? q.lt(cfg.dateField, toISO) : q.lte(cfg.dateField, toISO);
-
-  if (cfg.preclassified) {
-    if (!cfg.groupField) return 0;
-    q = q.eq(cfg.groupField, grupo);
-    if (cfg.titularityField) q = q.eq(cfg.titularityField, 'Privado');
-  } else {
-    if (!cfg.termField) return 0;
-    const patterns = kw?.patternsByGrupo?.[grupo] ?? [];
-    if (patterns.length === 0) {
-      console.warn(
-        `[${cfg.key}] sin patrones para grupo "${grupo}" en patternsByGrupo. Revisa keywords.`,
-      );
-      return 0;
-    }
-    const orFilter = patterns.map(p => `${cfg.termField}.ilike."%${p}%"`).join(',');
-    q = q.or(orFilter);
-  }
-
-  const { count, error } = await q;
-  if (error) {
-    console.error(`[${cfg.key}/${grupo}] count error:`, error);
-    return 0;
-  }
-  return count ?? 0;
-}
-
 async function countTotal(
   cfg: PrivadosChannelConfig,
   fromISO: string,
@@ -128,6 +89,82 @@ async function countTotal(
     return 0;
   }
   return count ?? 0;
+}
+
+async function countByGroupPreclassified(
+  cfg: PrivadosChannelConfig,
+  grupo: GrupoPrivado,
+  fromISO: string,
+  toISO: string,
+  exclusiveTop: boolean,
+): Promise<number> {
+  if (!cfg.groupField) return 0;
+  let q = externalSupabase
+    .from(cfg.view)
+    .select('*', { count: 'exact', head: true })
+    .eq(cfg.groupField, grupo)
+    .gte(cfg.dateField, fromISO);
+  q = exclusiveTop ? q.lt(cfg.dateField, toISO) : q.lte(cfg.dateField, toISO);
+  if (cfg.titularityField) q = q.eq(cfg.titularityField, 'Privado');
+  const { count, error } = await q;
+  if (error) {
+    console.error(`[${cfg.key}/${grupo}] count error:`, error);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+async function fetchAllRowsParallel<T extends Record<string, unknown>>(
+  cfg: PrivadosChannelConfig,
+  fields: string,
+  fromISO: string,
+  toISO: string,
+  exclusiveTop: boolean,
+  concurrency = 5,
+): Promise<T[]> {
+  let countQ = externalSupabase
+    .from(cfg.view)
+    .select('*', { count: 'exact', head: true })
+    .gte(cfg.dateField, fromISO);
+  countQ = exclusiveTop ? countQ.lt(cfg.dateField, toISO) : countQ.lte(cfg.dateField, toISO);
+  if (cfg.preclassified && cfg.titularityField) countQ = countQ.eq(cfg.titularityField, 'Privado');
+  const { count: totalCount, error: countErr } = await countQ;
+  if (countErr) {
+    console.error(`[${cfg.key}] count error:`, countErr);
+    return [];
+  }
+  if (!totalCount) return [];
+
+  const PAGE_SIZE = 1000;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const allRows: T[] = [];
+
+  for (let i = 0; i < totalPages; i += concurrency) {
+    const batch = await Promise.all(
+      Array.from({ length: Math.min(concurrency, totalPages - i) }, (_, j) => {
+        const page = i + j;
+        const start = page * PAGE_SIZE;
+        const end = start + PAGE_SIZE - 1;
+        let q = externalSupabase
+          .from(cfg.view)
+          .select(fields)
+          .gte(cfg.dateField, fromISO)
+          .order(cfg.dateField, { ascending: false })
+          .range(start, end);
+        q = exclusiveTop ? q.lt(cfg.dateField, toISO) : q.lte(cfg.dateField, toISO);
+        if (cfg.preclassified && cfg.titularityField) q = q.eq(cfg.titularityField, 'Privado');
+        return q;
+      }),
+    );
+    for (const { data, error } of batch) {
+      if (error) {
+        console.error(`[${cfg.key}] page error:`, error);
+        continue;
+      }
+      if (data) allRows.push(...(data as unknown as T[]));
+    }
+  }
+  return allRows;
 }
 
 interface ChannelStats {
@@ -156,23 +193,90 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig, kw: KwData): Promis
   const cutoff30 = subDays(maxDate, 30);
   const cutoff60 = subDays(maxDate, 60);
 
-  const N = NOMBRES_GRUPOS_PRIVADOS.length;
-  const all = await Promise.all([
-    countTotal(cfg, cutoff30.toISOString(), maxDate.toISOString(), false),
-    countTotal(cfg, cutoff60.toISOString(), cutoff30.toISOString(), true),
-    ...NOMBRES_GRUPOS_PRIVADOS.map(g =>
-      countForGroup(cfg, kw, g, cutoff30.toISOString(), maxDate.toISOString(), false),
-    ),
-    ...NOMBRES_GRUPOS_PRIVADOS.map(g =>
-      countForGroup(cfg, kw, g, cutoff60.toISOString(), cutoff30.toISOString(), true),
-    ),
-  ]);
+  let totalAct = 0;
+  let totalPrev = 0;
+  const currentByGroup: Record<GrupoPrivado, number> = {} as Record<GrupoPrivado, number>;
+  const previousByGroup: Record<GrupoPrivado, number> = {} as Record<GrupoPrivado, number>;
+  for (const g of NOMBRES_GRUPOS_PRIVADOS) {
+    currentByGroup[g] = 0;
+    previousByGroup[g] = 0;
+  }
 
-  const totalAct = all[0];
-  const totalPrev = all[1];
-  const currentCounts = all.slice(2, 2 + N);
-  const previousCounts = all.slice(2 + N, 2 + 2 * N);
+  if (cfg.preclassified) {
+    const tasks: Promise<void>[] = [];
+    tasks.push(
+      countTotal(cfg, cutoff30.toISOString(), maxDate.toISOString(), false).then(n => {
+        totalAct = n;
+      }),
+    );
+    tasks.push(
+      countTotal(cfg, cutoff60.toISOString(), cutoff30.toISOString(), true).then(n => {
+        totalPrev = n;
+      }),
+    );
+    for (const g of NOMBRES_GRUPOS_PRIVADOS) {
+      tasks.push(
+        countByGroupPreclassified(cfg, g, cutoff30.toISOString(), maxDate.toISOString(), false).then(
+          n => {
+            currentByGroup[g] = n;
+          },
+        ),
+      );
+      tasks.push(
+        countByGroupPreclassified(cfg, g, cutoff60.toISOString(), cutoff30.toISOString(), true).then(
+          n => {
+            previousByGroup[g] = n;
+          },
+        ),
+      );
+    }
+    await Promise.all(tasks);
+  } else {
+    if (!cfg.termField) {
+      console.warn(`[${cfg.key}] no termField configurado para canal no preclasificado.`);
+    }
+    const fields = cfg.termField ? `${cfg.termField},${cfg.dateField}` : cfg.dateField;
+    const [rowsActual, rowsPrevio] = await Promise.all([
+      fetchAllRowsParallel<Record<string, unknown>>(
+        cfg,
+        fields,
+        cutoff30.toISOString(),
+        maxDate.toISOString(),
+        false,
+      ),
+      fetchAllRowsParallel<Record<string, unknown>>(
+        cfg,
+        fields,
+        cutoff60.toISOString(),
+        cutoff30.toISOString(),
+        true,
+      ),
+    ]);
+    totalAct = rowsActual.length;
+    totalPrev = rowsPrevio.length;
+    if (kw?.clasificar && cfg.termField) {
+      const validos = new Set<string>(NOMBRES_GRUPOS_PRIVADOS as readonly string[]);
+      for (const r of rowsActual) {
+        const txt = r[cfg.termField] as string | null | undefined;
+        const c = kw.clasificar(txt);
+        if (c?.bloque === 'privados' && c.grupoHospitalario && validos.has(c.grupoHospitalario)) {
+          const g = c.grupoHospitalario as GrupoPrivado;
+          currentByGroup[g] = (currentByGroup[g] ?? 0) + 1;
+        }
+      }
+      for (const r of rowsPrevio) {
+        const txt = r[cfg.termField] as string | null | undefined;
+        const c = kw.clasificar(txt);
+        if (c?.bloque === 'privados' && c.grupoHospitalario && validos.has(c.grupoHospitalario)) {
+          const g = c.grupoHospitalario as GrupoPrivado;
+          previousByGroup[g] = (previousByGroup[g] ?? 0) + 1;
+        }
+      }
+    }
+  }
 
+  const currentCounts = NOMBRES_GRUPOS_PRIVADOS.map(g => currentByGroup[g]);
+  const previousCounts = NOMBRES_GRUPOS_PRIVADOS.map(g => previousByGroup[g]);
   const max = Math.max(...currentCounts, 1);
 
   const filas = NOMBRES_GRUPOS_PRIVADOS
