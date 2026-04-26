@@ -43,7 +43,10 @@ interface Bucket { label: string; menciones: number; promedios: Record<string, n
 function fmt(n: number) { return n.toLocaleString('es-ES'); }
 function fmtCompact(n: number) { return n >= 1000 ? `${(n/1000).toFixed(1)}k` : fmt(n); }
 function fmtNum(n: number | null, d = 2): string { return n == null ? '—' : n.toFixed(d); }
-function fmtFecha(d: Date) { return format(d, 'd MMM yyyy', { locale: es }); }
+function fmtFecha(d: Date | null | undefined) {
+  if (!d || !(d instanceof Date) || isNaN(d.getTime())) return '—';
+  return format(d, 'd MMM yyyy', { locale: es });
+}
 
 function aggregate(rows: MvRow[], label: string): Bucket {
   const sums: Record<string, { weighted: number; count: number }> = {};
@@ -82,16 +85,17 @@ async function fetchPrivadosMetricas() {
   for (const r of validas) {
     if (r.fecha_max) {
       const d = new Date(r.fecha_max);
-      if (d > maxDate) maxDate = d;
+      if (!isNaN(d.getTime()) && d > maxDate) maxDate = d;
     }
   }
-  const minDate = new Date(maxDate);
+  const validMax = maxDate.getTime() === 0 ? new Date() : maxDate;
+  const minDate = new Date(validMax);
   minDate.setDate(minDate.getDate() - 30);
   return {
     total: aggregate(validas, 'Total privados'),
     qs: aggregate(validas.filter(r => r.grupo_hospitalario === 'Quirónsalud'), 'Quirónsalud'),
     resto: aggregate(validas.filter(r => r.grupo_hospitalario !== 'Quirónsalud'), 'Privados sin QS'),
-    maxDate: maxDate.getTime() === 0 ? new Date() : maxDate,
+    maxDate: validMax,
     minDate,
   };
 }
