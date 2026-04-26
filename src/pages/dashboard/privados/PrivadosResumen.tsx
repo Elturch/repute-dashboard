@@ -99,13 +99,15 @@ async function fetchResumen(): Promise<Record<ChannelKey, ChannelStats>> {
 
 export default function PrivadosResumen() {
   const queryClient = useQueryClient();
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ['privados_resumen'],
     queryFn: fetchResumen,
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    refetchInterval: 10 * 60 * 1000,
+    refetchIntervalInBackground: true,
   });
 
   const totalGlobal = stats ? Object.values(stats).reduce((s, c) => s + c.total, 0) : 0;
@@ -134,12 +136,26 @@ export default function PrivadosResumen() {
             ) : 'Cargando comparativa...'}
           </p>
         </div>
-        <button
-          onClick={() => queryClient.invalidateQueries({ queryKey: ['privados_resumen'] })}
-          className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-white"
-        >
-          🔄 Recargar
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mr-4 text-[10px] uppercase tracking-wider">
+            {isFetching ? (
+              <span className="text-[#3b82f6] flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] animate-pulse" />
+                Actualizando
+              </span>
+            ) : (
+              <span className="text-[#6b7280]">
+                Auto-refresh 10 min · última: {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '—'}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['privados_resumen'] })}
+            className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-white"
+          >
+            🔄 Recargar
+          </button>
+        </div>
       </header>
 
       {/* Tira KPIs por canal */}
