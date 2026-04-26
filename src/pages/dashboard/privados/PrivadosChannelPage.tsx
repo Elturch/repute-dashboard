@@ -10,7 +10,7 @@ import {
   COLOR_POR_GRUPO_PRIVADO,
   type GrupoPrivado,
 } from '@/lib/clasificacion';
-import { ArrowUpRight, ArrowDownRight, Minus, AlertTriangle } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 
 /** Configuración de un canal privado: indica qué vista leer y cómo clasificar. */
 export type PrivadosChannelConfig = {
@@ -27,9 +27,6 @@ export type PrivadosChannelConfig = {
   titularityField?: string;
 };
 
-const PAGE_SIZE = 1000;
-const MAX_PAGES = 500;
-
 function fmt(n: number): string {
   return n.toLocaleString('es-ES');
 }
@@ -44,9 +41,7 @@ function fmtFecha(d: Date): string {
   return format(d, "d 'de' LLL yyyy", { locale: es });
 }
 
-interface RawRow {
-  [k: string]: unknown;
-}
+type KwData = ReturnType<typeof useKeywordsClassification>['data'];
 
 async function fetchMaxDate(cfg: PrivadosChannelConfig): Promise<Date> {
   try {
@@ -55,7 +50,7 @@ async function fetchMaxDate(cfg: PrivadosChannelConfig): Promise<Date> {
       .select(cfg.dateField)
       .order(cfg.dateField, { ascending: false, nullsFirst: false })
       .limit(1);
-    if (cfg.titularityField) {
+    if (cfg.preclassified && cfg.titularityField) {
       q = q.eq(cfg.titularityField, 'Privado');
     }
     const { data, error } = await q;
@@ -76,154 +71,137 @@ async function fetchMaxDate(cfg: PrivadosChannelConfig): Promise<Date> {
   }
 }
 
-async function fetchAllRows(
+async function countForGroup(
   cfg: PrivadosChannelConfig,
+  kw: KwData,
+  grupo: GrupoPrivado,
   fromISO: string,
   toISO: string,
-): Promise<{ rows: RawRow[]; truncated: boolean }> {
-  const all: RawRow[] = [];
-  const selectCols = [cfg.dateField, cfg.termField, cfg.groupField]
-    .filter(Boolean)
-    .join(', ');
+  exclusiveTop: boolean,
+): Promise<number> {
+  let q = externalSupabase
+    .from(cfg.view)
+    .select('*', { count: 'exact', head: true })
+    .gte(cfg.dateField, fromISO);
+  q = exclusiveTop ? q.lt(cfg.dateField, toISO) : q.lte(cfg.dateField, toISO);
 
-  for (let page = 0; page < MAX_PAGES; page++) {
-    const start = page * PAGE_SIZE;
-    const end = start + PAGE_SIZE - 1;
-
-    let q = externalSupabase
-      .from(cfg.view)
-      .select(selectCols)
-      .gte(cfg.dateField, fromISO)
-      .lte(cfg.dateField, toISO)
-      .order(cfg.dateField, { ascending: false })
-      .range(start, end);
-
-    if (cfg.titularityField) {
-      q = q.eq(cfg.titularityField, 'Privado');
-    }
-
-    const { data, error } = await q;
-    if (error) {
-      console.error('[PrivadosChannelPage] error página', page, error);
-      break;
-    }
-    const chunk = (data ?? []) as unknown as RawRow[];
-    all.push(...chunk);
-    if (chunk.length < PAGE_SIZE) {
-      return { rows: all, truncated: false };
-    }
+  if (cfg.preclassified) {
+    if (!cfg.groupField) return 0;
+    q = q.eq(cfg.groupField, grupo);
+    if (cfg.titularityField) q = q.eq(cfg.titularityField, 'Privado');
+  } else {
+    if (!cfg.termField) return 0;
+    const patterns = kw?.patternsByGrupo?.[grupo] ?? [];
+    if (patterns.length === 0) return 0;
+    const orFilter = patterns.map(p => `${cfg.termField}.ilike.%${p}%`).join(',');
+    q = q.or(orFilter);
   }
-  return { rows: all, truncated: true };
+
+  const { count, error } = await q;
+  if (error) {
+    console.error(`[${cfg.key}/${grupo}] count error:`, error);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+interface ChannelStats {
+  filas: Array<{
+    grupo: GrupoPrivado;
+    actual: number;
+    previo: number;
+    delta: number | null;
+    share: number;
+    barPct: number;
+  }>;
+  totalAct: number;
+  totalPrev: number;
+  totalDelta: number | null;
+  qsCount: number;
+  qsShare: number;
+  qsDelta: number | null;
+  qsRank: number;
+  maxDate: Date;
+}
+
+async function fetchChannelStats(cfg: PrivadosChannelConfig, kw: KwData): Promise<ChannelStats> {
+  const maxDate = await fetchMaxDate(cfg);
+  const cutoff30 = subDays(maxDate, 30);
+  const cutoff60 = subDays(maxDate, 60);
+
+  const [currentCounts, previousCounts] = await Promise.all([
+    Promise.all(
+      NOMBRES_GRUPOS_PRIVADOS.map(g =>
+        countForGroup(cfg, kw, g, cutoff30.toISOString(), maxDate.toISOString(), false),
+      ),
+    ),
+    Promise.all(
+      NOMBRES_GRUPOS_PRIVADOS.map(g =>
+        countForGroup(cfg, kw, g, cutoff60.toISOString(), cutoff30.toISOString(), true),
+      ),
+    ),
+  ]);
+
+  const totalAct = currentCounts.reduce((a, b) => a + b, 0);
+  const totalPrev = previousCounts.reduce((a, b) => a + b, 0);
+  const max = Math.max(...currentCounts, 1);
+
+  const filas = NOMBRES_GRUPOS_PRIVADOS
+    .map((grupo, i) => {
+      const act = currentCounts[i];
+      const prev = previousCounts[i];
+      return {
+        grupo,
+        actual: act,
+        previo: prev,
+        delta: deltaPct(act, prev),
+        share: totalAct > 0 ? (act / totalAct) * 100 : 0,
+        barPct: (act / max) * 100,
+      };
+    })
+    .sort((a, b) => b.actual - a.actual);
+
+  const qs = filas.find(f => f.grupo === 'Quirónsalud');
+  const qsRank = filas.findIndex(f => f.grupo === 'Quirónsalud') + 1;
+
+  return {
+    filas,
+    totalAct,
+    totalPrev,
+    totalDelta: deltaPct(totalAct, totalPrev),
+    qsCount: qs?.actual ?? 0,
+    qsShare: qs?.share ?? 0,
+    qsDelta: qs?.delta ?? null,
+    qsRank,
+    maxDate,
+  };
 }
 
 export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfig }) {
   const { data: kw, isLoading: loadingKw } = useKeywordsClassification();
 
-  const noticias = useQuery({
-    queryKey: ['privados_channel', cfg.key, cfg.view],
+  const ready = cfg.preclassified || !!kw;
+
+  const channel = useQuery({
+    queryKey: ['privados_channel_counts', cfg.key, cfg.view],
+    enabled: ready,
     staleTime: 5 * 60 * 1000,
-    queryFn: async () => {
-      const maxDate = await fetchMaxDate(cfg);
-      const cutoff60 = subDays(maxDate, 60);
-      const result = await fetchAllRows(cfg, cutoff60.toISOString(), maxDate.toISOString());
-      return { ...result, maxDate };
-    },
+    queryFn: () => fetchChannelStats(cfg, kw),
   });
 
-  const maxDate = useMemo(
-    () => noticias.data?.maxDate ?? new Date(),
-    [noticias.data?.maxDate],
-  );
+  const stats = channel.data ?? null;
+  const maxDate = useMemo(() => stats?.maxDate ?? new Date(), [stats?.maxDate]);
   const cutoff30 = useMemo(() => subDays(maxDate, 30), [maxDate]);
   const cutoff60 = useMemo(() => subDays(maxDate, 60), [maxDate]);
 
-  const stats = useMemo(() => {
-    if (!noticias.data) return null;
-    if (!cfg.preclassified && !kw?.clasificar) return null;
-
-    const actual = new Map<GrupoPrivado, number>();
-    const previo = new Map<GrupoPrivado, number>();
-    NOMBRES_GRUPOS_PRIVADOS.forEach(g => {
-      actual.set(g, 0);
-      previo.set(g, 0);
-    });
-    let totalAct = 0;
-    let totalPrev = 0;
-
-    for (const row of noticias.data.rows) {
-      const dateRaw = row[cfg.dateField];
-      if (!dateRaw || typeof dateRaw !== 'string') continue;
-
-      let grupo: GrupoPrivado | null = null;
-
-      if (cfg.preclassified && cfg.groupField) {
-        const g = row[cfg.groupField];
-        if (typeof g === 'string' && (NOMBRES_GRUPOS_PRIVADOS as string[]).includes(g)) {
-          grupo = g as GrupoPrivado;
-        }
-      } else if (cfg.termField && kw?.clasificar) {
-        const term = row[cfg.termField];
-        if (typeof term !== 'string') continue;
-        const c = kw.clasificar(term);
-        if (!c || c.bloque !== 'privados' || !c.grupoHospitalario) continue;
-        const g = c.grupoHospitalario as GrupoPrivado;
-        if ((NOMBRES_GRUPOS_PRIVADOS as string[]).includes(g)) grupo = g;
-      }
-
-      if (!grupo) continue;
-
-      const fecha = new Date(dateRaw);
-      if (fecha >= cutoff30) {
-        actual.set(grupo, (actual.get(grupo) ?? 0) + 1);
-        totalAct++;
-      } else {
-        previo.set(grupo, (previo.get(grupo) ?? 0) + 1);
-        totalPrev++;
-      }
-    }
-
-    const max = Math.max(...Array.from(actual.values()), 1);
-    const filas = NOMBRES_GRUPOS_PRIVADOS
-      .map(grupo => {
-        const act = actual.get(grupo) ?? 0;
-        const prev = previo.get(grupo) ?? 0;
-        return {
-          grupo,
-          actual: act,
-          previo: prev,
-          delta: deltaPct(act, prev),
-          share: totalAct > 0 ? (act / totalAct) * 100 : 0,
-          barPct: (act / max) * 100,
-        };
-      })
-      .sort((a, b) => b.actual - a.actual);
-
-    const qs = filas.find(f => f.grupo === 'Quirónsalud');
-    const qsRank = filas.findIndex(f => f.grupo === 'Quirónsalud') + 1;
-    const totalDelta = deltaPct(totalAct, totalPrev);
-
-    return {
-      filas,
-      totalAct,
-      totalPrev,
-      totalDelta,
-      qsCount: qs?.actual ?? 0,
-      qsShare: qs?.share ?? 0,
-      qsDelta: qs?.delta ?? null,
-      qsRank,
-      truncated: noticias.data.truncated,
-      rowsLeidas: noticias.data.rows.length,
-    };
-  }, [kw, noticias.data, cutoff30, cfg]);
-
-  const isLoading = (cfg.preclassified ? false : loadingKw) || noticias.isLoading;
+  const isLoading = (cfg.preclassified ? false : loadingKw) || channel.isLoading;
 
   const rangoActual = `${fmtFecha(cutoff30)} — ${fmtFecha(maxDate)}`;
   const rangoPrevio = `${fmtFecha(cutoff60)} — ${fmtFecha(cutoff30)}`;
 
   const ahora = useMemo(() => new Date(), []);
   const diasDesdeMax = (ahora.getTime() - maxDate.getTime()) / (1000 * 60 * 60 * 24);
-  const showStaleHint = noticias.data != null && diasDesdeMax > 2;
+  const showStaleHint = stats != null && diasDesdeMax > 2;
 
   const Icon = cfg.Icon;
 
@@ -354,15 +332,6 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
             })}
           </ul>
         )}
-
-        {stats?.truncated && (
-          <div className="flex items-start gap-2 border-t border-border bg-amber-50 px-4 py-3 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
-            <span>
-              Se alcanzó el techo técnico de 500.000 filas. Avisa para revisar la consulta.
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Footer */}
@@ -382,7 +351,7 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
           </p>
           {stats && (
             <p>
-              {fmt(stats.rowsLeidas)} filas leídas · {fmt(stats.totalAct + stats.totalPrev)} clasificadas en privados
+              {fmt(stats.totalAct + stats.totalPrev)} menciones clasificadas en privados (servidor)
             </p>
           )}
         </div>
