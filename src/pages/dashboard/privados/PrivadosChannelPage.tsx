@@ -56,7 +56,7 @@ interface ChannelStats {
 }
 
 function fmt(n: number): string {
-  return n.toLocaleString('es-ES');
+  return (n ?? 0).toLocaleString('es-ES');
 }
 function fmtPct(n: number, digits = 1): string {
   return `${n.toFixed(digits)}%`;
@@ -102,15 +102,16 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig): Promise<ChannelSta
     const g = r.grupo_hospitalario as GrupoPrivado;
     if (!NOMBRES_GRUPOS_PRIVADOS.includes(g)) continue;
     const cur = counts.get(g)!;
-    cur.menciones += r.menciones;
+    const m = Number(r.menciones) || 0;
+    cur.menciones += m;
     if (r.nota_media != null) {
-      cur.notaWeighted += r.nota_media * r.menciones;
-      cur.notaCount += r.menciones;
-      totalNotaWeighted += r.nota_media * r.menciones;
-      totalNotaCount += r.menciones;
+      cur.notaWeighted += r.nota_media * m;
+      cur.notaCount += m;
+      totalNotaWeighted += r.nota_media * m;
+      totalNotaCount += m;
     }
     counts.set(g, cur);
-    total += r.menciones;
+    total += m;
     if (r.fecha_max) {
       const d = new Date(r.fecha_max);
       if (!isNaN(d.getTime()) && d > maxDate) maxDate = d;
