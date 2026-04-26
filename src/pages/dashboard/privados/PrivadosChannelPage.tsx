@@ -193,23 +193,90 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig, kw: KwData): Promis
   const cutoff30 = subDays(maxDate, 30);
   const cutoff60 = subDays(maxDate, 60);
 
-  const N = NOMBRES_GRUPOS_PRIVADOS.length;
-  const all = await Promise.all([
-    countTotal(cfg, cutoff30.toISOString(), maxDate.toISOString(), false),
-    countTotal(cfg, cutoff60.toISOString(), cutoff30.toISOString(), true),
-    ...NOMBRES_GRUPOS_PRIVADOS.map(g =>
-      countForGroup(cfg, kw, g, cutoff30.toISOString(), maxDate.toISOString(), false),
-    ),
-    ...NOMBRES_GRUPOS_PRIVADOS.map(g =>
-      countForGroup(cfg, kw, g, cutoff60.toISOString(), cutoff30.toISOString(), true),
-    ),
-  ]);
+  let totalAct = 0;
+  let totalPrev = 0;
+  const currentByGroup: Record<GrupoPrivado, number> = {} as Record<GrupoPrivado, number>;
+  const previousByGroup: Record<GrupoPrivado, number> = {} as Record<GrupoPrivado, number>;
+  for (const g of NOMBRES_GRUPOS_PRIVADOS) {
+    currentByGroup[g] = 0;
+    previousByGroup[g] = 0;
+  }
 
-  const totalAct = all[0];
-  const totalPrev = all[1];
-  const currentCounts = all.slice(2, 2 + N);
-  const previousCounts = all.slice(2 + N, 2 + 2 * N);
+  if (cfg.preclassified) {
+    const tasks: Promise<void>[] = [];
+    tasks.push(
+      countTotal(cfg, cutoff30.toISOString(), maxDate.toISOString(), false).then(n => {
+        totalAct = n;
+      }),
+    );
+    tasks.push(
+      countTotal(cfg, cutoff60.toISOString(), cutoff30.toISOString(), true).then(n => {
+        totalPrev = n;
+      }),
+    );
+    for (const g of NOMBRES_GRUPOS_PRIVADOS) {
+      tasks.push(
+        countByGroupPreclassified(cfg, g, cutoff30.toISOString(), maxDate.toISOString(), false).then(
+          n => {
+            currentByGroup[g] = n;
+          },
+        ),
+      );
+      tasks.push(
+        countByGroupPreclassified(cfg, g, cutoff60.toISOString(), cutoff30.toISOString(), true).then(
+          n => {
+            previousByGroup[g] = n;
+          },
+        ),
+      );
+    }
+    await Promise.all(tasks);
+  } else {
+    if (!cfg.termField) {
+      console.warn(`[${cfg.key}] no termField configurado para canal no preclasificado.`);
+    }
+    const fields = cfg.termField ? `${cfg.termField},${cfg.dateField}` : cfg.dateField;
+    const [rowsActual, rowsPrevio] = await Promise.all([
+      fetchAllRowsParallel<Record<string, unknown>>(
+        cfg,
+        fields,
+        cutoff30.toISOString(),
+        maxDate.toISOString(),
+        false,
+      ),
+      fetchAllRowsParallel<Record<string, unknown>>(
+        cfg,
+        fields,
+        cutoff60.toISOString(),
+        cutoff30.toISOString(),
+        true,
+      ),
+    ]);
+    totalAct = rowsActual.length;
+    totalPrev = rowsPrevio.length;
+    if (kw?.clasificar && cfg.termField) {
+      const validos = new Set<string>(NOMBRES_GRUPOS_PRIVADOS as readonly string[]);
+      for (const r of rowsActual) {
+        const txt = r[cfg.termField] as string | null | undefined;
+        const c = kw.clasificar(txt);
+        if (c?.bloque === 'privados' && c.grupoHospitalario && validos.has(c.grupoHospitalario)) {
+          const g = c.grupoHospitalario as GrupoPrivado;
+          currentByGroup[g] = (currentByGroup[g] ?? 0) + 1;
+        }
+      }
+      for (const r of rowsPrevio) {
+        const txt = r[cfg.termField] as string | null | undefined;
+        const c = kw.clasificar(txt);
+        if (c?.bloque === 'privados' && c.grupoHospitalario && validos.has(c.grupoHospitalario)) {
+          const g = c.grupoHospitalario as GrupoPrivado;
+          previousByGroup[g] = (previousByGroup[g] ?? 0) + 1;
+        }
+      }
+    }
+  }
 
+  const currentCounts = NOMBRES_GRUPOS_PRIVADOS.map(g => currentByGroup[g]);
+  const previousCounts = NOMBRES_GRUPOS_PRIVADOS.map(g => previousByGroup[g]);
   const max = Math.max(...currentCounts, 1);
 
   const filas = NOMBRES_GRUPOS_PRIVADOS
