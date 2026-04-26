@@ -77,7 +77,7 @@ async function fetchAllRows(
       console.error('[PrivadosChannelPage] error página', page, error);
       break;
     }
-    const chunk = (data ?? []) as RawRow[];
+    const chunk = (data ?? []) as unknown as RawRow[];
     all.push(...chunk);
     if (chunk.length < PAGE_SIZE) {
       return { rows: all, truncated: false };
