@@ -1,13 +1,13 @@
 import { BiNews } from 'react-icons/bi';
 import PrivadosChannelPage, { type PrivadosChannelConfig } from './PrivadosChannelPage';
 
-const CFG: PrivadosChannelConfig = {
+export const CFG_MEDIOS: PrivadosChannelConfig = {
   key: 'medios',
   label: 'medios',
   short: 'Medios',
   Icon: BiNews,
   brandColor: '#1F2937',
-  view: 'noticias_general_filtradas',
+  view: 'noticias_gh_privados',
   dateField: 'Date',
   preclassified: false,
   termField: 'Tema',
@@ -15,5 +15,5 @@ const CFG: PrivadosChannelConfig = {
 };
 
 export default function PrivadosNoticias() {
-  return <PrivadosChannelPage cfg={CFG} />;
+  return <PrivadosChannelPage cfg={CFG_MEDIOS} />;
 }
