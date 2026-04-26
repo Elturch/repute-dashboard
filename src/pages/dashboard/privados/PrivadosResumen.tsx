@@ -3,8 +3,8 @@ import { externalSupabase } from '@/integrations/external-supabase/client';
 import { NOMBRES_GRUPOS_PRIVADOS, type GrupoPrivado } from '@/lib/clasificacion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { SiInstagram, SiTiktok, SiFacebook, SiLinkedin, SiGoogle } from 'react-icons/si';
-import { FaXTwitter } from 'react-icons/fa6';
+import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from 'react-icons/si';
+import { FaXTwitter, FaLinkedin } from 'react-icons/fa6';
 import { BiNews } from 'react-icons/bi';
 import type { IconType } from 'react-icons';
 
@@ -23,7 +23,7 @@ const CHANNELS: ChannelConfig[] = [
   { key: 'twitter', label: 'X (Twitter)', Icon: FaXTwitter, brandColor: '#FFFFFF' },
   { key: 'tiktok', label: 'TikTok', Icon: SiTiktok, brandColor: '#FFFFFF' },
   { key: 'facebook', label: 'Facebook', Icon: SiFacebook, brandColor: '#1877F2' },
-  { key: 'linkedin', label: 'LinkedIn', Icon: SiLinkedin, brandColor: '#0A66C2' },
+  { key: 'linkedin', label: 'LinkedIn', Icon: FaLinkedin, brandColor: '#0A66C2' },
   { key: 'mybusiness', label: 'My Business', Icon: SiGoogle, brandColor: '#4285F4' },
 ];
 
