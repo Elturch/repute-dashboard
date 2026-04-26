@@ -63,7 +63,7 @@ async function fetchMaxDate(cfg: PrivadosChannelConfig): Promise<Date> {
       console.error('[PrivadosChannelPage] error max date', error);
       return new Date();
     }
-    const row = (data ?? [])[0] as Record<string, unknown> | undefined;
+    const row = ((data ?? []) as unknown as Array<Record<string, unknown>>)[0];
     const raw = row?.[cfg.dateField];
     if (typeof raw === 'string' && raw) {
       const d = new Date(raw);
