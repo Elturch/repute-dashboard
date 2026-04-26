@@ -65,7 +65,10 @@ function rowToClasificacion(row: KeywordRow): Clasificacion {
 export function useKeywordsClassification() {
   return useQuery({
     queryKey: ['keywords_classification'],
-    staleTime: 30 * 60 * 1000, // 30 min — la tabla cambia poco
+    staleTime: 24 * 60 * 60 * 1000, // 24 h — la tabla cambia poco
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     queryFn: async () => {
       const { data, error } = await externalSupabase
         .from('keywords')
