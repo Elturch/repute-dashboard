@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useQuery, type QueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { IconType } from 'react-icons';
@@ -135,6 +135,8 @@ async function fetchAllRowsParallel<T extends Record<string, unknown>>(
   }
   if (!totalCount) return [];
 
+  console.log(`[${cfg.key}] fetchAllRowsParallel count: ${totalCount} (range ${fromISO} → ${toISO}, exclusiveTop=${exclusiveTop})`);
+
   const PAGE_SIZE = 1000;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
   const allRows: T[] = [];
@@ -156,6 +158,8 @@ async function fetchAllRowsParallel<T extends Record<string, unknown>>(
         return q;
       }),
     );
+    const batchRows = batch.flatMap(b => (b.data ?? []) as unknown as T[]);
+    console.log(`[${cfg.key}] fetchAllRowsParallel batch ${i}-${i + concurrency}: ${batchRows.length} rows`);
     for (const { data, error } of batch) {
       if (error) {
         console.error(`[${cfg.key}] page error:`, error);
@@ -189,9 +193,23 @@ interface ChannelStats {
 }
 
 async function fetchChannelStats(cfg: PrivadosChannelConfig, kw: KwData): Promise<ChannelStats> {
+  console.log(`[${cfg.key}] ▶ fetchChannelStats START`, {
+    view: cfg.view,
+    dateField: cfg.dateField,
+    preclassified: cfg.preclassified,
+    termField: cfg.termField,
+    kwLoaded: !!kw,
+    hasPatterns: !!kw?.patternsByGrupo,
+    patternsForQS: kw?.patternsByGrupo?.['Quirónsalud']?.length ?? 0,
+  });
   const maxDate = await fetchMaxDate(cfg);
   const cutoff30 = subDays(maxDate, 30);
   const cutoff60 = subDays(maxDate, 60);
+  console.log(`[${cfg.key}] maxDate result:`, {
+    maxDate: maxDate.toISOString(),
+    cutoff30: cutoff30.toISOString(),
+    cutoff60: cutoff60.toISOString(),
+  });
 
   let totalAct = 0;
   let totalPrev = 0;
@@ -203,6 +221,7 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig, kw: KwData): Promis
   }
 
   if (cfg.preclassified) {
+    console.log(`[${cfg.key}] branch=preclassified · counts por grupo via .eq(${cfg.groupField})`);
     const tasks: Promise<void>[] = [];
     tasks.push(
       countTotal(cfg, cutoff30.toISOString(), maxDate.toISOString(), false).then(n => {
@@ -232,6 +251,7 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig, kw: KwData): Promis
     }
     await Promise.all(tasks);
   } else {
+    console.log(`[${cfg.key}] branch=NO preclassified · descargando filas y clasificando en JS`);
     if (!cfg.termField) {
       console.warn(`[${cfg.key}] no termField configurado para canal no preclasificado.`);
     }
@@ -297,6 +317,13 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig, kw: KwData): Promis
   const qs = filas.find(f => f.grupo === 'Quirónsalud');
   const qsRank = filas.findIndex(f => f.grupo === 'Quirónsalud') + 1;
 
+  console.log(`[${cfg.key}] ✅ END`, {
+    totalAct,
+    totalPrev,
+    currentByGroup,
+    previousByGroup,
+  });
+
   return {
     filas,
     totalAct,
@@ -342,6 +369,7 @@ export async function prefetchPrivadosChannel(
 
 export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfig }) {
   const { data: kw, isLoading: loadingKw } = useKeywordsClassification();
+  const queryClient = useQueryClient();
 
   const ready = cfg.preclassified || !!kw;
 
@@ -382,13 +410,25 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
     <div className="space-y-6 p-6">
       {/* Hero */}
       <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5">
-            <Icon className="h-3.5 w-3.5" style={{ color: cfg.brandColor }} />
-            Sanidad privada · {cfg.short}
-          </span>
-          <span>·</span>
-          <span>{rangoActual}</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5">
+              <Icon className="h-3.5 w-3.5" style={{ color: cfg.brandColor }} />
+              Sanidad privada · {cfg.short}
+            </span>
+            <span>·</span>
+            <span>{rangoActual}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['privados_channel', cfg.key] });
+              queryClient.invalidateQueries({ queryKey: ['keywords_classification'] });
+            }}
+            className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-foreground"
+          >
+            🔄 Recargar
+          </button>
         </div>
         {showStaleHint && (
           <div className="text-[#6b7280] text-[10px] uppercase tracking-wider">
