@@ -28,6 +28,12 @@ import MyBusinessChannel from "./pages/dashboard/canales/MyBusinessChannel";
 
 // Privados
 import PrivadosNoticias from "./pages/dashboard/privados/PrivadosNoticias";
+import PrivadosInstagram from "./pages/dashboard/privados/PrivadosInstagram";
+import PrivadosTwitter from "./pages/dashboard/privados/PrivadosTwitter";
+import PrivadosTikTok from "./pages/dashboard/privados/PrivadosTikTok";
+import PrivadosFacebook from "./pages/dashboard/privados/PrivadosFacebook";
+import PrivadosLinkedIn from "./pages/dashboard/privados/PrivadosLinkedIn";
+import PrivadosMyBusiness from "./pages/dashboard/privados/PrivadosMyBusiness";
 
 // Especiales
 import EspecialesIndex from "./pages/dashboard/especiales/EspecialesIndex";
@@ -76,6 +82,12 @@ const App = () => (
             <Route path="canales/linkedin" element={<LinkedInChannel />} />
             <Route path="canales/mybusiness" element={<MyBusinessChannel />} />
             <Route path="privados/noticias" element={<PrivadosNoticias />} />
+            <Route path="privados/instagram" element={<PrivadosInstagram />} />
+            <Route path="privados/twitter" element={<PrivadosTwitter />} />
+            <Route path="privados/tiktok" element={<PrivadosTikTok />} />
+            <Route path="privados/facebook" element={<PrivadosFacebook />} />
+            <Route path="privados/linkedin" element={<PrivadosLinkedIn />} />
+            <Route path="privados/mybusiness" element={<PrivadosMyBusiness />} />
             <Route path="medios" element={<MediosGlobal />} />
             <Route path="evolucion" element={<EvolucionGlobal />} />
             <Route path="riesgo" element={<Riesgo />} />
