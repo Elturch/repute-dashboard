@@ -10,6 +10,7 @@ import {
   type GrupoPrivado,
 } from '@/lib/clasificacion';
 import { AlertTriangle } from 'lucide-react';
+import PerfilReputacionalIA, { type PerfilBucket } from '@/components/PerfilReputacionalIA';
 
 /** Configuración de un canal privado. Mantiene compatibilidad con los wrappers existentes. */
 export type PrivadosChannelConfig = {
@@ -35,6 +36,15 @@ interface MvRow {
   menciones: number;
   nota_media: number | null;
   fecha_max: string | null;
+  influencia?: number | null;
+  fiabilidad?: number | null;
+  afinidad?: number | null;
+  admiracion?: number | null;
+  impacto?: number | null;
+  compromiso?: number | null;
+  rechazo?: number | null;
+  preocupacion?: number | null;
+  descredito?: number | null;
 }
 
 interface FilaGrupo {
@@ -53,6 +63,9 @@ interface ChannelStats {
   qsCount: number;
   qsShare: number;
   qsRank: number;
+  bucketTotal: PerfilBucket;
+  bucketQS: PerfilBucket;
+  bucketResto: PerfilBucket;
 }
 
 function fmt(n: number): string {
@@ -72,6 +85,7 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig): Promise<ChannelSta
     .eq('canal', cfg.key)
     .eq('titularidad', 'Privado');
 
+  const emptyBucket = (label: string): PerfilBucket => ({ label, menciones: 0, promedios: {} });
   const empty: ChannelStats = {
     filas: NOMBRES_GRUPOS_PRIVADOS.map(g => ({ grupo: g, count: 0, share: 0, barPct: 0, notaMedia: null })),
     total: 0,
@@ -80,6 +94,9 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig): Promise<ChannelSta
     qsCount: 0,
     qsShare: 0,
     qsRank: 0,
+    bucketTotal: emptyBucket('Total privados'),
+    bucketQS: emptyBucket('Quirónsalud'),
+    bucketResto: emptyBucket('Privados sin QS'),
   };
 
   if (error) {
@@ -135,6 +152,35 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig): Promise<ChannelSta
   const qsRow = filas.find(f => f.grupo === 'Quirónsalud');
   const qsRank = filas.findIndex(f => f.grupo === 'Quirónsalud') + 1;
 
+  // Buckets para el scorecard reputacional IA
+  function aggregateBucket(label: string, rowsBucket: MvRow[]): PerfilBucket {
+    const METRIC_KEYS = ['influencia','fiabilidad','afinidad','admiracion','impacto','compromiso','rechazo','preocupacion','descredito'];
+    const sums: Record<string, { weighted: number; count: number }> = {};
+    METRIC_KEYS.forEach(k => sums[k] = { weighted: 0, count: 0 });
+    let menciones = 0;
+    for (const r of rowsBucket) {
+      const m = Number(r.menciones) || 0;
+      menciones += m;
+      METRIC_KEYS.forEach(k => {
+        const v = (r as any)[k] as number | null | undefined;
+        if (v != null) {
+          sums[k].weighted += v * m;
+          sums[k].count += m;
+        }
+      });
+    }
+    const promedios: Record<string, number | null> = {};
+    METRIC_KEYS.forEach(k => {
+      promedios[k] = sums[k].count > 0 ? sums[k].weighted / sums[k].count : null;
+    });
+    return { label, menciones, promedios };
+  }
+
+  const validas = rows.filter(r => r.grupo_hospitalario && NOMBRES_GRUPOS_PRIVADOS.includes(r.grupo_hospitalario as GrupoPrivado));
+  const bucketTotal = aggregateBucket('Total privados', validas);
+  const bucketQS = aggregateBucket('Quirónsalud', validas.filter(r => r.grupo_hospitalario === 'Quirónsalud'));
+  const bucketResto = aggregateBucket('Privados sin QS', validas.filter(r => r.grupo_hospitalario !== 'Quirónsalud'));
+
   return {
     filas,
     total,
@@ -143,6 +189,9 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig): Promise<ChannelSta
     qsCount: qsRow?.count ?? 0,
     qsShare: qsRow?.share ?? 0,
     qsRank,
+    bucketTotal,
+    bucketQS,
+    bucketResto,
   };
 }
 
@@ -316,6 +365,18 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
           </div>
         )}
       </div>
+
+      {/* Perfil reputacional IA */}
+      {stats && (
+        <PerfilReputacionalIA
+          contextLabel={`en ${cfg.label}`}
+          highlightLabel="Quirónsalud"
+          total={stats.bucketTotal}
+          highlight={stats.bucketQS}
+          resto={stats.bucketResto}
+          highlightColor={cfg.brandColor}
+        />
+      )}
 
       {/* Footer */}
       <div className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-muted/30 p-4 text-xs text-muted-foreground md:grid-cols-2">
