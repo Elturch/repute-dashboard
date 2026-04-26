@@ -7,7 +7,7 @@ export const CFG_INSTAGRAM: PrivadosChannelConfig = {
   short: 'Instagram',
   Icon: SiInstagram,
   brandColor: '#E4405F',
-  view: 'ig_posts_gh_agrupados',
+  view: 'ig_posts_general_filtrada',
   dateField: 'date_posted',
   preclassified: false,
   termField: 'termino',

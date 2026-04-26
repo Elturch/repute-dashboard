@@ -7,7 +7,7 @@ export const CFG_FACEBOOK: PrivadosChannelConfig = {
   short: 'Facebook',
   Icon: SiFacebook,
   brandColor: '#1877F2',
-  view: 'fb_posts_gh_agrupados',
+  view: 'fb_posts_general_filtradas',
   dateField: 'date_posted',
   preclassified: false,
   termField: 'termino',
