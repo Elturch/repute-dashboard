@@ -286,11 +286,6 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
                   <div className="min-w-0 space-y-1.5">
                     <div className="flex items-center gap-2">
                       <span className="truncate font-medium text-foreground">{f.grupo}</span>
-                      {isQS && (
-                        <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground">
-                          Cliente
-                        </span>
-                      )}
                     </div>
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                       <div
