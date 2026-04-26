@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Outlet, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -5,9 +7,31 @@ import { Monitor, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/NotificationBell";
 import { OnboardingModal } from "@/components/OnboardingModal";
+import { prefetchPrivadosChannel } from "@/pages/dashboard/privados/PrivadosChannelPage";
+import { CFG_MEDIOS } from "@/pages/dashboard/privados/PrivadosNoticias";
+import { CFG_INSTAGRAM } from "@/pages/dashboard/privados/PrivadosInstagram";
+import { CFG_TWITTER } from "@/pages/dashboard/privados/PrivadosTwitter";
+import { CFG_TIKTOK } from "@/pages/dashboard/privados/PrivadosTikTok";
+import { CFG_FACEBOOK } from "@/pages/dashboard/privados/PrivadosFacebook";
+import { CFG_LINKEDIN } from "@/pages/dashboard/privados/PrivadosLinkedIn";
+import { CFG_MYBUSINESS } from "@/pages/dashboard/privados/PrivadosMyBusiness";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    Promise.all([
+      prefetchPrivadosChannel(queryClient, CFG_MEDIOS),
+      prefetchPrivadosChannel(queryClient, CFG_INSTAGRAM),
+      prefetchPrivadosChannel(queryClient, CFG_TWITTER),
+      prefetchPrivadosChannel(queryClient, CFG_TIKTOK),
+      prefetchPrivadosChannel(queryClient, CFG_FACEBOOK),
+      prefetchPrivadosChannel(queryClient, CFG_LINKEDIN),
+      prefetchPrivadosChannel(queryClient, CFG_MYBUSINESS),
+    ]).catch(() => { /* silencioso */ });
+  }, [queryClient]);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
