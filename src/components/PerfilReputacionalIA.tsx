@@ -29,6 +29,11 @@ const COLOR_GOOD = '#10b981';
 const COLOR_FLAT = '#9ca3af';
 const COLOR_BAD  = '#ef4444';
 
+// Colores de las tres capas del radar
+const COLOR_TOTAL = '#e5e7eb'; // blanco translúcido
+const COLOR_SINQS = '#9ca3af'; // gris medio
+// COLOR_QS viene de highlightColor (#3b82f6)
+
 function fmt(n: number) { return n.toLocaleString('es-ES'); }
 function fmtNum(n: number | null, d = 2): string { return n == null ? '—' : n.toFixed(d); }
 
@@ -37,8 +42,8 @@ function statusFor(metric: MetricaDef, hi: number | null, re: number | null): { 
   const raw = hi - re;
   const adjusted = metric.positive ? raw : -raw;
   const threshold = 0.3;
-  if (adjusted > threshold)  return { icon: '★', tone: 'up',   label: 'Lidera',      color: COLOR_GOOD };
-  if (adjusted < -threshold) return { icon: '⚠', tone: 'down', label: 'Por debajo',  color: COLOR_BAD };
+  if (adjusted > threshold)  return { icon: '★', tone: 'up',   label: 'Lidera',     color: COLOR_GOOD };
+  if (adjusted < -threshold) return { icon: '⚠', tone: 'down', label: 'Por debajo', color: COLOR_BAD };
   return { icon: '●', tone: 'flat', label: 'En línea', color: COLOR_FLAT };
 }
 
@@ -94,10 +99,12 @@ export default function PerfilReputacionalIA({
     );
   }
 
+  // Datos para los 3 polígonos del radar
   const radarData = ALL_METRICAS.map(m => ({
     metric: m.label,
+    total: total.promedios[m.key] ?? 0,
     qs: highlight.promedios[m.key] ?? 0,
-    sector: resto.promedios[m.key] ?? 0,
+    sinqs: resto.promedios[m.key] ?? 0,
     fullMark: 10,
   }));
 
@@ -107,11 +114,11 @@ export default function PerfilReputacionalIA({
         Perfil reputacional IA{contextLabel ? ` · ${contextLabel}` : ''}
       </p>
 
-      {/* Header 3 columnas tipo Looker — números grandes */}
+      {/* Header 3 columnas — números grandes */}
       <div className="grid grid-cols-3 gap-4 mb-8 bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
-        <ColumnCounter label="Grupos hospitalarios" sub="Nº de menciones" value={fmt(total.menciones)} />
-        <ColumnCounter label="Quirónsalud" sub="Nº de menciones" value={fmt(highlight.menciones)} highlight color={highlightColor} />
-        <ColumnCounter label={`Grupos sin ${highlightLabel === 'Quirónsalud' ? 'Quirónsalud' : highlightLabel}`} sub="Nº de menciones" value={fmt(resto.menciones)} />
+        <ColumnCounter label="Grupos hospitalarios" value={fmt(total.menciones)} accentColor={COLOR_TOTAL} />
+        <ColumnCounter label={highlightLabel} value={fmt(highlight.menciones)} highlight color={highlightColor} />
+        <ColumnCounter label={`Sin ${highlightLabel === 'Quirónsalud' ? 'Quirónsalud' : highlightLabel}`} value={fmt(resto.menciones)} accentColor={COLOR_SINQS} />
       </div>
 
       {/* Titular */}
@@ -129,17 +136,12 @@ export default function PerfilReputacionalIA({
         </p>
       </div>
 
-      {/* Radar grande */}
+      {/* Radar con 3 capas */}
       <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6 mb-6">
-        <div className="flex items-center justify-center gap-10 mb-4 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="w-3.5 h-3.5 rounded-sm" style={{ backgroundColor: highlightColor, opacity: 0.7 }} />
-            <span className="text-white font-bold uppercase tracking-wider text-[11px]">{highlightLabel}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3.5 h-3.5 rounded-sm bg-[#6b7280]/40 border border-[#6b7280]/60" />
-            <span className="text-[#9ca3af] uppercase tracking-wider text-[11px]">Sector</span>
-          </div>
+        <div className="flex items-center justify-center gap-10 mb-4">
+          <LegendItem color={COLOR_TOTAL} dashed label="GRUPOS HOSPITALARIOS (TOTAL)" />
+          <LegendItem color={highlightColor} label={highlightLabel.toUpperCase()} bold />
+          <LegendItem color={COLOR_SINQS} label={`SIN ${highlightLabel === 'Quirónsalud' ? 'QUIRÓNSALUD' : highlightLabel.toUpperCase()}`} />
         </div>
         <div className="w-full" style={{ height: 540 }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -150,13 +152,36 @@ export default function PerfilReputacionalIA({
                 tick={(props: any) => <ColoredAxisTick {...props} statusMap={statusMap} />}
               />
               <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fill: '#4b5563', fontSize: 10 }} stroke="rgba(255,255,255,0.05)" />
-              <Radar name="Sector" dataKey="sector" stroke="#9ca3af" fill="#9ca3af" fillOpacity={0.18} strokeWidth={1.5} strokeDasharray="4 3" />
-              <Radar name={highlightLabel} dataKey="qs" stroke={highlightColor} fill={highlightColor} fillOpacity={0.45} strokeWidth={2.5} />
+
+              {/* Capa 1: TOTAL — la más sutil, dashed */}
+              <Radar name="Grupos hospitalarios"
+                     dataKey="total"
+                     stroke={COLOR_TOTAL}
+                     fill={COLOR_TOTAL}
+                     fillOpacity={0.06}
+                     strokeWidth={1.5}
+                     strokeDasharray="5 4" />
+
+              {/* Capa 2: SIN QS — gris medio */}
+              <Radar name="Sin QS"
+                     dataKey="sinqs"
+                     stroke={COLOR_SINQS}
+                     fill={COLOR_SINQS}
+                     fillOpacity={0.18}
+                     strokeWidth={1.8} />
+
+              {/* Capa 3: QS — la más prominente, encima de todo */}
+              <Radar name={highlightLabel}
+                     dataKey="qs"
+                     stroke={highlightColor}
+                     fill={highlightColor}
+                     fillOpacity={0.42}
+                     strokeWidth={2.8} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
         <p className="text-[11px] text-[#6b7280] text-center uppercase tracking-wider mt-2">
-          Escala 0 — 10 · El color del eje indica si Quirónsalud lidera (verde), está en línea (gris) o por debajo (rojo)
+          Escala 0 — 10 · Color del eje: verde si {highlightLabel} lidera, rojo si está por debajo
         </p>
       </div>
 
@@ -171,7 +196,7 @@ export default function PerfilReputacionalIA({
         highlightLabel={highlightLabel}
       />
 
-      {/* Leyenda */}
+      {/* Leyenda de iconos */}
       <div className="mt-6 pt-4 border-t border-white/5 flex items-center gap-8 text-sm text-[#9ca3af]">
         <span className="flex items-center gap-1.5"><span className="text-[#10b981] font-bold text-base">★</span> {highlightLabel} lidera</span>
         <span className="flex items-center gap-1.5"><span className="text-[#9ca3af] font-bold text-base">●</span> En línea con el sector</span>
@@ -181,16 +206,37 @@ export default function PerfilReputacionalIA({
   );
 }
 
-function ColumnCounter({ label, sub, value, highlight, color }: {
-  label: string; sub: string; value: string; highlight?: boolean; color?: string;
+function LegendItem({ color, label, dashed, bold }: { color: string; label: string; dashed?: boolean; bold?: boolean }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span
+        className="w-4 h-4 rounded-sm"
+        style={{
+          backgroundColor: dashed ? 'transparent' : color,
+          opacity: dashed ? 1 : 0.7,
+          border: dashed ? `1.5px dashed ${color}` : `1px solid ${color}`,
+        }}
+      />
+      <span
+        className={`uppercase tracking-wider text-[11px] ${bold ? 'font-bold text-white' : 'text-[#d1d5db]'}`}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function ColumnCounter({ label, value, highlight, color, accentColor }: {
+  label: string; value: string; highlight?: boolean; color?: string; accentColor?: string;
 }) {
   return (
     <div className={`flex flex-col items-center justify-center py-7 px-4 ${highlight ? 'bg-[#3b82f6]/[0.06] border-x border-[#3b82f6]/20' : ''}`}>
-      <p className={`text-[12px] uppercase tracking-[0.2em] mb-1 ${highlight ? 'font-bold' : 'text-[#9ca3af]'}`} style={highlight ? { color } : {}}>
+      <p className={`text-[12px] uppercase tracking-[0.2em] mb-2 ${highlight ? 'font-bold' : ''}`}
+         style={highlight ? { color } : { color: accentColor ?? '#9ca3af' }}>
         {label}
       </p>
-      <p className="text-[10px] text-[#6b7280] mb-2 uppercase tracking-wider">{sub}</p>
-      <p className={`text-5xl font-bold tabular-nums ${highlight ? '' : 'text-[#e5e7eb]'}`} style={highlight ? { color: 'white' } : {}}>
+      <p className="text-[10px] text-[#6b7280] mb-3 uppercase tracking-wider">Nº de menciones</p>
+      <p className={`text-5xl font-bold tabular-nums ${highlight ? 'text-white' : 'text-[#e5e7eb]'}`}>
         {value}
       </p>
     </div>
@@ -207,10 +253,10 @@ function ColoredAxisTick(props: any) {
         <tspan x={x} dy="0" fontSize="12" fontWeight="600" fill="#d1d5db" letterSpacing="0.5">
           {payload.value.toUpperCase()}
         </tspan>
-        <tspan x={x} dy="1.4em" fontSize="18" fontWeight="800" fill={info.color}>
+        <tspan x={x} dy="1.4em" fontSize="20" fontWeight="800" fill={info.color}>
           {info.value != null ? info.value.toFixed(2) : '—'}
         </tspan>
-        <tspan dx="6" fontSize="16" fontWeight="800" fill={info.color}>
+        <tspan dx="6" fontSize="18" fontWeight="800" fill={info.color}>
           {info.icon}
         </tspan>
       </text>
@@ -227,7 +273,7 @@ function NumericTable({
 }) {
   return (
     <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
-      <div className="grid grid-cols-[1.6fr_0.9fr_1.6fr_0.9fr] gap-4 px-7 py-3.5 border-b border-white/10 text-[11px] uppercase tracking-[0.2em] text-[#6b7280]">
+      <div className="grid grid-cols-[1.4fr_1fr_1.6fr_1fr] gap-4 px-7 py-3.5 border-b border-white/10 text-[11px] uppercase tracking-[0.2em] text-[#6b7280]">
         <span>Métrica</span>
         <span className="text-right">Total</span>
         <span className="text-right font-bold" style={{ color: highlightColor }}>{highlightLabel}</span>
@@ -236,12 +282,12 @@ function NumericTable({
 
       <SectionHeader label="Positivas" sub="más alto = mejor" color={COLOR_GOOD} />
       {positivas.map((m) => (
-        <Row key={m.key} m={m} t={total} h={highlight} r={resto} hc={highlightColor} isLast={false} />
+        <Row key={m.key} m={m} t={total} h={highlight} r={resto} />
       ))}
 
       <SectionHeader label="Negativas" sub="más bajo = mejor" color={COLOR_BAD} />
       {negativas.map((m, i) => (
-        <Row key={m.key} m={m} t={total} h={highlight} r={resto} hc={highlightColor} isLast={i === negativas.length - 1} />
+        <Row key={m.key} m={m} t={total} h={highlight} r={resto} isLast={i === negativas.length - 1} />
       ))}
     </div>
   );
@@ -249,7 +295,7 @@ function NumericTable({
 
 function SectionHeader({ label, sub, color }: { label: string; sub: string; color: string }) {
   return (
-    <div className="px-7 py-3 bg-white/[0.02] border-y border-white/5 flex items-baseline gap-3">
+    <div className="px-7 py-3 bg-white/[0.025] border-y border-white/5 flex items-baseline gap-3">
       <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
       <span className="text-[11px] uppercase tracking-[0.25em] font-bold text-[#e5e7eb]">{label}</span>
       <span className="text-[11px] text-[#6b7280] uppercase tracking-wider">— {sub}</span>
@@ -257,8 +303,8 @@ function SectionHeader({ label, sub, color }: { label: string; sub: string; colo
   );
 }
 
-function Row({ m, t, h, r, hc, isLast }: {
-  m: MetricaDef; t: PerfilBucket; h: PerfilBucket; r: PerfilBucket; hc: string; isLast: boolean;
+function Row({ m, t, h, r, isLast }: {
+  m: MetricaDef; t: PerfilBucket; h: PerfilBucket; r: PerfilBucket; isLast?: boolean;
 }) {
   const tot = t.promedios[m.key];
   const hi = h.promedios[m.key];
@@ -267,19 +313,19 @@ function Row({ m, t, h, r, hc, isLast }: {
   const diff = (hi != null && re != null) ? hi - re : null;
 
   return (
-    <div className={`grid grid-cols-[1.6fr_0.9fr_1.6fr_0.9fr] gap-4 px-7 py-4 items-baseline ${!isLast ? 'border-b border-white/[0.04]' : ''}`}>
-      <span className="text-base text-[#e5e7eb] font-medium">{m.label}</span>
-      <span className="text-right tabular-nums text-lg text-[#9ca3af]">{fmtNum(tot)}</span>
+    <div className={`grid grid-cols-[1.4fr_1fr_1.6fr_1fr] gap-4 px-7 py-5 items-baseline ${!isLast ? 'border-b border-white/[0.04]' : ''}`}>
+      <span className="text-lg text-[#e5e7eb] font-medium">{m.label}</span>
+      <span className="text-right tabular-nums text-3xl font-semibold text-[#9ca3af]">{fmtNum(tot)}</span>
       <span className="text-right tabular-nums flex items-baseline justify-end gap-3">
-        <span className="text-3xl font-bold text-white">{fmtNum(hi)}</span>
-        <span className="text-xl" style={{ color: status.color }}>{status.icon}</span>
+        <span className="text-5xl font-bold text-white">{fmtNum(hi)}</span>
+        <span className="text-2xl" style={{ color: status.color }}>{status.icon}</span>
         {diff != null && Math.abs(diff) >= 0.05 && (
-          <span className="text-sm tabular-nums font-bold" style={{ color: status.color }}>
+          <span className="text-base tabular-nums font-bold" style={{ color: status.color }}>
             {diff > 0 ? '+' : ''}{diff.toFixed(2)}
           </span>
         )}
       </span>
-      <span className="text-right tabular-nums text-lg text-[#9ca3af]">{fmtNum(re)}</span>
+      <span className="text-right tabular-nums text-3xl font-semibold text-[#9ca3af]">{fmtNum(re)}</span>
     </div>
   );
 }
