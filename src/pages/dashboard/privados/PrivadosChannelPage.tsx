@@ -637,6 +637,17 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
           )}
         </div>
       </div>
+
+      {showDebug && (
+        <section className="rounded-lg border-2 border-yellow-500/40 bg-[#1a1f2e] px-8 py-6 text-xs font-mono text-yellow-200">
+          <p className="mb-3 font-bold uppercase tracking-widest text-yellow-400">
+            🔍 Panel diagnóstico
+          </p>
+          <pre className="whitespace-pre-wrap break-all text-[11px] leading-relaxed">
+            {JSON.stringify(diag, null, 2)}
+          </pre>
+        </section>
+      )}
     </div>
   );
 }
