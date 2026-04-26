@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { IconType } from 'react-icons';
@@ -122,6 +122,8 @@ interface ChannelStats {
   qsDelta: number | null;
   qsRank: number;
   maxDate: Date;
+  cutoff30: Date;
+  cutoff60: Date;
 }
 
 async function fetchChannelStats(cfg: PrivadosChannelConfig, kw: KwData): Promise<ChannelStats> {
@@ -174,7 +176,37 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig, kw: KwData): Promis
     qsDelta: qs?.delta ?? null,
     qsRank,
     maxDate,
+    cutoff30,
+    cutoff60,
   };
+}
+
+/**
+ * Prefetch helper para precarga al montar el dashboard.
+ * Asegura primero que las keywords estén en cache, y luego dispara la query del canal.
+ */
+export async function prefetchPrivadosChannel(
+  queryClient: QueryClient,
+  cfg: PrivadosChannelConfig,
+): Promise<void> {
+  // 1) Asegurar keywords (compartidas por todos los canales)
+  let kw: KwData = queryClient.getQueryData(['keywords_classification']) as KwData;
+  if (!kw && !cfg.preclassified) {
+    try {
+      kw = (await queryClient.fetchQuery({
+        queryKey: ['keywords_classification'],
+      })) as KwData;
+    } catch {
+      // si no hay queryFn registrada todavía, dejamos kw undefined
+    }
+  }
+  // 2) Prefetch del canal
+  await queryClient.prefetchQuery({
+    queryKey: ['privados_channel', cfg.key],
+    queryFn: () => fetchChannelStats(cfg, kw),
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+  });
 }
 
 export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfig }) {
@@ -183,16 +215,26 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
   const ready = cfg.preclassified || !!kw;
 
   const channel = useQuery({
-    queryKey: ['privados_channel_counts', cfg.key, cfg.view],
+    queryKey: ['privados_channel', cfg.key],
     enabled: ready,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
     queryFn: () => fetchChannelStats(cfg, kw),
   });
 
   const stats = channel.data ?? null;
   const maxDate = useMemo(() => stats?.maxDate ?? new Date(), [stats?.maxDate]);
-  const cutoff30 = useMemo(() => subDays(maxDate, 30), [maxDate]);
-  const cutoff60 = useMemo(() => subDays(maxDate, 60), [maxDate]);
+  const cutoff30 = useMemo(
+    () => stats?.cutoff30 ?? subDays(maxDate, 30),
+    [stats?.cutoff30, maxDate],
+  );
+  const cutoff60 = useMemo(
+    () => stats?.cutoff60 ?? subDays(maxDate, 60),
+    [stats?.cutoff60, maxDate],
+  );
 
   const isLoading = (cfg.preclassified ? false : loadingKw) || channel.isLoading;
 

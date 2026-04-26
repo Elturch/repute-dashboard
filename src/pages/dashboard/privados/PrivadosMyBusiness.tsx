@@ -1,7 +1,7 @@
 import { SiGoogle } from 'react-icons/si';
 import PrivadosChannelPage, { type PrivadosChannelConfig } from './PrivadosChannelPage';
 
-const CFG: PrivadosChannelConfig = {
+export const CFG_MYBUSINESS: PrivadosChannelConfig = {
   key: 'mybusiness',
   label: 'Google My Business',
   short: 'My Business',
@@ -15,5 +15,5 @@ const CFG: PrivadosChannelConfig = {
 };
 
 export default function PrivadosMyBusiness() {
-  return <PrivadosChannelPage cfg={CFG} />;
+  return <PrivadosChannelPage cfg={CFG_MYBUSINESS} />;
 }
