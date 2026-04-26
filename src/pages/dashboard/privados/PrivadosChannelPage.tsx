@@ -48,9 +48,38 @@ interface RawRow {
   [k: string]: unknown;
 }
 
+async function fetchMaxDate(cfg: PrivadosChannelConfig): Promise<Date> {
+  try {
+    let q = externalSupabase
+      .from(cfg.view)
+      .select(cfg.dateField)
+      .order(cfg.dateField, { ascending: false, nullsFirst: false })
+      .limit(1);
+    if (cfg.titularityField) {
+      q = q.eq(cfg.titularityField, 'Privado');
+    }
+    const { data, error } = await q;
+    if (error) {
+      console.error('[PrivadosChannelPage] error max date', error);
+      return new Date();
+    }
+    const row = ((data ?? []) as unknown as Array<Record<string, unknown>>)[0];
+    const raw = row?.[cfg.dateField];
+    if (typeof raw === 'string' && raw) {
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return new Date();
+  } catch (e) {
+    console.error('[PrivadosChannelPage] exception max date', e);
+    return new Date();
+  }
+}
+
 async function fetchAllRows(
   cfg: PrivadosChannelConfig,
   fromISO: string,
+  toISO: string,
 ): Promise<{ rows: RawRow[]; truncated: boolean }> {
   const all: RawRow[] = [];
   const selectCols = [cfg.dateField, cfg.termField, cfg.groupField]
@@ -65,6 +94,7 @@ async function fetchAllRows(
       .from(cfg.view)
       .select(selectCols)
       .gte(cfg.dateField, fromISO)
+      .lte(cfg.dateField, toISO)
       .order(cfg.dateField, { ascending: false })
       .range(start, end);
 
@@ -89,15 +119,23 @@ async function fetchAllRows(
 export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfig }) {
   const { data: kw, isLoading: loadingKw } = useKeywordsClassification();
 
-  const now = useMemo(() => new Date(), []);
-  const cutoff30 = useMemo(() => subDays(now, 30), [now]);
-  const cutoff60 = useMemo(() => subDays(now, 60), [now]);
-
   const noticias = useQuery({
     queryKey: ['privados_channel', cfg.key, cfg.view],
     staleTime: 5 * 60 * 1000,
-    queryFn: () => fetchAllRows(cfg, cutoff60.toISOString()),
+    queryFn: async () => {
+      const maxDate = await fetchMaxDate(cfg);
+      const cutoff60 = subDays(maxDate, 60);
+      const result = await fetchAllRows(cfg, cutoff60.toISOString(), maxDate.toISOString());
+      return { ...result, maxDate };
+    },
   });
+
+  const maxDate = useMemo(
+    () => noticias.data?.maxDate ?? new Date(),
+    [noticias.data?.maxDate],
+  );
+  const cutoff30 = useMemo(() => subDays(maxDate, 30), [maxDate]);
+  const cutoff60 = useMemo(() => subDays(maxDate, 60), [maxDate]);
 
   const stats = useMemo(() => {
     if (!noticias.data) return null;
@@ -180,8 +218,12 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
 
   const isLoading = (cfg.preclassified ? false : loadingKw) || noticias.isLoading;
 
-  const rangoActual = `${fmtFecha(cutoff30)} — ${fmtFecha(now)}`;
+  const rangoActual = `${fmtFecha(cutoff30)} — ${fmtFecha(maxDate)}`;
   const rangoPrevio = `${fmtFecha(cutoff60)} — ${fmtFecha(cutoff30)}`;
+
+  const ahora = useMemo(() => new Date(), []);
+  const diasDesdeMax = (ahora.getTime() - maxDate.getTime()) / (1000 * 60 * 60 * 24);
+  const showStaleHint = noticias.data != null && diasDesdeMax > 2;
 
   const Icon = cfg.Icon;
 
@@ -197,6 +239,11 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
           <span>·</span>
           <span>{rangoActual}</span>
         </div>
+        {showStaleHint && (
+          <div className="text-[#6b7280] text-[10px] uppercase tracking-wider">
+            Última actualización: {fmtFecha(maxDate)}
+          </div>
+        )}
         <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
           <Icon className="h-6 w-6" style={{ color: cfg.brandColor }} />
           Menciones en {cfg.label}
