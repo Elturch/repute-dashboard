@@ -157,13 +157,15 @@ export async function prefetchPrivadosChannel(queryClient: QueryClient, cfg: Pri
 
 export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfig }) {
   const queryClient = useQueryClient();
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ['privados_channel', cfg.key],
     queryFn: () => fetchChannelStats(cfg),
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    refetchInterval: 10 * 60 * 1000,
+    refetchIntervalInBackground: true,
   });
 
   const Icon = cfg.Icon;
@@ -190,15 +192,29 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
             <span>·</span>
             <span>{rangoActual}</span>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              queryClient.invalidateQueries({ queryKey: ['privados_channel', cfg.key] });
-            }}
-            className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-foreground"
-          >
-            🔄 Recargar
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mr-4 text-[10px] uppercase tracking-wider">
+              {isFetching ? (
+                <span className="text-[#3b82f6] flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] animate-pulse" />
+                  Actualizando
+                </span>
+              ) : (
+                <span className="text-[#6b7280]">
+                  Auto-refresh 10 min · última: {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ['privados_channel', cfg.key] });
+              }}
+              className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-foreground"
+            >
+              🔄 Recargar
+            </button>
+          </div>
         </div>
         <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
           <Icon className="h-6 w-6" style={{ color: cfg.brandColor }} />
