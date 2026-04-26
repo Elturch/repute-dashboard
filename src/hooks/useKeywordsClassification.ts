@@ -11,6 +11,8 @@ import {
   type Titularidad,
   type GestionHospitalaria,
   bloqueDashboardFromGestion,
+  NOMBRES_GRUPOS_PRIVADOS,
+  type GrupoPrivado,
 } from '@/lib/clasificacion';
 
 interface KeywordRow {
@@ -88,7 +90,20 @@ export function useKeywordsClassification() {
         return null;
       }
 
-      return { rows: index.rows, clasificar };
+      const patternsByGrupo: Record<GrupoPrivado, string[]> = {} as Record<GrupoPrivado, string[]>;
+      for (const grupo of NOMBRES_GRUPOS_PRIVADOS) patternsByGrupo[grupo] = [];
+
+      for (const row of (data ?? []) as KeywordRow[]) {
+        if (!row.termino) continue;
+        const gestion = (row.gestion_hospitalaria as GestionHospitalaria) ?? null;
+        const bloque = bloqueDashboardFromGestion(gestion);
+        if (bloque !== 'privados') continue;
+        const grupo = row.grupo_hospitalario;
+        if (!grupo || !(NOMBRES_GRUPOS_PRIVADOS as string[]).includes(grupo)) continue;
+        patternsByGrupo[grupo as GrupoPrivado].push(normalizar(row.termino));
+      }
+
+      return { rows: index.rows, clasificar, patternsByGrupo };
     },
   });
 }
