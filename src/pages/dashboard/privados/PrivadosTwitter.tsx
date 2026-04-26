@@ -7,7 +7,7 @@ export const CFG_TWITTER: PrivadosChannelConfig = {
   short: 'X',
   Icon: FaXTwitter,
   brandColor: '#FFFFFF',
-  view: 'x_twitter_posts_gh_agrupados',
+  view: 'x_twitter_posts_general_filtrado',
   dateField: 'date_posted',
   preclassified: false,
   termField: 'header',
