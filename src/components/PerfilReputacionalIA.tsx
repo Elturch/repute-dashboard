@@ -1,3 +1,4 @@
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { Wrench } from 'lucide-react';
 
 export interface PerfilBucket {
@@ -26,9 +27,9 @@ const ALL_METRICAS = [...POSITIVAS, ...NEGATIVAS];
 function fmtCompact(n: number) { return n >= 1000 ? `${(n/1000).toFixed(1)}k` : n.toLocaleString('es-ES'); }
 function fmtNum(n: number | null, d = 2): string { return n == null ? '—' : n.toFixed(d); }
 
-function statusFor(metric: MetricaDef, qs: number | null, resto: number | null): { icon: string; tone: 'up' | 'flat' | 'down'; label: string } {
-  if (qs == null || resto == null) return { icon: '—', tone: 'flat', label: 'Sin datos' };
-  const raw = qs - resto;
+function statusFor(metric: MetricaDef, hi: number | null, re: number | null): { icon: string; tone: 'up' | 'flat' | 'down'; label: string } {
+  if (hi == null || re == null) return { icon: '—', tone: 'flat', label: 'Sin datos' };
+  const raw = hi - re;
   const adjusted = metric.positive ? raw : -raw;
   const threshold = 0.3;
   if (adjusted > threshold) return { icon: '★', tone: 'up', label: 'Lidera' };
@@ -77,9 +78,16 @@ export default function PerfilReputacionalIA({
     );
   }
 
+  const radarData = ALL_METRICAS.map(m => ({
+    metric: m.label,
+    qs: highlight.promedios[m.key] ?? 0,
+    sector: resto.promedios[m.key] ?? 0,
+    fullMark: 10,
+  }));
+
   return (
     <section className="mt-10">
-      {/* Cabecera de bloque */}
+      {/* Cabecera */}
       <div className="flex items-end justify-between mb-5">
         <div>
           <p className="text-[10px] uppercase tracking-[0.25em] text-[#4b5563] font-medium">
@@ -87,14 +95,14 @@ export default function PerfilReputacionalIA({
           </p>
           <h2 className="text-2xl font-bold tracking-tight mt-1">9 dimensiones IA</h2>
         </div>
-        <div className="flex items-center gap-6 text-right">
+        <div className="flex items-center gap-7 text-right">
           <div>
             <p className="text-[9px] uppercase tracking-wider text-[#6b7280]">Total</p>
             <p className="text-lg font-bold tabular-nums">{fmtCompact(total.menciones)}</p>
           </div>
           <div>
             <p className="text-[9px] uppercase tracking-wider" style={{ color: highlightColor }}>{highlightLabel}</p>
-            <p className="text-lg font-bold tabular-nums" style={{ color: 'white' }}>{fmtCompact(highlight.menciones)}</p>
+            <p className="text-lg font-bold tabular-nums text-white">{fmtCompact(highlight.menciones)}</p>
           </div>
           <div>
             <p className="text-[9px] uppercase tracking-wider text-[#6b7280]">Sin {highlightLabel === 'Quirónsalud' ? 'QS' : highlightLabel}</p>
@@ -118,32 +126,47 @@ export default function PerfilReputacionalIA({
         </p>
       </div>
 
-      {/* Bloque positivas */}
-      <Block
-        title="Dimensiones positivas"
-        subtitle="más alto = mejor"
-        accentColor="#10b981"
-        metricas={POSITIVAS}
+      {/* Radar centrado con leyenda */}
+      <div className="relative bg-white/[0.02] border border-white/5 rounded-xl p-6 mb-6">
+        <div className="flex items-center justify-center gap-8 mb-3 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: highlightColor, opacity: 0.7 }} />
+            <span className="text-white font-semibold uppercase tracking-wider text-[10px]">{highlightLabel}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-sm bg-[#6b7280]/40 border border-[#6b7280]/60" />
+            <span className="text-[#9ca3af] uppercase tracking-wider text-[10px]">Sector privado</span>
+          </div>
+        </div>
+        <div className="w-full" style={{ height: 420 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="72%">
+              <PolarGrid stroke="rgba(255,255,255,0.08)" />
+              <PolarAngleAxis
+                dataKey="metric"
+                tick={{ fill: '#d1d5db', fontSize: 12, fontWeight: 600 }}
+              />
+              <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fill: '#4b5563', fontSize: 10 }} stroke="rgba(255,255,255,0.05)" />
+              <Radar name="Sector" dataKey="sector" stroke="#6b7280" fill="#6b7280" fillOpacity={0.18} strokeWidth={1.2} />
+              <Radar name={highlightLabel} dataKey="qs" stroke={highlightColor} fill={highlightColor} fillOpacity={0.42} strokeWidth={2} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+        <p className="text-[10px] text-[#6b7280] text-center uppercase tracking-wider mt-1">
+          Escala 0 — 10 · valores promedio ponderados por nº de menciones
+        </p>
+      </div>
+
+      {/* Tabla numérica precisa */}
+      <NumericTable
+        positivas={POSITIVAS}
+        negativas={NEGATIVAS}
+        total={total}
         highlight={highlight}
         resto={resto}
         highlightColor={highlightColor}
         highlightLabel={highlightLabel}
       />
-
-      {/* Bloque negativas */}
-      <div className="mt-6">
-        <Block
-          title="Dimensiones negativas"
-          subtitle="más bajo = mejor"
-          accentColor="#f59e0b"
-          metricas={NEGATIVAS}
-          highlight={highlight}
-          resto={resto}
-          highlightColor={highlightColor}
-          highlightLabel={highlightLabel}
-          tintNegative
-        />
-      </div>
 
       {/* Leyenda */}
       <div className="mt-5 pt-4 border-t border-white/5 flex items-center gap-7 text-[11px] text-[#9ca3af]">
@@ -155,107 +178,69 @@ export default function PerfilReputacionalIA({
   );
 }
 
-function Block({
-  title, subtitle, accentColor, metricas,
-  highlight, resto, highlightColor, highlightLabel, tintNegative,
+function NumericTable({
+  positivas, negativas, total, highlight, resto, highlightColor, highlightLabel,
 }: {
-  title: string; subtitle: string; accentColor: string;
-  metricas: MetricaDef[];
-  highlight: PerfilBucket; resto: PerfilBucket;
+  positivas: MetricaDef[]; negativas: MetricaDef[];
+  total: PerfilBucket; highlight: PerfilBucket; resto: PerfilBucket;
   highlightColor: string; highlightLabel: string;
-  tintNegative?: boolean;
 }) {
   return (
-    <div>
-      <div className="flex items-baseline gap-3 mb-3 px-1">
-        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: accentColor }} />
-        <h3 className="text-[11px] uppercase tracking-[0.25em] font-semibold text-[#d1d5db]">{title}</h3>
-        <span className="text-[10px] text-[#6b7280] uppercase tracking-wider">— {subtitle}</span>
+    <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+      <div className="grid grid-cols-[1.6fr_0.8fr_1.4fr_0.8fr] gap-3 px-7 py-3 border-b border-white/10 text-[10px] uppercase tracking-[0.2em] text-[#6b7280]">
+        <span>Métrica</span>
+        <span className="text-right">Total</span>
+        <span className="text-right" style={{ color: highlightColor }}>{highlightLabel}</span>
+        <span className="text-right">Sin {highlightLabel === 'Quirónsalud' ? 'QS' : highlightLabel}</span>
       </div>
-      <div className={`rounded-xl border border-white/5 overflow-hidden ${tintNegative ? 'bg-[#f59e0b]/[0.02]' : 'bg-white/[0.02]'}`}>
-        {metricas.map((m, i) => (
-          <MetricRow
-            key={m.key}
-            metric={m}
-            highlight={highlight}
-            resto={resto}
-            highlightColor={highlightColor}
-            highlightLabel={highlightLabel}
-            isLast={i === metricas.length - 1}
-          />
-        ))}
-      </div>
+
+      <SectionHeader label="Positivas" sub="más alto = mejor" color="#10b981" />
+      {positivas.map((m, i) => (
+        <Row key={m.key} m={m} t={total} h={highlight} r={resto} hc={highlightColor} isLast={i === positivas.length - 1} />
+      ))}
+
+      <SectionHeader label="Negativas" sub="más bajo = mejor" color="#f59e0b" />
+      {negativas.map((m, i) => (
+        <Row key={m.key} m={m} t={total} h={highlight} r={resto} hc={highlightColor} isLast={i === negativas.length - 1} />
+      ))}
     </div>
   );
 }
 
-function MetricRow({
-  metric, highlight, resto, highlightColor, highlightLabel, isLast,
-}: {
-  metric: MetricaDef;
-  highlight: PerfilBucket; resto: PerfilBucket;
-  highlightColor: string; highlightLabel: string; isLast: boolean;
+function SectionHeader({ label, sub, color }: { label: string; sub: string; color: string }) {
+  return (
+    <div className="px-7 py-2.5 bg-white/[0.015] border-b border-white/5 flex items-baseline gap-3">
+      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+      <span className="text-[10px] uppercase tracking-[0.25em] font-semibold text-[#d1d5db]">{label}</span>
+      <span className="text-[10px] text-[#6b7280] uppercase tracking-wider">— {sub}</span>
+    </div>
+  );
+}
+
+function Row({ m, t, h, r, hc, isLast }: {
+  m: MetricaDef; t: PerfilBucket; h: PerfilBucket; r: PerfilBucket; hc: string; isLast: boolean;
 }) {
-  const qs = highlight.promedios[metric.key];
-  const re = resto.promedios[metric.key];
-  const status = statusFor(metric, qs, re);
-  const max = 10;
-  const qsPct = qs != null ? (qs / max) * 100 : 0;
-  const restoPct = re != null ? (re / max) * 100 : 0;
-  const diff = (qs != null && re != null) ? qs - re : null;
-  const adjustedDiff = diff != null ? (metric.positive ? diff : -diff) : null;
+  const tot = t.promedios[m.key];
+  const hi = h.promedios[m.key];
+  const re = r.promedios[m.key];
+  const status = statusFor(m, hi, re);
+  const diff = (hi != null && re != null) ? hi - re : null;
   const statusColor = status.tone === 'up' ? '#10b981' : status.tone === 'down' ? '#f59e0b' : '#6b7280';
 
   return (
-    <div className={`px-7 py-5 ${!isLast ? 'border-b border-white/[0.04]' : ''}`}>
-      {/* Cabecera de fila */}
-      <div className="flex items-baseline justify-between mb-3">
-        <span className="text-base font-semibold uppercase tracking-wider text-[#e5e7eb]">{metric.label}</span>
-        <span className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-bold"
-              style={{ color: statusColor }}>
-          <span className="text-base">{status.icon}</span>
-          <span>{status.label}</span>
-        </span>
-      </div>
-
-      {/* Track con barras */}
-      <div className="relative h-9 mb-3">
-        <div className="absolute inset-0 bg-white/[0.03] rounded-md" />
-        <div className="absolute top-[18px] bottom-1 left-1 rounded-sm bg-[#6b7280]/30"
-             style={{ width: `calc(${restoPct}% - 4px)` }} />
-        <div className="absolute top-[18px] bottom-1 w-[1.5px] bg-[#9ca3af]/60"
-             style={{ left: `calc(${restoPct}% - 0.75px)` }} />
-        <div className="absolute top-1 bottom-[18px] left-1 rounded-sm"
-             style={{
-               width: `calc(${qsPct}% - 4px)`,
-               backgroundColor: highlightColor,
-               boxShadow: `0 0 10px ${highlightColor}40, inset 0 0 0 1px ${highlightColor}`,
-             }} />
-        <div className="absolute top-1 bottom-[18px] w-[2px] bg-white"
-             style={{ left: `calc(${qsPct}% - 1px)` }} />
-        {[0, 5, 10].map(v => (
-          <div key={v} className="absolute top-0 bottom-0 w-px bg-white/[0.05]"
-               style={{ left: `${(v / max) * 100}%` }} />
-        ))}
-      </div>
-
-      {/* Numbers row */}
-      <div className="flex items-baseline justify-between text-xs">
-        <div className="flex items-baseline gap-3">
-          <span className="text-[9px] uppercase tracking-[0.2em] text-[#6b7280]">Sector</span>
-          <span className="text-base text-[#9ca3af] tabular-nums font-medium">{fmtNum(re)}</span>
-        </div>
-        <div className="flex items-baseline gap-3">
-          <span className="text-[9px] uppercase tracking-[0.2em]" style={{ color: highlightColor }}>{highlightLabel}</span>
-          <span className="text-3xl font-bold tabular-nums" style={{ color: 'white' }}>{fmtNum(qs)}</span>
-          {adjustedDiff != null && Math.abs(adjustedDiff) >= 0.05 && (
-            <span className="text-xs tabular-nums font-bold flex items-baseline gap-1" style={{ color: statusColor }}>
-              <span>{adjustedDiff > 0 ? '▲' : '▼'}</span>
-              <span>{Math.abs(diff!).toFixed(2)}</span>
-            </span>
-          )}
-        </div>
-      </div>
+    <div className={`grid grid-cols-[1.6fr_0.8fr_1.4fr_0.8fr] gap-3 px-7 py-3 items-baseline ${!isLast ? 'border-b border-white/[0.04]' : ''}`}>
+      <span className="text-base text-[#e5e7eb]">{m.label}</span>
+      <span className="text-right tabular-nums text-base text-[#9ca3af]">{fmtNum(tot)}</span>
+      <span className="text-right tabular-nums flex items-baseline justify-end gap-3">
+        <span className="text-2xl font-bold text-white">{fmtNum(hi)}</span>
+        <span className="text-base" style={{ color: statusColor }}>{status.icon}</span>
+        {diff != null && Math.abs(diff) >= 0.05 && (
+          <span className="text-xs tabular-nums font-semibold" style={{ color: statusColor }}>
+            {diff > 0 ? '+' : ''}{diff.toFixed(2)}
+          </span>
+        )}
+      </span>
+      <span className="text-right tabular-nums text-base text-[#9ca3af]">{fmtNum(re)}</span>
     </div>
   );
 }
