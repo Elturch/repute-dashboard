@@ -92,14 +92,39 @@ async function countForGroup(
   } else {
     if (!cfg.termField) return 0;
     const patterns = kw?.patternsByGrupo?.[grupo] ?? [];
-    if (patterns.length === 0) return 0;
-    const orFilter = patterns.map(p => `${cfg.termField}.ilike.%${p}%`).join(',');
+    if (patterns.length === 0) {
+      console.warn(
+        `[${cfg.key}] sin patrones para grupo "${grupo}" en patternsByGrupo. Revisa keywords.`,
+      );
+      return 0;
+    }
+    const orFilter = patterns.map(p => `${cfg.termField}.ilike."%${p}%"`).join(',');
     q = q.or(orFilter);
   }
 
   const { count, error } = await q;
   if (error) {
     console.error(`[${cfg.key}/${grupo}] count error:`, error);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+async function countTotal(
+  cfg: PrivadosChannelConfig,
+  fromISO: string,
+  toISO: string,
+  exclusiveTop: boolean,
+): Promise<number> {
+  let q = externalSupabase
+    .from(cfg.view)
+    .select('*', { count: 'exact', head: true })
+    .gte(cfg.dateField, fromISO);
+  q = exclusiveTop ? q.lt(cfg.dateField, toISO) : q.lte(cfg.dateField, toISO);
+  if (cfg.preclassified && cfg.titularityField) q = q.eq(cfg.titularityField, 'Privado');
+  const { count, error } = await q;
+  if (error) {
+    console.error(`[${cfg.key}] countTotal error:`, error);
     return 0;
   }
   return count ?? 0;
@@ -131,21 +156,23 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig, kw: KwData): Promis
   const cutoff30 = subDays(maxDate, 30);
   const cutoff60 = subDays(maxDate, 60);
 
-  const [currentCounts, previousCounts] = await Promise.all([
-    Promise.all(
-      NOMBRES_GRUPOS_PRIVADOS.map(g =>
-        countForGroup(cfg, kw, g, cutoff30.toISOString(), maxDate.toISOString(), false),
-      ),
+  const N = NOMBRES_GRUPOS_PRIVADOS.length;
+  const all = await Promise.all([
+    countTotal(cfg, cutoff30.toISOString(), maxDate.toISOString(), false),
+    countTotal(cfg, cutoff60.toISOString(), cutoff30.toISOString(), true),
+    ...NOMBRES_GRUPOS_PRIVADOS.map(g =>
+      countForGroup(cfg, kw, g, cutoff30.toISOString(), maxDate.toISOString(), false),
     ),
-    Promise.all(
-      NOMBRES_GRUPOS_PRIVADOS.map(g =>
-        countForGroup(cfg, kw, g, cutoff60.toISOString(), cutoff30.toISOString(), true),
-      ),
+    ...NOMBRES_GRUPOS_PRIVADOS.map(g =>
+      countForGroup(cfg, kw, g, cutoff60.toISOString(), cutoff30.toISOString(), true),
     ),
   ]);
 
-  const totalAct = currentCounts.reduce((a, b) => a + b, 0);
-  const totalPrev = previousCounts.reduce((a, b) => a + b, 0);
+  const totalAct = all[0];
+  const totalPrev = all[1];
+  const currentCounts = all.slice(2, 2 + N);
+  const previousCounts = all.slice(2 + N, 2 + 2 * N);
+
   const max = Math.max(...currentCounts, 1);
 
   const filas = NOMBRES_GRUPOS_PRIVADOS
