@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { format, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { IconType } from 'react-icons';
@@ -372,6 +373,73 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
   const queryClient = useQueryClient();
 
   const ready = cfg.preclassified || !!kw;
+
+  const [searchParams] = useSearchParams();
+  const showDebug = searchParams.get('debug') === '1';
+  const [diag, setDiag] = useState<Record<string, unknown>>({ status: 'esperando' });
+
+  useEffect(() => {
+    if (!showDebug) return;
+    setDiag({ status: 'corriendo diagnóstico...' });
+    (async () => {
+      const out: Record<string, unknown> = {};
+      try {
+        const r1 = await externalSupabase
+          .from(cfg.view)
+          .select('*', { count: 'exact', head: true });
+        out.test1_total_sin_filtros = { count: r1.count, error: r1.error?.message ?? null };
+
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 30);
+        const r2 = await externalSupabase
+          .from(cfg.view)
+          .select('*', { count: 'exact', head: true })
+          .gte(cfg.dateField, cutoff.toISOString());
+        out.test2_total_30d = {
+          count: r2.count,
+          error: r2.error?.message ?? null,
+          fromDate: cutoff.toISOString(),
+        };
+
+        const r3 = await externalSupabase
+          .from(cfg.view)
+          .select(
+            cfg.preclassified
+              ? `${cfg.groupField},${cfg.dateField}`
+              : `${cfg.termField},${cfg.dateField}`,
+          )
+          .order(cfg.dateField, { ascending: false })
+          .limit(5);
+        out.test3_primeras_5_filas = { rows: r3.data, error: r3.error?.message ?? null };
+
+        const r4 = await externalSupabase
+          .from(cfg.view)
+          .select(cfg.dateField)
+          .order(cfg.dateField, { ascending: false, nullsFirst: false })
+          .limit(1);
+        out.test4_max_date = { row: r4.data?.[0], error: r4.error?.message ?? null };
+
+        out.test5_keywords = {
+          patternsForQuironsalud:
+            (window as unknown as { __lastKwPatterns?: Record<string, unknown[]> })
+              .__lastKwPatterns?.['Quirónsalud']?.length ?? 'no disponible',
+        };
+
+        out.config = {
+          key: cfg.key,
+          view: cfg.view,
+          dateField: cfg.dateField,
+          termField: cfg.termField,
+          groupField: cfg.groupField,
+          preclassified: cfg.preclassified,
+        };
+
+        setDiag({ status: 'OK', ...out });
+      } catch (e) {
+        setDiag({ status: 'ERROR', error: (e as Error).message });
+      }
+    })();
+  }, [showDebug, cfg]);
 
   const channel = useQuery({
     queryKey: ['privados_channel', cfg.key],
