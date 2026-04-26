@@ -73,9 +73,12 @@ export function useKeywordsClassification() {
 
       if (error) {
         console.error('[useKeywordsClassification] error cargando keywords:', error);
+        const emptyPatterns: Record<GrupoPrivado, string[]> = {} as Record<GrupoPrivado, string[]>;
+        for (const g of NOMBRES_GRUPOS_PRIVADOS) emptyPatterns[g] = [];
         return {
           rows: [] as KeywordRow[],
           clasificar: (_: string | null | undefined) => null as Clasificacion | null,
+          patternsByGrupo: emptyPatterns,
         };
       }
 
