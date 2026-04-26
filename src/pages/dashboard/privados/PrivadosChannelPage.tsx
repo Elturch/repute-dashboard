@@ -28,7 +28,7 @@ export type PrivadosChannelConfig = {
 };
 
 const PAGE_SIZE = 1000;
-const MAX_PAGES = 3;
+const MAX_PAGES = 500;
 
 function fmt(n: number): string {
   return n.toLocaleString('es-ES');
@@ -359,8 +359,7 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
           <div className="flex items-start gap-2 border-t border-border bg-amber-50 px-4 py-3 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
             <span>
-              Se alcanzó el límite de seguridad de {fmt(MAX_PAGES * PAGE_SIZE)} filas leídas. Las cifras pueden estar
-              recortadas si el volumen real fue mayor.
+              Se alcanzó el techo técnico de 500.000 filas. Avisa para revisar la consulta.
             </span>
           </div>
         )}
