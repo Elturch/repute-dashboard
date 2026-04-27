@@ -1,9 +1,8 @@
 import { useMemo } from 'react';
-import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { IconType } from 'react-icons';
-import { externalSupabase } from '@/integrations/external-supabase/client';
 import {
   NOMBRES_GRUPOS_PRIVADOS,
   COLOR_POR_GRUPO_PRIVADO,
@@ -12,7 +11,11 @@ import {
 import { AlertTriangle } from 'lucide-react';
 import PerfilReputacionalIA, { type PerfilBucket } from '@/components/PerfilReputacionalIA';
 import MencionesRecientes, { type MencionesConfig } from '@/components/MencionesRecientes';
-import { VIEW_BY_CANAL, type Canal, type VCanalRow } from '@/hooks/useCanalData';
+import { type Canal } from '@/hooks/useCanalData';
+import {
+  useKpiCanalGlobal, filterByTitularidad, filterByCanal, filterByGrupo,
+  aggregateKpi, toPerfilBucket, type KpiRow,
+} from '@/hooks/useKpiCanal';
 
 /* ─────────────── MENCIONES por canal (sin tocar — siguen sus tablas rápidas) ─────────────── */
 const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
@@ -123,32 +126,17 @@ interface ChannelStats {
   qsCount: number;
   qsShare: number;
   qsRank: number;
+  pctRiesgoReal: number;
   bucketTotal: PerfilBucket;
   bucketQS: PerfilBucket;
   bucketResto: PerfilBucket;
 }
 
-const METRIC_KEYS = ['influencia','fiabilidad','afinidad','admiracion','impacto','rechazo','preocupacion','descredito'] as const;
-
 function fmt(n: number): string { return (n ?? 0).toLocaleString('es-ES'); }
 function fmtPct(n: number, digits = 1): string { return `${n.toFixed(digits)}%`; }
 function fmtFecha(d: Date): string { return format(d, "d 'de' LLL yyyy", { locale: es }); }
 
-function aggregateBucket(label: string, rows: VCanalRow[]): PerfilBucket {
-  const sums: Record<string, { sum: number; n: number }> = {};
-  METRIC_KEYS.forEach(k => sums[k] = { sum: 0, n: 0 });
-  for (const r of rows) {
-    METRIC_KEYS.forEach(k => {
-      const v = (r as any)[k] as number | null;
-      if (v != null) { sums[k].sum += v; sums[k].n++; }
-    });
-  }
-  const promedios: Record<string, number | null> = {};
-  METRIC_KEYS.forEach(k => { promedios[k] = sums[k].n > 0 ? sums[k].sum / sums[k].n : null; });
-  return { label, menciones: rows.length, promedios };
-}
-
-async function fetchChannelStats(cfg: PrivadosChannelConfig): Promise<ChannelStats> {
+function buildChannelStats(rowsCanal: KpiRow[]): ChannelStats {
   const emptyBucket = (label: string): PerfilBucket => ({ label, menciones: 0, promedios: {} });
   const empty: ChannelStats = {
     filas: NOMBRES_GRUPOS_PRIVADOS.map(g => ({ grupo: g, count: 0, share: 0, barPct: 0, notaMedia: null })),
@@ -158,68 +146,41 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig): Promise<ChannelSta
     qsCount: 0,
     qsShare: 0,
     qsRank: 0,
+    pctRiesgoReal: 0,
     bucketTotal: emptyBucket('Total privados'),
     bucketQS: emptyBucket('Quirónsalud'),
     bucketResto: emptyBucket('Privados sin QS'),
   };
 
-  const view = VIEW_BY_CANAL[cfg.key as Canal];
-  const { data, error } = await externalSupabase
-    .from(view)
-    .select('*')
-    .eq('titularidad', 'Privado')
-    .order('fecha', { ascending: false })
-    .limit(5000);
+  const validas = rowsCanal.filter(r =>
+    r.grupo_hospitalario != null &&
+    NOMBRES_GRUPOS_PRIVADOS.includes(r.grupo_hospitalario as GrupoPrivado)
+  );
+  if (validas.length === 0) return empty;
 
-  if (error) {
-    console.error(`[privados/${cfg.key}] error ${view}:`, error);
-    return empty;
-  }
+  // Agrupar por grupo_hospitalario y agregar
+  const byGrupo = new Map<GrupoPrivado, KpiRow[]>();
+  NOMBRES_GRUPOS_PRIVADOS.forEach(g => byGrupo.set(g, []));
+  for (const r of validas) byGrupo.get(r.grupo_hospitalario as GrupoPrivado)!.push(r);
 
-  const rows = (data ?? []) as VCanalRow[];
-  if (rows.length === 0) return empty;
+  const aggTotal = aggregateKpi(validas);
+  const total = aggTotal.menciones;
+  const aggQS = aggregateKpi(byGrupo.get('Quirónsalud') ?? []);
+  const aggResto = aggregateKpi(validas.filter(r => r.grupo_hospitalario !== 'Quirónsalud'));
 
-  // Agregación por grupo_hospitalario
-  const counts = new Map<GrupoPrivado, { menciones: number; notaSum: number; notaN: number }>();
-  NOMBRES_GRUPOS_PRIVADOS.forEach(g => counts.set(g, { menciones: 0, notaSum: 0, notaN: 0 }));
+  const aggregadosPorGrupo = new Map<GrupoPrivado, ReturnType<typeof aggregateKpi>>();
+  byGrupo.forEach((rs, g) => aggregadosPorGrupo.set(g, aggregateKpi(rs)));
 
-  let total = 0;
-  let totalNotaSum = 0;
-  let totalNotaN = 0;
-  let maxDate = new Date(0);
-  const validas: VCanalRow[] = [];
-
-  for (const r of rows) {
-    if (!r.grupo_hospitalario) continue;
-    const g = r.grupo_hospitalario as GrupoPrivado;
-    if (!NOMBRES_GRUPOS_PRIVADOS.includes(g)) continue;
-    const cur = counts.get(g)!;
-    cur.menciones++;
-    if (r.nota_media != null) {
-      cur.notaSum += r.nota_media;
-      cur.notaN++;
-      totalNotaSum += r.nota_media;
-      totalNotaN++;
-    }
-    counts.set(g, cur);
-    total++;
-    validas.push(r);
-    if (r.fecha) {
-      const d = new Date(r.fecha);
-      if (!isNaN(d.getTime()) && d > maxDate) maxDate = d;
-    }
-  }
-
-  const max = Math.max(...Array.from(counts.values()).map(v => v.menciones), 1);
+  const max = Math.max(...Array.from(aggregadosPorGrupo.values()).map(a => a.menciones), 1);
   const filas: FilaGrupo[] = NOMBRES_GRUPOS_PRIVADOS
     .map(grupo => {
-      const c = counts.get(grupo)!;
+      const a = aggregadosPorGrupo.get(grupo)!;
       return {
         grupo,
-        count: c.menciones,
-        share: total > 0 ? (c.menciones / total) * 100 : 0,
-        barPct: (c.menciones / max) * 100,
-        notaMedia: c.notaN > 0 ? c.notaSum / c.notaN : null,
+        count: a.menciones,
+        share: total > 0 ? (a.menciones / total) * 100 : 0,
+        barPct: (a.menciones / max) * 100,
+        notaMedia: a.notaMedia,
       };
     })
     .sort((a, b) => b.count - a.count);
@@ -227,45 +188,30 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig): Promise<ChannelSta
   const qsRow = filas.find(f => f.grupo === 'Quirónsalud');
   const qsRank = filas.findIndex(f => f.grupo === 'Quirónsalud') + 1;
 
-  const bucketTotal = aggregateBucket('Total privados', validas);
-  const bucketQS    = aggregateBucket('Quirónsalud',     validas.filter(r => r.grupo_hospitalario === 'Quirónsalud'));
-  const bucketResto = aggregateBucket('Privados sin QS', validas.filter(r => r.grupo_hospitalario !== 'Quirónsalud'));
-
   return {
     filas,
     total,
-    maxDate: maxDate.getTime() === 0 ? new Date() : maxDate,
-    notaMediaTotal: totalNotaN > 0 ? totalNotaSum / totalNotaN : null,
+    maxDate: aggTotal.fechaMax ?? new Date(),
+    notaMediaTotal: aggTotal.notaMedia,
     qsCount: qsRow?.count ?? 0,
     qsShare: qsRow?.share ?? 0,
     qsRank,
-    bucketTotal,
-    bucketQS,
-    bucketResto,
+    pctRiesgoReal: aggTotal.pctRiesgoReal,
+    bucketTotal: toPerfilBucket('Total privados', aggTotal),
+    bucketQS:    toPerfilBucket('Quirónsalud',     aggQS),
+    bucketResto: toPerfilBucket('Privados sin QS', aggResto),
   };
-}
-
-/** Helper externo para que DashboardLayout pueda hacer prefetch en background. */
-export async function prefetchPrivadosChannel(queryClient: QueryClient, cfg: PrivadosChannelConfig) {
-  return queryClient.prefetchQuery({
-    queryKey: ['privados_channel', cfg.key],
-    queryFn: () => fetchChannelStats(cfg),
-    staleTime: 30 * 60 * 1000,
-  });
 }
 
 export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfig }) {
   const queryClient = useQueryClient();
-  const { data: stats, isLoading, isFetching, dataUpdatedAt } = useQuery({
-    queryKey: ['privados_channel', cfg.key],
-    queryFn: () => fetchChannelStats(cfg),
-    staleTime: 30 * 60 * 1000,
-    gcTime: 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchInterval: 10 * 60 * 1000,
-    refetchIntervalInBackground: true,
-  });
+  const { data: kpiRows, isLoading, isFetching, dataUpdatedAt } = useKpiCanalGlobal();
+
+  const stats = useMemo<ChannelStats | undefined>(() => {
+    if (!kpiRows) return undefined;
+    const privadosCanal = filterByCanal(filterByTitularidad(kpiRows, 'Privado'), cfg.key as Canal);
+    return buildChannelStats(privadosCanal);
+  }, [kpiRows, cfg.key]);
 
   const Icon = cfg.Icon;
   const isEmpty = !!stats && stats.total === 0;
@@ -306,7 +252,7 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
             </div>
             <button
               type="button"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['privados_channel', cfg.key] })}
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['kpi_canal_global'] })}
               className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-foreground"
             >
               🔄 Recargar
@@ -332,10 +278,11 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Total menciones" value={stats ? fmt(stats.total) : '—'} sub="últimos 30 días" />
         <Kpi label="Quirónsalud" value={stats ? fmt(stats.qsCount) : '—'} sub={stats ? `${fmtPct(stats.qsShare)} del total` : undefined} highlight />
         <Kpi label="Posición" value={stats?.qsRank ? `#${stats.qsRank}` : '—'} sub="de 8 grupos privados" />
+        <Kpi label="Riesgo real" value={stats ? fmtPct(stats.pctRiesgoReal) : '—'} sub="alto + crítico + medio-alto" />
       </div>
 
       {/* League table */}
@@ -414,7 +361,7 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
           <p className="mt-1 text-foreground">{rangoActual}</p>
         </div>
         <div>
-          <p>Fuente: Supabase · Vista: {VIEW_BY_CANAL[cfg.key as Canal]} · Filtro: titularidad = Privado</p>
+          <p>Fuente: Supabase · Vista materializada: v_kpi_canal_30d · Filtro: titularidad = Privado · canal = {cfg.key}</p>
         </div>
       </div>
     </div>
