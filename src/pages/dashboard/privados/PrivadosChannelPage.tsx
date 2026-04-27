@@ -11,6 +11,27 @@ import {
 } from '@/lib/clasificacion';
 import { AlertTriangle } from 'lucide-react';
 import PerfilReputacionalIA, { type PerfilBucket } from '@/components/PerfilReputacionalIA';
+import MencionesRecientes, { type MencionesConfig } from '@/components/MencionesRecientes';
+
+const MENCIONES_BY_CHANNEL: Record<PrivadosChannelConfig['key'], MencionesConfig | null> = {
+  medios: {
+    tabla: 'noticias_general_filtradas',
+    campoFecha: 'Date',
+    campoTitulo: 'Title',
+    campoSnippet: 'Description',
+    campoImagen: 'Image_url',
+    campoMedio: 'Paper',
+    campoUrl: 'url',
+    campoPeligro: 'Peligro_reputacional',
+    filtros: [{ campo: 'titularidad', valor: 'Privado' }],
+  },
+  instagram: null,
+  twitter: null,
+  tiktok: null,
+  facebook: null,
+  linkedin: null,
+  mybusiness: null,
+};
 
 /** Configuración de un canal privado. Mantiene compatibilidad con los wrappers existentes. */
 export type PrivadosChannelConfig = {
