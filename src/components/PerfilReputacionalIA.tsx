@@ -25,12 +25,11 @@ const NEGATIVAS: MetricaDef[] = [
 ];
 const ALL_METRICAS = [...POSITIVAS, ...NEGATIVAS];
 
-const COLOR_GOOD = '#10b981';
-const COLOR_FLAT = '#9ca3af';
-const COLOR_BAD  = '#ef4444';
-const COLOR_SINQS = '#475569';
+const COLOR_GOOD     = '#10b981';
+const COLOR_FLAT     = '#9ca3af';
+const COLOR_BAD      = '#ef4444';
+const COLOR_HIGHLIGHT_BRIGHT = '#60a5fa';
 
-function fmt(n: number) { return n.toLocaleString('es-ES'); }
 function fmtNum(n: number | null, d = 2): string { return n == null ? '—' : n.toFixed(d); }
 
 function statusFor(metric: MetricaDef, hi: number | null, re: number | null): { icon: string; tone: 'up' | 'flat' | 'down'; label: string; color: string } {
@@ -59,14 +58,17 @@ export default function PerfilReputacionalIA({
   highlightColor = '#3b82f6',
 }: Props) {
   const summary = useMemo(() => {
-    let lidera = 0, enlinea = 0, atencion = 0;
+    let lidera = 0, atencion = 0;
     for (const m of ALL_METRICAS) {
-      const s = statusFor(m, highlight.promedios[m.key], resto.promedios[m.key]);
+      const hi = highlight.promedios[m.key];
+      const re = resto.promedios[m.key];
+      if (hi == null || re == null) continue;
+      const s = statusFor(m, hi, re);
       if (s.tone === 'up') lidera++;
       else if (s.tone === 'down') atencion++;
-      else enlinea++;
     }
-    return { lidera, enlinea, atencion, total: ALL_METRICAS.length };
+    const validCount = ALL_METRICAS.filter(m => highlight.promedios[m.key] != null && resto.promedios[m.key] != null).length;
+    return { lidera, atencion, total: validCount };
   }, [highlight, resto]);
 
   const statusMap = useMemo(() => {
@@ -95,12 +97,14 @@ export default function PerfilReputacionalIA({
     );
   }
 
-  const radarData = ALL_METRICAS.map(m => ({
-    metric: m.label,
-    qs: highlight.promedios[m.key] ?? 0,
-    sinqs: resto.promedios[m.key] ?? 0,
-    fullMark: 10,
-  }));
+  const radarData = ALL_METRICAS
+    .filter(m => highlight.promedios[m.key] != null)
+    .map(m => ({
+      metric: m.label,
+      qs: highlight.promedios[m.key] ?? 0,
+      sinqs: resto.promedios[m.key] ?? 0,
+      fullMark: 10,
+    }));
 
   return (
     <section className="mt-12">
@@ -108,22 +112,16 @@ export default function PerfilReputacionalIA({
         Perfil reputacional IA{contextLabel ? ` · ${contextLabel}` : ''}
       </p>
 
-      <div className="grid grid-cols-3 gap-4 mb-8 bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
-        <ColumnCounter label="Grupos hospitalarios" value={fmt(total.menciones)} />
-        <ColumnCounter label={highlightLabel} value={fmt(highlight.menciones)} highlight color={highlightColor} />
-        <ColumnCounter label={`Sin ${highlightLabel === 'Quirónsalud' ? 'Quirónsalud' : highlightLabel}`} value={fmt(resto.menciones)} />
-      </div>
-
-      <div className="px-7 py-6 mb-6 rounded-xl border border-[#3b82f6]/15 bg-[#3b82f6]/[0.05]">
-        <p className="text-[30px] font-semibold leading-snug text-white">
-          <span style={{ color: highlightColor }}>{highlightLabel} lidera</span> en{' '}
+      <div className="px-7 py-6 mb-6 rounded-xl border border-[#60a5fa]/20 bg-[#1e293b]/40">
+        <p className="text-[32px] font-semibold leading-tight text-white">
+          <span style={{ color: COLOR_HIGHLIGHT_BRIGHT }}>{highlightLabel} lidera</span> en{' '}
           <span className="tabular-nums text-[#10b981]">{summary.lidera}</span> de{' '}
           <span className="tabular-nums">{summary.total}</span> dimensiones
           {summary.atencion > 0 && (
             <>
-              <span className="text-white/60">  ·  </span>
+              <span className="text-white/50">  ·  </span>
               <span className="text-[#ef4444] tabular-nums">{summary.atencion}</span>
-              <span className="text-white/80"> por debajo del sector</span>
+              <span className="text-white/85"> por debajo del sector</span>
             </>
           )}.
         </p>
@@ -131,8 +129,8 @@ export default function PerfilReputacionalIA({
 
       <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6 mb-6">
         <div className="flex items-center justify-center gap-12 mb-4">
-          <LegendItem color={highlightColor} label={highlightLabel.toUpperCase()} filled fillOpacity={0.65} />
-          <LegendItem color={COLOR_SINQS} label={`SIN ${highlightLabel === 'Quirónsalud' ? 'QS' : highlightLabel.toUpperCase()}`} filled fillOpacity={0.30} />
+          <LegendItem color={highlightColor} label={highlightLabel.toUpperCase()} mode="filled" />
+          <LegendItem color="#cbd5e1" label={`SIN ${highlightLabel === 'Quirónsalud' ? 'QS' : highlightLabel.toUpperCase()}`} mode="dashed" />
         </div>
         <div className="w-full" style={{ height: 540 }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -144,25 +142,25 @@ export default function PerfilReputacionalIA({
               />
               <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fill: '#4b5563', fontSize: 10 }} stroke="rgba(255,255,255,0.05)" />
 
-              <Radar name="Sin QS"
-                     dataKey="sinqs"
-                     stroke={COLOR_SINQS}
-                     fill={COLOR_SINQS}
-                     fillOpacity={0.30}
-                     strokeWidth={2} />
-
               <Radar name={highlightLabel}
                      dataKey="qs"
                      stroke={highlightColor}
                      fill={highlightColor}
-                     fillOpacity={0.65}
-                     strokeWidth={3} />
+                     fillOpacity={0.55}
+                     strokeWidth={2} />
+
+              <Radar name="Sin QS"
+                     dataKey="sinqs"
+                     stroke="#cbd5e1"
+                     fill="none"
+                     strokeWidth={2.5}
+                     strokeDasharray="6 4" />
             </RadarChart>
           </ResponsiveContainer>
         </div>
         <p className="text-[12px] text-[#9ca3af] text-center mt-3 leading-relaxed">
-          Las áreas donde el polígono <span className="font-bold" style={{ color: highlightColor }}>azul sobresale</span> indican dónde {highlightLabel} lidera.<br/>
-          Color del eje: <span className="text-[#10b981] font-bold">verde</span> si {highlightLabel} lidera, <span className="text-[#ef4444] font-bold">rojo</span> si está por debajo.
+          Donde el <span className="font-bold" style={{ color: COLOR_HIGHLIGHT_BRIGHT }}>azul sobresale</span> de la línea discontinua, {highlightLabel} lidera.<br/>
+          Color del eje: <span className="text-[#10b981] font-bold">verde</span> si lidera, <span className="text-[#ef4444] font-bold">rojo</span> si está por debajo.
         </p>
       </div>
 
@@ -185,37 +183,20 @@ export default function PerfilReputacionalIA({
   );
 }
 
-function LegendItem({ color, label, filled, fillOpacity = 1 }: { color: string; label: string; filled?: boolean; fillOpacity?: number }) {
+function LegendItem({ color, label, mode }: { color: string; label: string; mode: 'filled' | 'dashed' }) {
   return (
     <div className="flex items-center gap-3">
-      <span
-        className="w-6 h-6 rounded-md border-2"
-        style={{
-          backgroundColor: filled ? color : 'transparent',
-          opacity: filled ? fillOpacity : 1,
-          borderColor: color,
-        }}
-      />
-      <span className="uppercase tracking-wider text-[12px] font-bold text-white">
-        {label}
-      </span>
-    </div>
-  );
-}
-
-function ColumnCounter({ label, value, highlight, color }: {
-  label: string; value: string; highlight?: boolean; color?: string;
-}) {
-  return (
-    <div className={`flex flex-col items-center justify-center py-7 px-4 ${highlight ? 'bg-[#3b82f6]/[0.06] border-x border-[#3b82f6]/20' : ''}`}>
-      <p className={`text-[12px] uppercase tracking-[0.2em] mb-2 ${highlight ? 'font-bold' : 'text-[#9ca3af]'}`}
-         style={highlight ? { color } : {}}>
-        {label}
-      </p>
-      <p className="text-[10px] text-[#6b7280] mb-3 uppercase tracking-wider">Nº de menciones</p>
-      <p className={`text-5xl font-bold tabular-nums ${highlight ? 'text-white' : 'text-[#e5e7eb]'}`}>
-        {value}
-      </p>
+      {mode === 'filled' ? (
+        <span
+          className="w-7 h-7 rounded-md"
+          style={{ backgroundColor: color, opacity: 0.65, border: `2px solid ${color}` }}
+        />
+      ) : (
+        <svg width="28" height="28" viewBox="0 0 28 28">
+          <rect x="2" y="2" width="24" height="24" fill="none" stroke={color} strokeWidth="2.5" strokeDasharray="6 4" rx="4" />
+        </svg>
+      )}
+      <span className="uppercase tracking-wider text-[12px] font-bold text-white">{label}</span>
     </div>
   );
 }
@@ -250,7 +231,7 @@ function NumericTable({
 }) {
   return (
     <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
-      <div className="grid grid-cols-[1.4fr_1fr_1.6fr_1fr] gap-4 px-7 py-3.5 border-b border-white/10 text-[11px] uppercase tracking-[0.2em] text-[#6b7280]">
+      <div className="grid grid-cols-[1.4fr_1fr_1.6fr_1fr] gap-4 px-7 py-3.5 border-b border-white/10 text-[11px] uppercase tracking-[0.2em] text-[#9ca3af]">
         <span>Métrica</span>
         <span className="text-right">Total</span>
         <span className="text-right font-bold" style={{ color: highlightColor }}>{highlightLabel}</span>
@@ -284,21 +265,25 @@ function Row({ m, t, h, r, isLast }: {
   const re = r.promedios[m.key];
   const status = statusFor(m, hi, re);
   const diff = (hi != null && re != null) ? hi - re : null;
+  const noData = hi == null;
 
   return (
-    <div className={`grid grid-cols-[1.4fr_1fr_1.6fr_1fr] gap-4 px-7 py-5 items-baseline ${!isLast ? 'border-b border-white/[0.04]' : ''}`}>
-      <span className="text-lg text-[#e5e7eb] font-medium">{m.label}</span>
-      <span className="text-right tabular-nums text-3xl font-semibold text-[#9ca3af]">{fmtNum(tot)}</span>
+    <div className={`grid grid-cols-[1.4fr_1fr_1.6fr_1fr] gap-4 px-7 py-5 items-baseline ${!isLast ? 'border-b border-white/[0.04]' : ''} ${noData ? 'opacity-50' : ''}`}>
+      <span className="text-lg text-[#e5e7eb] font-medium">
+        {m.label}
+        {noData && <span className="ml-2 text-[10px] uppercase tracking-wider text-[#f59e0b]">no aplica</span>}
+      </span>
+      <span className="text-right tabular-nums text-3xl font-semibold text-[#d1d5db]">{fmtNum(tot)}</span>
       <span className="text-right tabular-nums flex items-baseline justify-end gap-3">
         <span className="text-5xl font-bold text-white">{fmtNum(hi)}</span>
-        <span className="text-2xl" style={{ color: status.color }}>{status.icon}</span>
+        {!noData && <span className="text-2xl" style={{ color: status.color }}>{status.icon}</span>}
         {diff != null && Math.abs(diff) >= 0.05 && (
           <span className="text-base tabular-nums font-bold" style={{ color: status.color }}>
             {diff > 0 ? '+' : ''}{diff.toFixed(2)}
           </span>
         )}
       </span>
-      <span className="text-right tabular-nums text-3xl font-semibold text-[#9ca3af]">{fmtNum(re)}</span>
+      <span className="text-right tabular-nums text-3xl font-semibold text-[#d1d5db]">{fmtNum(re)}</span>
     </div>
   );
 }
