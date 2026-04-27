@@ -56,7 +56,7 @@ async function fetchPage(cfg: MencionesConfig, pageParam: number) {
     console.error('[MencionesRecientes]', error);
     return [];
   }
-  return (data ?? []) as Record<string, unknown>[];
+  return ((data ?? []) as unknown) as Record<string, unknown>[];
 }
 
 export default function MencionesRecientes({ cfg, contextLabel }: { cfg: MencionesConfig; contextLabel?: string }) {
