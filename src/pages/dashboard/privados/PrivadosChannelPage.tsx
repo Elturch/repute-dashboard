@@ -23,6 +23,7 @@ const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
     campoMedio: 'Paper',
     campoUrl: 'url',
     campoPeligro: 'Peligro_reputacional',
+    campoPresenciaMarca: 'Presencia_de_marca',
     filtros: [{ campo: 'titularidad', valor: 'Privado' }],
   },
   instagram: {
@@ -33,6 +34,7 @@ const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
     campoMedio: 'user_posted',
     campoUrl: 'imput_url',
     campoPeligro: 'peligro_reputacional',
+    campoPresenciaMarca: 'presencia_marca',
   },
   twitter: {
     tabla: 'x_twitter_posts_general_filtrado',
@@ -42,6 +44,7 @@ const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
     campoMedio: 'user_name',
     campoUrl: 'url',
     campoPeligro: 'peligro_reputacional',
+    campoPresenciaMarca: 'presencia_marca',
   },
   tiktok: {
     tabla: 'tiktok_posts_general_filtradas',
@@ -51,6 +54,7 @@ const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
     campoMedio: 'user_name',
     campoUrl: 'url',
     campoPeligro: 'peligro_reputacional',
+    campoPresenciaMarca: 'presencia_marca',
   },
   facebook: {
     tabla: 'fb_posts_general_filtradas',
@@ -60,6 +64,7 @@ const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
     campoMedio: 'user_name',
     campoUrl: 'url',
     campoPeligro: 'peligro_reputacional',
+    campoPresenciaMarca: 'presencia_marca',
   },
   linkedin: {
     tabla: 'linkedin_gh_filtradas',
@@ -69,6 +74,7 @@ const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
     campoMedio: 'termino',
     campoUrl: 'url',
     campoPeligro: 'peligro_reputacional',
+    campoPresenciaMarca: 'presencia_marca',
   },
   mybusiness: {
     tabla: 'my_business_reviews',
@@ -78,6 +84,7 @@ const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
     campoMedio: 'user_name',
     campoUrl: 'link_url',
     campoPeligro: 'peligro_reputacional',
+    campoPresenciaMarca: 'presencia_marca',
     filtros: [{ campo: 'titularidad', valor: 'Privado' }],
   },
 };

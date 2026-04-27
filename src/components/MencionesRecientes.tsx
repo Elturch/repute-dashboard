@@ -14,6 +14,7 @@ export interface MencionesConfig {
   campoMedio: string;
   campoUrl: string;
   campoPeligro: string;
+  campoPresenciaMarca?: string;
   /** Filtros adicionales con .eq */
   filtros?: { campo: string; valor: string }[];
 }
@@ -50,8 +51,11 @@ async function fetchPage(cfg: MencionesConfig, pageParam: number, opts: FetchOpt
   let q = externalSupabase
     .from(cfg.tabla)
     .select('*')
-    .order('id', { ascending: false })
-    .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
+    .order('id', { ascending: false });
+  if (cfg.campoPresenciaMarca) {
+    q = q.gte(cfg.campoPresenciaMarca, 30);
+  }
+  q = q.range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
   if (cfg.filtros) cfg.filtros.forEach(f => { q = q.eq(f.campo, f.valor); });
   if (opts.riesgo) q = q.ilike(cfg.campoPeligro, `%${opts.riesgo}%`);
   if (opts.medio)  q = q.ilike(cfg.campoMedio,   `%${opts.medio}%`);
