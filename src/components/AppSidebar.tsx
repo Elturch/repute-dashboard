@@ -2,7 +2,7 @@ import {
   Home, BarChart3, Network, Radio, Building2, TrendingUp, ShieldAlert, Search,
   Hospital, FileText, Download, BookOpen, Settings, Users, ShieldCheck, Server,
   ChevronDown, Newspaper, Facebook, Instagram, Twitter, Music2, Linkedin, MapPin,
-  LayoutDashboard,
+  LayoutDashboard, Star,
 } from "lucide-react";
 import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from "react-icons/si";
 import { FaXTwitter, FaLinkedin } from "react-icons/fa6";
@@ -232,11 +232,31 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* ── Hospitales destacados ── */}
+        <SidebarGroup>
+          <SidebarGroupLabel>
+            <span className="flex items-center gap-1.5">
+              <Star className="h-3 w-3" />
+              Hospitales destacados
+            </span>
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/dashboard/fjd" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                    <Star className="mr-2 h-4 w-4 text-amber-500" />
+                    {!collapsed && <span>Fundación Jiménez Díaz</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         {/* ── Core Quirón ── */}
         <SidebarGroup>
           <SidebarGroupLabel>Core Quirón</SidebarGroupLabel>
-        </SidebarGroup>
-        {/* Placeholder removed by patcher */}
           <SidebarGroupContent>
             <SidebarMenu>
               {coreItems.map((item) => (
