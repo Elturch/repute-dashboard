@@ -1,9 +1,9 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { externalSupabase } from '@/integrations/external-supabase/client';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ExternalLink, ImageOff } from 'lucide-react';
+import { ExternalLink, ImageOff, Filter, X } from 'lucide-react';
 
 export interface MencionesConfig {
   tabla: string;
@@ -20,6 +20,15 @@ export interface MencionesConfig {
 
 const PAGE_SIZE = 20;
 
+const RIESGO_OPCIONES: { label: string; value: string }[] = [
+  { label: 'Todos los riesgos', value: '' },
+  { label: 'Crítico',           value: 'critico' },
+  { label: 'Alto',              value: 'alto' },
+  { label: 'Medio',             value: 'medio' },
+  { label: 'Bajo',              value: 'bajo' },
+  { label: 'Sin riesgo',        value: 'sin riesgo' },
+];
+
 function fmtFecha(d: string | null): string {
   if (!d) return '—';
   try { return format(new Date(d), "d MMM yyyy 'a las' HH:mm", { locale: es }); }
@@ -35,7 +44,9 @@ function peligroColor(p: string | null | undefined): string {
   return '#9ca3af';
 }
 
-async function fetchPage(cfg: MencionesConfig, pageParam: number) {
+interface FetchOpts { riesgo: string; medio: string }
+
+async function fetchPage(cfg: MencionesConfig, pageParam: number, opts: FetchOpts) {
   const fields: string[] = [cfg.campoFecha, cfg.campoSnippet, cfg.campoMedio, cfg.campoUrl, cfg.campoPeligro];
   if (cfg.campoTitulo) fields.push(cfg.campoTitulo);
   if (cfg.campoImagen) fields.push(cfg.campoImagen);
@@ -47,9 +58,9 @@ async function fetchPage(cfg: MencionesConfig, pageParam: number) {
     .order(cfg.campoFecha, { ascending: false, nullsFirst: false })
     .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
 
-  if (cfg.filtros) {
-    cfg.filtros.forEach(f => { q = q.eq(f.campo, f.valor); });
-  }
+  if (cfg.filtros) cfg.filtros.forEach(f => { q = q.eq(f.campo, f.valor); });
+  if (opts.riesgo) q = q.ilike(cfg.campoPeligro, `%${opts.riesgo}%`);
+  if (opts.medio)  q = q.ilike(cfg.campoMedio,   `%${opts.medio}%`);
 
   const { data, error } = await q;
   if (error) {
@@ -60,12 +71,21 @@ async function fetchPage(cfg: MencionesConfig, pageParam: number) {
 }
 
 export default function MencionesRecientes({ cfg, contextLabel }: { cfg: MencionesConfig; contextLabel?: string }) {
+  const [riesgo, setRiesgo] = useState('');
+  const [medioInput, setMedioInput] = useState('');
+  const [medio, setMedio] = useState('');
+
+  // Debounce del input de medio (400ms)
+  useEffect(() => {
+    const t = setTimeout(() => setMedio(medioInput), 400);
+    return () => clearTimeout(t);
+  }, [medioInput]);
+
   const { data, fetchNextPage, hasNextPage, isFetching, isLoading } = useInfiniteQuery({
-    queryKey: ['menciones', cfg.tabla, cfg.filtros?.map(f => `${f.campo}=${f.valor}`).join('|') ?? ''],
+    queryKey: ['menciones', cfg.tabla, JSON.stringify(cfg.filtros ?? []), riesgo, medio],
     initialPageParam: 0,
-    queryFn: ({ pageParam }) => fetchPage(cfg, pageParam as number),
-    getNextPageParam: (lastPage, allPages) =>
-      lastPage.length === PAGE_SIZE ? allPages.length : undefined,
+    queryFn: ({ pageParam }) => fetchPage(cfg, pageParam as number, { riesgo, medio }),
+    getNextPageParam: (lastPage, allPages) => lastPage.length === PAGE_SIZE ? allPages.length : undefined,
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -73,13 +93,70 @@ export default function MencionesRecientes({ cfg, contextLabel }: { cfg: Mencion
   });
 
   const items = data?.pages.flat() ?? [];
+  const hayFiltros = !!riesgo || !!medio;
 
   return (
     <section className="space-y-4">
-      <h2 className="text-xs uppercase tracking-wider text-muted-foreground">
-        Menciones recientes{contextLabel ? ` · ${contextLabel}` : ''}
-      </h2>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <h2 className="text-xs uppercase tracking-wider text-muted-foreground">
+          Menciones recientes{contextLabel ? ` · ${contextLabel}` : ''}
+        </h2>
+        {hayFiltros && (
+          <button
+            type="button"
+            onClick={() => { setRiesgo(''); setMedioInput(''); setMedio(''); }}
+            className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#9ca3af] hover:text-white transition-colors"
+          >
+            <X className="w-3 h-3" />
+            Limpiar filtros
+          </button>
+        )}
+      </div>
 
+      {/* Filtros */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative">
+          <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#6b7280] pointer-events-none" />
+          <select
+            value={riesgo}
+            onChange={(e) => setRiesgo(e.target.value)}
+            className="appearance-none bg-white/[0.03] border border-white/10 rounded-md pl-9 pr-9 py-2.5 text-sm text-[#e5e7eb] focus:outline-none focus:border-[#3b82f6]/50 cursor-pointer min-w-[180px]"
+          >
+            {RIESGO_OPCIONES.map(o => (
+              <option key={o.value} value={o.value} className="bg-[#0a0a0a] text-[#e5e7eb]">{o.label}</option>
+            ))}
+          </select>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7280] pointer-events-none text-xs">▾</span>
+        </div>
+
+        <div className="relative flex-1 min-w-[240px]">
+          <input
+            type="text"
+            value={medioInput}
+            onChange={(e) => setMedioInput(e.target.value)}
+            placeholder="Filtrar por fuente (medio, usuario…)"
+            className="w-full bg-white/[0.03] border border-white/10 rounded-md px-3.5 py-2.5 text-sm text-[#e5e7eb] placeholder-[#6b7280] focus:outline-none focus:border-[#3b82f6]/50"
+          />
+          {medioInput && (
+            <button
+              type="button"
+              onClick={() => { setMedioInput(''); setMedio(''); }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6b7280] hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {isFetching && !isLoading && (
+          <span className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="w-2 h-2 rounded-full bg-[#3b82f6] animate-pulse" />
+            Filtrando…
+          </span>
+        )}
+      </div>
+
+      {/* Lista */}
       {isLoading ? (
         <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
           <span className="w-2 h-2 rounded-full bg-[#3b82f6] animate-pulse" />
@@ -87,17 +164,15 @@ export default function MencionesRecientes({ cfg, contextLabel }: { cfg: Mencion
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
-          No hay menciones para mostrar.
+          {hayFiltros ? 'No hay menciones que cumplan los filtros.' : 'No hay menciones para mostrar.'}
         </div>
       ) : (
         <ul className="space-y-3">
-          {items.map((m, i) => (
-            <MencionCard key={i} m={m} cfg={cfg} />
-          ))}
+          {items.map((m, i) => <MencionCard key={i} m={m} cfg={cfg} />)}
         </ul>
       )}
 
-      {hasNextPage && (
+      {hasNextPage && !isLoading && (
         <div className="flex justify-center pt-2">
           <button
             type="button"
