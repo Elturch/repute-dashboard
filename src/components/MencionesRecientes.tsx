@@ -47,27 +47,24 @@ function peligroColor(p: string | null | undefined): string {
 interface FetchOpts { riesgo: string; medio: string }
 
 async function fetchPage(cfg: MencionesConfig, pageParam: number, opts: FetchOpts) {
-  const fields: string[] = [cfg.campoFecha, cfg.campoSnippet, cfg.campoMedio, cfg.campoUrl, cfg.campoPeligro];
-  if (cfg.campoTitulo) fields.push(cfg.campoTitulo);
-  if (cfg.campoImagen) fields.push(cfg.campoImagen);
-  const uniqueFields = [...new Set(fields)].map(f => `"${f}"`).join(', ');
-
+  // Constrain to last 90 days para que Postgres use el índice de fecha y no se atasque
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 90);
   let q = externalSupabase
     .from(cfg.tabla)
-    .select(uniqueFields)
-    .order(cfg.campoFecha, { ascending: false, nullsFirst: false })
+    .select('*')
+    .gte(cfg.campoFecha, cutoff.toISOString())
+    .order(cfg.campoFecha, { ascending: false })
     .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
-
   if (cfg.filtros) cfg.filtros.forEach(f => { q = q.eq(f.campo, f.valor); });
   if (opts.riesgo) q = q.ilike(cfg.campoPeligro, `%${opts.riesgo}%`);
   if (opts.medio)  q = q.ilike(cfg.campoMedio,   `%${opts.medio}%`);
-
   const { data, error } = await q;
   if (error) {
-    console.error('[MencionesRecientes]', error);
+    console.error('[MencionesRecientes]', cfg.tabla, error);
     return [];
   }
-  return ((data ?? []) as unknown) as Record<string, unknown>[];
+  return (data ?? []) as Record<string, any>[];
 }
 
 export default function MencionesRecientes({ cfg, contextLabel }: { cfg: MencionesConfig; contextLabel?: string }) {
