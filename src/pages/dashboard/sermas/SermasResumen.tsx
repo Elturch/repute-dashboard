@@ -6,33 +6,27 @@ import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from 'react-icons/si';
 import { FaXTwitter, FaLinkedin } from 'react-icons/fa6';
 import { BiNews } from 'react-icons/bi';
 import type { IconType } from 'react-icons';
+import { VIEW_BY_CANAL, type Canal } from '@/hooks/useCanalData';
 
 type ChannelKey = 'noticias' | 'instagram' | 'x_twitter' | 'tiktok' | 'facebook' | 'linkedin' | 'mybusiness';
 
 interface ChannelConfig {
   key: ChannelKey;
+  canal: Canal;
   label: string;
   Icon: IconType;
   brandColor: string;
 }
 
 const CHANNELS: ChannelConfig[] = [
-  { key: 'noticias',   label: 'Medios',         Icon: BiNews,      brandColor: '#9CA3AF' },
-  { key: 'instagram',  label: 'Instagram',      Icon: SiInstagram, brandColor: '#E4405F' },
-  { key: 'x_twitter',  label: 'X (Twitter)',    Icon: FaXTwitter,  brandColor: '#FFFFFF' },
-  { key: 'tiktok',     label: 'TikTok',         Icon: SiTiktok,    brandColor: '#FF0050' },
-  { key: 'facebook',   label: 'Facebook',       Icon: SiFacebook,  brandColor: '#1877F2' },
-  { key: 'linkedin',   label: 'LinkedIn',       Icon: FaLinkedin,  brandColor: '#0A66C2' },
-  { key: 'mybusiness', label: 'Reseñas Google', Icon: SiGoogle,    brandColor: '#4285F4' },
+  { key: 'noticias',   canal: 'medios',     label: 'Medios',         Icon: BiNews,      brandColor: '#9CA3AF' },
+  { key: 'instagram',  canal: 'instagram',  label: 'Instagram',      Icon: SiInstagram, brandColor: '#E4405F' },
+  { key: 'x_twitter',  canal: 'twitter',    label: 'X (Twitter)',    Icon: FaXTwitter,  brandColor: '#FFFFFF' },
+  { key: 'tiktok',     canal: 'tiktok',     label: 'TikTok',         Icon: SiTiktok,    brandColor: '#FF0050' },
+  { key: 'facebook',   canal: 'facebook',   label: 'Facebook',       Icon: SiFacebook,  brandColor: '#1877F2' },
+  { key: 'linkedin',   canal: 'linkedin',   label: 'LinkedIn',       Icon: FaLinkedin,  brandColor: '#0A66C2' },
+  { key: 'mybusiness', canal: 'mybusiness', label: 'Reseñas Google', Icon: SiGoogle,    brandColor: '#4285F4' },
 ];
-
-interface MvRow {
-  canal: string;
-  gestion: string | null;
-  grupo_hospitalario: string | null;
-  menciones: number;
-  fecha_max: string | null;
-}
 
 interface ChannelStats {
   total: number;
@@ -46,45 +40,45 @@ function fmt(n: number) { return (n ?? 0).toLocaleString('es-ES'); }
 function fmtPct(n: number) { return `${n.toFixed(1)}%`; }
 function fmtFecha(d: Date) { return format(d, 'd MMM yyyy', { locale: es }); }
 
-async function fetchResumen(): Promise<Record<ChannelKey, ChannelStats>> {
-  const result = {} as Record<ChannelKey, ChannelStats>;
-  for (const cfg of CHANNELS) result[cfg.key] = { total: 0, qs: 0, sinQs: 0, fjd: 0, maxDate: null };
-
+async function fetchCanal(cfg: ChannelConfig): Promise<ChannelStats> {
+  const view = VIEW_BY_CANAL[cfg.canal];
   const { data, error } = await externalSupabase
-    .from('mv_dashboard_resumen_30d')
-    .select('canal, gestion, grupo_hospitalario, menciones, fecha_max')
-    .ilike('gestion', 'SERMAS%');
+    .from(view)
+    .select('gestion_hospitalaria, grupo_hospitalario, fecha')
+    .ilike('gestion_hospitalaria', 'SERMAS%')
+    .order('fecha', { ascending: false })
+    .limit(5000);
 
   if (error) {
-    console.error('[resumen sermas] error:', error);
-    return result;
+    console.error(`[resumen sermas/${cfg.key}] error:`, error);
+    return { total: 0, qs: 0, sinQs: 0, fjd: 0, maxDate: null };
   }
 
-  const rows = (data ?? []) as MvRow[];
-
-  for (const cfg of CHANNELS) {
-    let total = 0, qs = 0, fjd = 0;
-    let maxDate: Date | null = null;
-    for (const r of rows) {
-      if (r.canal !== cfg.key) continue;
-      const m = Number(r.menciones) || 0;
-      total += m;
-      if (r.gestion === 'SERMAS Gestión QS') qs += m;
-      if (r.grupo_hospitalario === 'Fundación Jiménez Díaz') fjd += m;
-      if (r.fecha_max) {
-        const d = new Date(r.fecha_max);
-        if (!isNaN(d.getTime()) && (!maxDate || d > maxDate)) maxDate = d;
-      }
+  let total = 0, qs = 0, sinQs = 0, fjd = 0;
+  let maxDate: Date | null = null;
+  for (const r of (data ?? [])) {
+    total++;
+    if (r.gestion_hospitalaria === 'SERMAS - Quirónsalud (gestión)') qs++;
+    if (r.gestion_hospitalaria === 'SERMAS') sinQs++;
+    if (r.grupo_hospitalario === 'Hospital Fundación Jiménez Díaz' || r.grupo_hospitalario === 'Fundación Jiménez Díaz') fjd++;
+    if (r.fecha) {
+      const d = new Date(r.fecha);
+      if (!isNaN(d.getTime()) && (!maxDate || d > maxDate)) maxDate = d;
     }
-    result[cfg.key] = { total, qs, sinQs: total - qs, fjd, maxDate };
   }
+  return { total, qs, sinQs, fjd, maxDate };
+}
+
+async function fetchResumen(): Promise<Record<ChannelKey, ChannelStats>> {
+  const result = {} as Record<ChannelKey, ChannelStats>;
+  await Promise.all(CHANNELS.map(async c => { result[c.key] = await fetchCanal(c); }));
   return result;
 }
 
 export default function SermasResumen() {
   const queryClient = useQueryClient();
   const { data: stats, isLoading, isFetching, dataUpdatedAt } = useQuery({
-    queryKey: ['sermas_resumen'],
+    queryKey: ['sermas_resumen_v2'],
     queryFn: fetchResumen,
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
@@ -101,7 +95,6 @@ export default function SermasResumen() {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white">
-      {/* Hero */}
       <header className="px-8 py-6 border-b border-white/5 flex items-start justify-between gap-6 flex-wrap">
         <div>
           <p className="text-[10px] uppercase tracking-widest text-[#6b7280] mb-2">
@@ -134,7 +127,7 @@ export default function SermasResumen() {
             )}
           </div>
           <button
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['sermas_resumen'] })}
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['sermas_resumen_v2'] })}
             className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-white"
           >
             🔄 Recargar
@@ -142,7 +135,6 @@ export default function SermasResumen() {
         </div>
       </header>
 
-      {/* Tira de KPI cards por canal */}
       <section className="px-8 py-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 border-b border-white/5">
         {CHANNELS.map((cfg) => {
           const c = stats?.[cfg.key];
@@ -173,7 +165,6 @@ export default function SermasResumen() {
         })}
       </section>
 
-      {/* Secciones por canal con split de los 3 segmentos + FJD */}
       <div className="px-8 py-8 space-y-6">
         {CHANNELS.map(cfg => (
           <ChannelSection key={cfg.key} cfg={cfg} stats={stats?.[cfg.key]} isLoading={isLoading} />
@@ -181,8 +172,8 @@ export default function SermasResumen() {
       </div>
 
       <footer className="px-8 py-6 border-t border-white/5 text-[10px] uppercase tracking-widest text-[#6b7280] flex justify-between flex-wrap gap-2">
-        <span>Fuente: MySQL · Make · Supabase · Vista: mv_dashboard_resumen_30d</span>
-        <span>Filtrado: gestion ILIKE 'SERMAS%'</span>
+        <span>Fuente: Supabase · Vistas: v_canal_*</span>
+        <span>Filtrado: gestion_hospitalaria ILIKE 'SERMAS%'</span>
       </footer>
     </div>
   );
