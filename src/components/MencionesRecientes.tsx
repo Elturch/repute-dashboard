@@ -62,7 +62,7 @@ async function fetchPage(cfg: MencionesConfig, pageParam: number, opts: FetchOpt
   const { data, error } = await q;
   if (error) {
     console.error('[MencionesRecientes]', cfg.tabla, error);
-    return [];
+    throw error;
   }
   return (data ?? []) as Record<string, any>[];
 }
@@ -78,7 +78,7 @@ export default function MencionesRecientes({ cfg, contextLabel }: { cfg: Mencion
     return () => clearTimeout(t);
   }, [medioInput]);
 
-  const { data, fetchNextPage, hasNextPage, isFetching, isLoading } = useInfiniteQuery({
+  const { data, fetchNextPage, hasNextPage, isFetching, isLoading, error } = useInfiniteQuery({
     queryKey: ['menciones', cfg.tabla, JSON.stringify(cfg.filtros ?? []), riesgo, medio],
     initialPageParam: 0,
     queryFn: ({ pageParam }) => fetchPage(cfg, pageParam as number, { riesgo, medio }),
@@ -152,6 +152,13 @@ export default function MencionesRecientes({ cfg, contextLabel }: { cfg: Mencion
           </span>
         )}
       </div>
+
+      {error && (
+        <div className="mb-4 p-4 rounded-lg border border-[#ef4444]/30 bg-[#ef4444]/[0.05] text-[#ef4444] text-xs">
+          <p className="font-bold uppercase tracking-wider mb-1">Error al cargar menciones</p>
+          <p className="font-mono break-all">{(error as any)?.message ?? String(error)}</p>
+        </div>
+      )}
 
       {/* Lista */}
       {isLoading ? (

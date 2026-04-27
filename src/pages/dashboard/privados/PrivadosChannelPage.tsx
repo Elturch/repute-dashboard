@@ -44,7 +44,7 @@ const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
     campoPeligro: 'peligro_reputacional',
   },
   tiktok: {
-    tabla: 'tiktok_posts_general_filtradas',
+    tabla: 'tiktok_posts',
     campoFecha: 'created_time',
     campoTitulo: 'asunto',
     campoSnippet: 'description',
