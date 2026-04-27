@@ -235,6 +235,8 @@ export function AppSidebar() {
         {/* ── Core Quirón ── */}
         <SidebarGroup>
           <SidebarGroupLabel>Core Quirón</SidebarGroupLabel>
+        </SidebarGroup>
+        {/* Placeholder removed by patcher */}
           <SidebarGroupContent>
             <SidebarMenu>
               {coreItems.map((item) => (
