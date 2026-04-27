@@ -25,10 +25,13 @@ const NEGATIVAS: MetricaDef[] = [
 ];
 const ALL_METRICAS = [...POSITIVAS, ...NEGATIVAS];
 
-const COLOR_GOOD     = '#10b981';
+const COLOR_GOOD     = '#22c55e';
 const COLOR_FLAT     = '#9ca3af';
 const COLOR_BAD      = '#ef4444';
-const COLOR_HIGHLIGHT_BRIGHT = '#60a5fa';
+
+const RADAR_TOTAL = '#f59e0b';
+const RADAR_QS    = '#10b981';
+const RADAR_SINQS = '#3b82f6';
 
 function fmtNum(n: number | null, d = 2): string { return n == null ? '—' : n.toFixed(d); }
 
@@ -67,8 +70,7 @@ export default function PerfilReputacionalIA({
       if (s.tone === 'up') lidera++;
       else if (s.tone === 'down') atencion++;
     }
-    const validCount = ALL_METRICAS.filter(m => highlight.promedios[m.key] != null && resto.promedios[m.key] != null).length;
-    return { lidera, atencion, total: validCount };
+    return { lidera, atencion, total: ALL_METRICAS.length };
   }, [highlight, resto]);
 
   const statusMap = useMemo(() => {
@@ -97,20 +99,18 @@ export default function PerfilReputacionalIA({
     );
   }
 
-  const radarData = ALL_METRICAS
-    .filter(m => highlight.promedios[m.key] != null)
-    .map(m => {
-      const qsRaw    = highlight.promedios[m.key] ?? 0;
-      const sinqsRaw = resto.promedios[m.key] ?? 0;
-      return {
-        metric: m.label,
-        // Para que el radar tenga lectura coherente ("más extenso = mejor")
-        // en métricas negativas se invierte el valor.
-        qs:    m.positive ? qsRaw    : 10 - qsRaw,
-        sinqs: m.positive ? sinqsRaw : 10 - sinqsRaw,
-        fullMark: 10,
-      };
-    });
+  const radarData = ALL_METRICAS.map(m => {
+    const totalRaw = total.promedios[m.key];
+    const qsRaw    = highlight.promedios[m.key];
+    const sinqsRaw = resto.promedios[m.key];
+    return {
+      metric: m.label,
+      total: totalRaw == null ? null : (m.positive ? totalRaw : 10 - totalRaw),
+      qs:    qsRaw    == null ? null : (m.positive ? qsRaw    : 10 - qsRaw),
+      sinqs: sinqsRaw == null ? null : (m.positive ? sinqsRaw : 10 - sinqsRaw),
+      fullMark: 10,
+    };
+  });
 
   return (
     <section className="mt-12">
@@ -118,10 +118,10 @@ export default function PerfilReputacionalIA({
         Perfil reputacional IA{contextLabel ? ` · ${contextLabel}` : ''}
       </p>
 
-      <div className="px-7 py-6 mb-6 rounded-xl border border-[#60a5fa]/20 bg-[#1e293b]/40">
+      <div className="px-7 py-6 mb-6 rounded-xl border border-[#10b981]/20 bg-[#10b981]/[0.05]">
         <p className="text-[32px] font-semibold leading-tight text-white">
-          <span style={{ color: COLOR_HIGHLIGHT_BRIGHT }}>{highlightLabel} lidera</span> en{' '}
-          <span className="tabular-nums text-[#10b981]">{summary.lidera}</span> de{' '}
+          <span style={{ color: RADAR_QS }}>{highlightLabel} lidera</span> en{' '}
+          <span className="tabular-nums" style={{ color: RADAR_QS }}>{summary.lidera}</span> de{' '}
           <span className="tabular-nums">{summary.total}</span> dimensiones
           {summary.atencion > 0 && (
             <>
@@ -134,9 +134,10 @@ export default function PerfilReputacionalIA({
       </div>
 
       <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6 mb-6">
-        <div className="flex items-center justify-center gap-12 mb-4">
-          <LegendItem color={highlightColor} label={highlightLabel.toUpperCase()} mode="filled" />
-          <LegendItem color="rgba(255,255,255,0.7)" label={`SIN ${highlightLabel === 'Quirónsalud' ? 'QS' : highlightLabel.toUpperCase()}`} mode="outline" />
+        <div className="flex items-center justify-center gap-10 mb-4 flex-wrap">
+          <LegendItem color={RADAR_TOTAL} label="GRUPOS HOSPITALARIOS (TOTAL)" />
+          <LegendItem color={RADAR_QS} label={highlightLabel.toUpperCase()} bold />
+          <LegendItem color={RADAR_SINQS} label={`SIN ${highlightLabel === 'Quirónsalud' ? 'QS' : highlightLabel.toUpperCase()}`} />
         </div>
         <div className="w-full" style={{ height: 540 }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -148,24 +149,32 @@ export default function PerfilReputacionalIA({
               />
               <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fill: '#4b5563', fontSize: 10 }} stroke="rgba(255,255,255,0.05)" />
 
-              <Radar name={highlightLabel}
-                     dataKey="qs"
-                     stroke={highlightColor}
-                     fill={highlightColor}
-                     fillOpacity={0.55}
-                     strokeWidth={2} />
+              <Radar name="Total"
+                     dataKey="total"
+                     stroke={RADAR_TOTAL}
+                     fill={RADAR_TOTAL}
+                     fillOpacity={0.18}
+                     strokeWidth={1.5} />
 
               <Radar name="Sin QS"
                      dataKey="sinqs"
-                     stroke="rgba(255,255,255,0.45)"
-                     fill="none"
-                     strokeWidth={1.8} />
+                     stroke={RADAR_SINQS}
+                     fill={RADAR_SINQS}
+                     fillOpacity={0.28}
+                     strokeWidth={2} />
+
+              <Radar name={highlightLabel}
+                     dataKey="qs"
+                     stroke={RADAR_QS}
+                     fill={RADAR_QS}
+                     fillOpacity={0.55}
+                     strokeWidth={3} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
         <p className="text-[12px] text-[#9ca3af] text-center mt-3 leading-relaxed">
-          En el radar, las métricas negativas (rechazo, preocupación, descrédito) se muestran invertidas para que <span className="font-bold text-white">"más extenso = mejor"</span> en todas las direcciones. Los valores junto a cada eje son los reales.<br/>
-          Color del eje: <span className="text-[#10b981] font-bold">verde</span> si {highlightLabel} lidera, <span className="text-[#ef4444] font-bold">rojo</span> si está por debajo.
+          Métricas negativas (rechazo, preocupación, descrédito) invertidas para que <span className="font-bold text-white">"más extenso = mejor"</span> en todas las direcciones.<br/>
+          Color del eje: <span className="text-[#22c55e] font-bold">verde</span> si {highlightLabel} lidera, <span className="text-[#ef4444] font-bold">rojo</span> si está por debajo. Valores reales junto a cada eje.
         </p>
       </div>
 
@@ -179,8 +188,8 @@ export default function PerfilReputacionalIA({
         highlightLabel={highlightLabel}
       />
 
-      <div className="mt-6 pt-4 border-t border-white/5 flex items-center gap-8 text-sm text-[#9ca3af]">
-        <span className="flex items-center gap-1.5"><span className="text-[#10b981] font-bold text-base">★</span> {highlightLabel} lidera</span>
+      <div className="mt-6 pt-4 border-t border-white/5 flex items-center gap-8 text-sm text-[#9ca3af] flex-wrap">
+        <span className="flex items-center gap-1.5"><span className="text-[#22c55e] font-bold text-base">★</span> {highlightLabel} lidera</span>
         <span className="flex items-center gap-1.5"><span className="text-[#9ca3af] font-bold text-base">●</span> En línea con el sector</span>
         <span className="flex items-center gap-1.5"><span className="text-[#ef4444] font-bold text-base">⚠</span> Por debajo del sector</span>
       </div>
@@ -188,27 +197,16 @@ export default function PerfilReputacionalIA({
   );
 }
 
-function LegendItem({ color, label, mode }: { color: string; label: string; mode: 'filled' | 'outline' | 'dashed' }) {
+function LegendItem({ color, label, bold }: { color: string; label: string; bold?: boolean }) {
   return (
     <div className="flex items-center gap-3">
-      {mode === 'filled' && (
-        <span
-          className="w-7 h-7 rounded-md"
-          style={{ backgroundColor: color, opacity: 0.65, border: `2px solid ${color}` }}
-        />
-      )}
-      {mode === 'outline' && (
-        <span
-          className="w-7 h-7 rounded-md"
-          style={{ backgroundColor: 'transparent', border: `2px solid ${color}` }}
-        />
-      )}
-      {mode === 'dashed' && (
-        <svg width="28" height="28" viewBox="0 0 28 28">
-          <rect x="2" y="2" width="24" height="24" fill="none" stroke={color} strokeWidth="2.5" strokeDasharray="6 4" rx="4" />
-        </svg>
-      )}
-      <span className="uppercase tracking-wider text-[12px] font-bold text-white">{label}</span>
+      <span
+        className={`rounded-md ${bold ? 'w-7 h-7' : 'w-6 h-6'}`}
+        style={{ backgroundColor: color, opacity: bold ? 0.7 : 0.5, border: `2px solid ${color}` }}
+      />
+      <span className={`uppercase tracking-wider ${bold ? 'text-[12px] font-bold text-white' : 'text-[11px] font-semibold text-[#d1d5db]'}`}>
+        {label}
+      </span>
     </div>
   );
 }
@@ -224,11 +222,13 @@ function ColoredAxisTick(props: any) {
           {payload.value.toUpperCase()}
         </tspan>
         <tspan x={x} dy="1.4em" fontSize="22" fontWeight="800" fill={info.color}>
-          {info.value != null ? info.value.toFixed(2) : '—'}
+          {info.value != null ? info.value.toFixed(2) : 'n/a'}
         </tspan>
-        <tspan dx="6" fontSize="20" fontWeight="800" fill={info.color}>
-          {info.icon}
-        </tspan>
+        {info.value != null && (
+          <tspan dx="6" fontSize="20" fontWeight="800" fill={info.color}>
+            {info.icon}
+          </tspan>
+        )}
       </text>
     </g>
   );
@@ -243,11 +243,11 @@ function NumericTable({
 }) {
   return (
     <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
-      <div className="grid grid-cols-[1.4fr_1fr_1.6fr_1fr] gap-4 px-7 py-3.5 border-b border-white/10 text-[11px] uppercase tracking-[0.2em] text-[#9ca3af]">
-        <span>Métrica</span>
-        <span className="text-right">Total</span>
-        <span className="text-right font-bold" style={{ color: highlightColor }}>{highlightLabel}</span>
-        <span className="text-right">Sin {highlightLabel === 'Quirónsalud' ? 'QS' : highlightLabel}</span>
+      <div className="grid grid-cols-[1.4fr_1fr_1.6fr_1fr] gap-4 px-7 py-3.5 border-b border-white/10 text-[11px] uppercase tracking-[0.2em]">
+        <span className="text-[#9ca3af]">Métrica</span>
+        <span className="text-right" style={{ color: RADAR_TOTAL }}>Total</span>
+        <span className="text-right font-bold" style={{ color: RADAR_QS }}>{highlightLabel}</span>
+        <span className="text-right" style={{ color: RADAR_SINQS }}>Sin {highlightLabel === 'Quirónsalud' ? 'QS' : highlightLabel}</span>
       </div>
 
       <SectionHeader label="Positivas" sub="más alto = mejor" color={COLOR_GOOD} />
@@ -285,7 +285,7 @@ function Row({ m, t, h, r, isLast }: {
         {m.label}
         {noData && <span className="ml-2 text-[10px] uppercase tracking-wider text-[#f59e0b]">no aplica</span>}
       </span>
-      <span className="text-right tabular-nums text-3xl font-semibold text-[#d1d5db]">{fmtNum(tot)}</span>
+      <span className="text-right tabular-nums text-3xl font-semibold" style={{ color: tot != null ? '#fcd34d' : '#6b7280' }}>{fmtNum(tot)}</span>
       <span className="text-right tabular-nums flex items-baseline justify-end gap-3">
         <span className="text-5xl font-bold text-white">{fmtNum(hi)}</span>
         {!noData && <span className="text-2xl" style={{ color: status.color }}>{status.icon}</span>}
@@ -295,7 +295,7 @@ function Row({ m, t, h, r, isLast }: {
           </span>
         )}
       </span>
-      <span className="text-right tabular-nums text-3xl font-semibold text-[#d1d5db]">{fmtNum(re)}</span>
+      <span className="text-right tabular-nums text-3xl font-semibold" style={{ color: re != null ? '#93c5fd' : '#6b7280' }}>{fmtNum(re)}</span>
     </div>
   );
 }
