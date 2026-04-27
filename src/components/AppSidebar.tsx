@@ -2,7 +2,7 @@ import {
   Home, BarChart3, Network, Radio, Building2, TrendingUp, ShieldAlert, Search,
   Hospital, FileText, Download, BookOpen, Settings, Users, ShieldCheck, Server,
   ChevronDown, Newspaper, Facebook, Instagram, Twitter, Music2, Linkedin, MapPin,
-  LayoutDashboard,
+  LayoutDashboard, Star,
 } from "lucide-react";
 import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from "react-icons/si";
 import { FaXTwitter, FaLinkedin } from "react-icons/fa6";
@@ -25,7 +25,6 @@ const coreItems = [
   { title: "Riesgo y alertas", url: "/dashboard/riesgo", icon: ShieldAlert },
   { title: "Explorador", url: "/dashboard/explorador", icon: Search },
   { title: "Relato IA", url: "/dashboard/relato", icon: FileText },
-  { title: "Fund. Jiménez Díaz", url: "/dashboard/fjd", icon: Hospital },
   { title: "Reportes", url: "/dashboard/reportes", icon: Download },
   { title: "Documentación", url: "/dashboard/docs", icon: BookOpen },
 ];
@@ -226,6 +225,28 @@ export function AppSidebar() {
                   <NavLink to="/dashboard/sermas/mybusiness" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                     <SiGoogle className="mr-2 h-4 w-4" />
                     {!collapsed && <span>Reseñas Google</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* ── Hospitales destacados ── */}
+        <SidebarGroup>
+          <SidebarGroupLabel>
+            <span className="flex items-center gap-1.5">
+              <Star className="h-3 w-3" />
+              Hospitales destacados
+            </span>
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/dashboard/fjd" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                    <Star className="mr-2 h-4 w-4 text-amber-500" />
+                    {!collapsed && <span>Fundación Jiménez Díaz</span>}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
