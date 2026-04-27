@@ -399,6 +399,14 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
         />
       )}
 
+      {/* Menciones recientes (lazy-load) */}
+      {stats && MENCIONES_BY_CHANNEL[cfg.key] && (
+        <MencionesRecientes
+          cfg={MENCIONES_BY_CHANNEL[cfg.key] as MencionesConfig}
+          contextLabel={cfg.label}
+        />
+      )}
+
       {/* Footer */}
       <div className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-muted/30 p-4 text-xs text-muted-foreground md:grid-cols-2">
         <div>
