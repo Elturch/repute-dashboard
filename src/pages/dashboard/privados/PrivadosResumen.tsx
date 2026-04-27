@@ -7,11 +7,10 @@ import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from 'react-icons/si';
 import { FaXTwitter, FaLinkedin } from 'react-icons/fa6';
 import { BiNews } from 'react-icons/bi';
 import type { IconType } from 'react-icons';
-
-type ChannelKey = 'medios' | 'instagram' | 'twitter' | 'tiktok' | 'facebook' | 'linkedin' | 'mybusiness';
+import { VIEW_BY_CANAL, type Canal, type VCanalRow } from '@/hooks/useCanalData';
 
 interface ChannelConfig {
-  key: ChannelKey;
+  key: Canal;
   label: string;
   Icon: IconType;
   brandColor: string;
@@ -27,13 +26,6 @@ const CHANNELS: ChannelConfig[] = [
   { key: 'mybusiness', label: 'My Business', Icon: SiGoogle, brandColor: '#4285F4' },
 ];
 
-interface MvRow {
-  canal: string;
-  grupo_hospitalario: string | null;
-  menciones: number;
-  fecha_max: string | null;
-}
-
 interface ChannelStats {
   total: number;
   filas: { grupo: GrupoPrivado; count: number; share: number; barPct: number }[];
@@ -44,63 +36,66 @@ function fmt(n: number) { return (n ?? 0).toLocaleString('es-ES'); }
 function fmtPct(n: number) { return `${n.toFixed(1)}%`; }
 function fmtFecha(d: Date) { return format(d, 'd MMM yyyy', { locale: es }); }
 
-async function fetchResumen(): Promise<Record<ChannelKey, ChannelStats>> {
+async function fetchCanal(canal: Canal): Promise<ChannelStats> {
+  const view = VIEW_BY_CANAL[canal];
   const { data, error } = await externalSupabase
-    .from('mv_dashboard_resumen_30d')
-    .select('canal, grupo_hospitalario, menciones, fecha_max')
-    .eq('titularidad', 'Privado');
-
-  const result = {} as Record<ChannelKey, ChannelStats>;
-  for (const cfg of CHANNELS) result[cfg.key] = { total: 0, filas: [], maxDate: null };
+    .from(view)
+    .select('grupo_hospitalario, fecha')
+    .eq('titularidad', 'Privado')
+    .order('fecha', { ascending: false })
+    .limit(5000);
 
   if (error) {
-    console.error('[resumen privados] error:', error);
-    return result;
+    console.error(`[resumen privados/${canal}] error:`, error);
+    return { total: 0, filas: [], maxDate: null };
   }
 
-  const rows = (data ?? []) as MvRow[];
+  const rows = (data ?? []) as Pick<VCanalRow, 'grupo_hospitalario' | 'fecha'>[];
 
-  for (const cfg of CHANNELS) {
-    const counts = new Map<GrupoPrivado, number>();
-    NOMBRES_GRUPOS_PRIVADOS.forEach(g => counts.set(g, 0));
-    let total = 0;
-    let maxDate: Date | null = null;
+  const counts = new Map<GrupoPrivado, number>();
+  NOMBRES_GRUPOS_PRIVADOS.forEach(g => counts.set(g, 0));
+  let total = 0;
+  let maxDate: Date | null = null;
 
-    for (const r of rows) {
-      if (r.canal !== cfg.key || !r.grupo_hospitalario) continue;
-      const g = r.grupo_hospitalario as GrupoPrivado;
-      if (!NOMBRES_GRUPOS_PRIVADOS.includes(g)) continue;
-      const m = Number(r.menciones) || 0;
-      counts.set(g, (counts.get(g) ?? 0) + m);
-      total += m;
-      if (r.fecha_max) {
-        const d = new Date(r.fecha_max);
-        if (!isNaN(d.getTime()) && (!maxDate || d > maxDate)) maxDate = d;
-      }
+  for (const r of rows) {
+    if (!r.grupo_hospitalario) continue;
+    const g = r.grupo_hospitalario as GrupoPrivado;
+    if (!NOMBRES_GRUPOS_PRIVADOS.includes(g)) continue;
+    counts.set(g, (counts.get(g) ?? 0) + 1);
+    total++;
+    if (r.fecha) {
+      const d = new Date(r.fecha);
+      if (!isNaN(d.getTime()) && (!maxDate || d > maxDate)) maxDate = d;
     }
-
-    const max = Math.max(...Array.from(counts.values()), 1);
-    const filas = NOMBRES_GRUPOS_PRIVADOS
-      .map(grupo => {
-        const c = counts.get(grupo) ?? 0;
-        return {
-          grupo,
-          count: c,
-          share: total > 0 ? (c / total) * 100 : 0,
-          barPct: (c / max) * 100,
-        };
-      })
-      .sort((a, b) => b.count - a.count);
-
-    result[cfg.key] = { total, filas, maxDate };
   }
+
+  const max = Math.max(...Array.from(counts.values()), 1);
+  const filas = NOMBRES_GRUPOS_PRIVADOS
+    .map(grupo => {
+      const c = counts.get(grupo) ?? 0;
+      return {
+        grupo,
+        count: c,
+        share: total > 0 ? (c / total) * 100 : 0,
+        barPct: (c / max) * 100,
+      };
+    })
+    .sort((a, b) => b.count - a.count);
+
+  return { total, filas, maxDate };
+}
+
+async function fetchResumen(): Promise<Record<Canal, ChannelStats>> {
+  const result = {} as Record<Canal, ChannelStats>;
+  const fetches = CHANNELS.map(c => fetchCanal(c.key).then(s => { result[c.key] = s; }));
+  await Promise.all(fetches);
   return result;
 }
 
 export default function PrivadosResumen() {
   const queryClient = useQueryClient();
   const { data: stats, isLoading, isFetching, dataUpdatedAt } = useQuery({
-    queryKey: ['privados_resumen'],
+    queryKey: ['privados_resumen_v2'],
     queryFn: fetchResumen,
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
@@ -123,7 +118,6 @@ export default function PrivadosResumen() {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white">
-      {/* Hero */}
       <header className="px-8 py-6 border-b border-white/5 flex items-start justify-between gap-6">
         <div>
           <p className="text-[10px] uppercase tracking-widest text-[#6b7280] mb-2">
@@ -150,7 +144,7 @@ export default function PrivadosResumen() {
             )}
           </div>
           <button
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['privados_resumen'] })}
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['privados_resumen_v2'] })}
             className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-white"
           >
             🔄 Recargar
@@ -158,7 +152,6 @@ export default function PrivadosResumen() {
         </div>
       </header>
 
-      {/* Tira KPIs por canal */}
       <section className="px-8 py-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 border-b border-white/5">
         {CHANNELS.map((cfg) => {
           const c = stats?.[cfg.key];
@@ -191,7 +184,6 @@ export default function PrivadosResumen() {
         })}
       </section>
 
-      {/* Secciones por canal */}
       <div className="px-8 py-8 space-y-10">
         {CHANNELS.map(cfg => (
           <ChannelSection key={cfg.key} cfg={cfg} stats={stats?.[cfg.key]} isLoading={isLoading} />
@@ -199,7 +191,7 @@ export default function PrivadosResumen() {
       </div>
 
       <footer className="px-8 py-6 border-t border-white/5 text-[10px] uppercase tracking-widest text-[#6b7280] flex justify-between">
-        <span>Fuente: MySQL · Make · Supabase · Vista: mv_dashboard_resumen_30d</span>
+        <span>Fuente: Supabase · Vistas: v_canal_*</span>
         <span>Filtrado: titularidad = Privado</span>
       </footer>
     </div>
@@ -217,7 +209,7 @@ function ChannelSection({ cfg, stats, isLoading }: { cfg: ChannelConfig; stats?:
       <header className="px-6 py-4 border-b border-white/5 flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-lg bg-white/5 flex items-center justify-center">
-            <Icon style={{ color: cfg.brandColor }} className="h-4.5 w-4.5" />
+            <Icon style={{ color: cfg.brandColor }} className="h-4 w-4" />
           </div>
           <h2 className="text-lg font-semibold">{cfg.label}</h2>
           {stats?.maxDate && (
