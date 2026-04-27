@@ -14,7 +14,6 @@ import MediosGlobal from "./pages/dashboard/core/MediosGlobal";
 import EvolucionGlobal from "./pages/dashboard/core/EvolucionGlobal";
 import Riesgo from "./pages/dashboard/core/Riesgo";
 import Explorador from "./pages/dashboard/core/Explorador";
-import FJD from "./pages/dashboard/core/FJD";
 import Relato from "./pages/dashboard/core/Relato";
 
 // Channel pages
@@ -45,6 +44,9 @@ import SermasTikTok from "./pages/dashboard/sermas/SermasTikTok";
 import SermasFacebook from "./pages/dashboard/sermas/SermasFacebook";
 import SermasLinkedIn from "./pages/dashboard/sermas/SermasLinkedIn";
 import SermasMyBusiness from "./pages/dashboard/sermas/SermasMyBusiness";
+
+// FJD (hospital destacado)
+import FJDPage from "./pages/dashboard/fjd/FJDPage";
 
 // Especiales
 import EspecialesIndex from "./pages/dashboard/especiales/EspecialesIndex";
@@ -112,7 +114,7 @@ const App = () => (
             <Route path="evolucion" element={<EvolucionGlobal />} />
             <Route path="riesgo" element={<Riesgo />} />
             <Route path="explorador" element={<Explorador />} />
-            <Route path="fjd" element={<FJD />} />
+            <Route path="fjd" element={<FJDPage />} />
             <Route path="relato" element={<Relato />} />
             <Route path="reportes" element={<Reportes />} />
             <Route path="notificaciones" element={<Notificaciones />} />
