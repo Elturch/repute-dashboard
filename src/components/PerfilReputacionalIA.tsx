@@ -16,7 +16,6 @@ const POSITIVAS: MetricaDef[] = [
   { key: 'afinidad',     label: 'Afinidad',     positive: true },
   { key: 'admiracion',   label: 'Admiración',   positive: true },
   { key: 'impacto',      label: 'Impacto',      positive: true },
-  { key: 'compromiso',   label: 'Compromiso',   positive: true },
 ];
 const NEGATIVAS: MetricaDef[] = [
   { key: 'rechazo',      label: 'Rechazo',      positive: false },
