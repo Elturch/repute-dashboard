@@ -47,14 +47,10 @@ function peligroColor(p: string | null | undefined): string {
 interface FetchOpts { riesgo: string; medio: string }
 
 async function fetchPage(cfg: MencionesConfig, pageParam: number, opts: FetchOpts) {
-  // Constrain to last 90 days para que Postgres use el índice de fecha y no se atasque
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 90);
   let q = externalSupabase
     .from(cfg.tabla)
     .select('*')
-    .gte(cfg.campoFecha, cutoff.toISOString())
-    .order(cfg.campoFecha, { ascending: false })
+    .order('id', { ascending: false })
     .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
   if (cfg.filtros) cfg.filtros.forEach(f => { q = q.eq(f.campo, f.valor); });
   if (opts.riesgo) q = q.ilike(cfg.campoPeligro, `%${opts.riesgo}%`);
