@@ -1,5 +1,5 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { externalSupabase } from '@/integrations/external-supabase/client';
+import { useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { NOMBRES_GRUPOS_PRIVADOS, type GrupoPrivado } from '@/lib/clasificacion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -7,7 +7,8 @@ import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from 'react-icons/si';
 import { FaXTwitter, FaLinkedin } from 'react-icons/fa6';
 import { BiNews } from 'react-icons/bi';
 import type { IconType } from 'react-icons';
-import { VIEW_BY_CANAL, type Canal, type VCanalRow } from '@/hooks/useCanalData';
+import { type Canal } from '@/hooks/useCanalData';
+import { useKpiCanalGlobal, filterByTitularidad, filterByCanal, aggregateKpi, type KpiRow } from '@/hooks/useKpiCanal';
 
 interface ChannelConfig {
   key: Canal;
@@ -36,35 +37,20 @@ function fmt(n: number) { return (n ?? 0).toLocaleString('es-ES'); }
 function fmtPct(n: number) { return `${n.toFixed(1)}%`; }
 function fmtFecha(d: Date) { return format(d, 'd MMM yyyy', { locale: es }); }
 
-async function fetchCanal(canal: Canal): Promise<ChannelStats> {
-  const view = VIEW_BY_CANAL[canal];
-  const { data, error } = await externalSupabase
-    .from(view)
-    .select('grupo_hospitalario, fecha')
-    .eq('titularidad', 'Privado')
-    .order('fecha', { ascending: false })
-    .limit(5000);
-
-  if (error) {
-    console.error(`[resumen privados/${canal}] error:`, error);
-    return { total: 0, filas: [], maxDate: null };
-  }
-
-  const rows = (data ?? []) as Pick<VCanalRow, 'grupo_hospitalario' | 'fecha'>[];
-
+function buildChannelStats(rowsCanal: KpiRow[]): ChannelStats {
   const counts = new Map<GrupoPrivado, number>();
   NOMBRES_GRUPOS_PRIVADOS.forEach(g => counts.set(g, 0));
   let total = 0;
   let maxDate: Date | null = null;
 
-  for (const r of rows) {
+  for (const r of rowsCanal) {
     if (!r.grupo_hospitalario) continue;
     const g = r.grupo_hospitalario as GrupoPrivado;
     if (!NOMBRES_GRUPOS_PRIVADOS.includes(g)) continue;
-    counts.set(g, (counts.get(g) ?? 0) + 1);
-    total++;
-    if (r.fecha) {
-      const d = new Date(r.fecha);
+    counts.set(g, (counts.get(g) ?? 0) + (r.menciones ?? 0));
+    total += r.menciones ?? 0;
+    if (r.fecha_max) {
+      const d = new Date(r.fecha_max);
       if (!isNaN(d.getTime()) && (!maxDate || d > maxDate)) maxDate = d;
     }
   }
@@ -85,25 +71,17 @@ async function fetchCanal(canal: Canal): Promise<ChannelStats> {
   return { total, filas, maxDate };
 }
 
-async function fetchResumen(): Promise<Record<Canal, ChannelStats>> {
-  const result = {} as Record<Canal, ChannelStats>;
-  const fetches = CHANNELS.map(c => fetchCanal(c.key).then(s => { result[c.key] = s; }));
-  await Promise.all(fetches);
-  return result;
-}
-
 export default function PrivadosResumen() {
   const queryClient = useQueryClient();
-  const { data: stats, isLoading, isFetching, dataUpdatedAt } = useQuery({
-    queryKey: ['privados_resumen_v2'],
-    queryFn: fetchResumen,
-    staleTime: 30 * 60 * 1000,
-    gcTime: 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchInterval: 10 * 60 * 1000,
-    refetchIntervalInBackground: true,
-  });
+  const { data: kpiRows, isLoading, isFetching, dataUpdatedAt } = useKpiCanalGlobal();
+
+  const stats = useMemo(() => {
+    if (!kpiRows) return undefined;
+    const privados = filterByTitularidad(kpiRows, 'Privado');
+    const out = {} as Record<Canal, ChannelStats>;
+    CHANNELS.forEach(c => { out[c.key] = buildChannelStats(filterByCanal(privados, c.key)); });
+    return out;
+  }, [kpiRows]);
 
   const totalGlobal = stats ? Object.values(stats).reduce((s, c) => s + c.total, 0) : 0;
   const qsTotalGlobal = stats ? Object.values(stats).reduce((s, c) => {
@@ -144,7 +122,7 @@ export default function PrivadosResumen() {
             )}
           </div>
           <button
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['privados_resumen_v2'] })}
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['kpi_canal_global'] })}
             className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-white"
           >
             🔄 Recargar
