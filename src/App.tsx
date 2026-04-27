@@ -36,6 +36,16 @@ import PrivadosFacebook from "./pages/dashboard/privados/PrivadosFacebook";
 import PrivadosLinkedIn from "./pages/dashboard/privados/PrivadosLinkedIn";
 import PrivadosMyBusiness from "./pages/dashboard/privados/PrivadosMyBusiness";
 
+// SERMAS
+import SermasResumen from "./pages/dashboard/sermas/SermasResumen";
+import SermasMedios from "./pages/dashboard/sermas/SermasMedios";
+import SermasInstagram from "./pages/dashboard/sermas/SermasInstagram";
+import SermasTwitter from "./pages/dashboard/sermas/SermasTwitter";
+import SermasTikTok from "./pages/dashboard/sermas/SermasTikTok";
+import SermasFacebook from "./pages/dashboard/sermas/SermasFacebook";
+import SermasLinkedIn from "./pages/dashboard/sermas/SermasLinkedIn";
+import SermasMyBusiness from "./pages/dashboard/sermas/SermasMyBusiness";
+
 // Especiales
 import EspecialesIndex from "./pages/dashboard/especiales/EspecialesIndex";
 import AyusoResumen from "./pages/dashboard/especiales/ayuso/AyusoResumen";
@@ -90,6 +100,14 @@ const App = () => (
             <Route path="privados/facebook" element={<PrivadosFacebook />} />
             <Route path="privados/linkedin" element={<PrivadosLinkedIn />} />
             <Route path="privados/mybusiness" element={<PrivadosMyBusiness />} />
+            <Route path="sermas" element={<SermasResumen />} />
+            <Route path="sermas/medios" element={<SermasMedios />} />
+            <Route path="sermas/instagram" element={<SermasInstagram />} />
+            <Route path="sermas/twitter" element={<SermasTwitter />} />
+            <Route path="sermas/tiktok" element={<SermasTikTok />} />
+            <Route path="sermas/facebook" element={<SermasFacebook />} />
+            <Route path="sermas/linkedin" element={<SermasLinkedIn />} />
+            <Route path="sermas/mybusiness" element={<SermasMyBusiness />} />
             <Route path="medios" element={<MediosGlobal />} />
             <Route path="evolucion" element={<EvolucionGlobal />} />
             <Route path="riesgo" element={<Riesgo />} />
