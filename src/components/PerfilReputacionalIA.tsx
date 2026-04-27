@@ -99,12 +99,18 @@ export default function PerfilReputacionalIA({
 
   const radarData = ALL_METRICAS
     .filter(m => highlight.promedios[m.key] != null)
-    .map(m => ({
-      metric: m.label,
-      qs: highlight.promedios[m.key] ?? 0,
-      sinqs: resto.promedios[m.key] ?? 0,
-      fullMark: 10,
-    }));
+    .map(m => {
+      const qsRaw    = highlight.promedios[m.key] ?? 0;
+      const sinqsRaw = resto.promedios[m.key] ?? 0;
+      return {
+        metric: m.label,
+        // Para que el radar tenga lectura coherente ("más extenso = mejor")
+        // en métricas negativas se invierte el valor.
+        qs:    m.positive ? qsRaw    : 10 - qsRaw,
+        sinqs: m.positive ? sinqsRaw : 10 - sinqsRaw,
+        fullMark: 10,
+      };
+    });
 
   return (
     <section className="mt-12">
@@ -130,7 +136,7 @@ export default function PerfilReputacionalIA({
       <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6 mb-6">
         <div className="flex items-center justify-center gap-12 mb-4">
           <LegendItem color={highlightColor} label={highlightLabel.toUpperCase()} mode="filled" />
-          <LegendItem color="#cbd5e1" label={`SIN ${highlightLabel === 'Quirónsalud' ? 'QS' : highlightLabel.toUpperCase()}`} mode="dashed" />
+          <LegendItem color="rgba(255,255,255,0.7)" label={`SIN ${highlightLabel === 'Quirónsalud' ? 'QS' : highlightLabel.toUpperCase()}`} mode="outline" />
         </div>
         <div className="w-full" style={{ height: 540 }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -151,16 +157,15 @@ export default function PerfilReputacionalIA({
 
               <Radar name="Sin QS"
                      dataKey="sinqs"
-                     stroke="#cbd5e1"
+                     stroke="rgba(255,255,255,0.45)"
                      fill="none"
-                     strokeWidth={2.5}
-                     strokeDasharray="6 4" />
+                     strokeWidth={1.8} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
         <p className="text-[12px] text-[#9ca3af] text-center mt-3 leading-relaxed">
-          Donde el <span className="font-bold" style={{ color: COLOR_HIGHLIGHT_BRIGHT }}>azul sobresale</span> de la línea discontinua, {highlightLabel} lidera.<br/>
-          Color del eje: <span className="text-[#10b981] font-bold">verde</span> si lidera, <span className="text-[#ef4444] font-bold">rojo</span> si está por debajo.
+          En el radar, las métricas negativas (rechazo, preocupación, descrédito) se muestran invertidas para que <span className="font-bold text-white">"más extenso = mejor"</span> en todas las direcciones. Los valores junto a cada eje son los reales.<br/>
+          Color del eje: <span className="text-[#10b981] font-bold">verde</span> si {highlightLabel} lidera, <span className="text-[#ef4444] font-bold">rojo</span> si está por debajo.
         </p>
       </div>
 
@@ -183,15 +188,22 @@ export default function PerfilReputacionalIA({
   );
 }
 
-function LegendItem({ color, label, mode }: { color: string; label: string; mode: 'filled' | 'dashed' }) {
+function LegendItem({ color, label, mode }: { color: string; label: string; mode: 'filled' | 'outline' | 'dashed' }) {
   return (
     <div className="flex items-center gap-3">
-      {mode === 'filled' ? (
+      {mode === 'filled' && (
         <span
           className="w-7 h-7 rounded-md"
           style={{ backgroundColor: color, opacity: 0.65, border: `2px solid ${color}` }}
         />
-      ) : (
+      )}
+      {mode === 'outline' && (
+        <span
+          className="w-7 h-7 rounded-md"
+          style={{ backgroundColor: 'transparent', border: `2px solid ${color}` }}
+        />
+      )}
+      {mode === 'dashed' && (
         <svg width="28" height="28" viewBox="0 0 28 28">
           <rect x="2" y="2" width="24" height="24" fill="none" stroke={color} strokeWidth="2.5" strokeDasharray="6 4" rx="4" />
         </svg>
