@@ -13,7 +13,7 @@ import { AlertTriangle } from 'lucide-react';
 import PerfilReputacionalIA, { type PerfilBucket } from '@/components/PerfilReputacionalIA';
 import MencionesRecientes, { type MencionesConfig } from '@/components/MencionesRecientes';
 
-const MENCIONES_BY_CHANNEL: Record<PrivadosChannelConfig['key'], MencionesConfig | null> = {
+const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
   medios: {
     tabla: 'noticias_general_filtradas',
     campoFecha: 'Date',
@@ -25,12 +25,67 @@ const MENCIONES_BY_CHANNEL: Record<PrivadosChannelConfig['key'], MencionesConfig
     campoPeligro: 'Peligro_reputacional',
     filtros: [{ campo: 'titularidad', valor: 'Privado' }],
   },
-  instagram: null,
-  twitter: null,
-  tiktok: null,
-  facebook: null,
-  linkedin: null,
-  mybusiness: null,
+  instagram: {
+    tabla: 'ig_posts_gh_agrupados',
+    campoFecha: 'date_posted',
+    campoTitulo: 'asunto',
+    campoSnippet: 'post_content',
+    campoImagen: 'display_url_link',
+    campoMedio: 'user_posted',
+    campoUrl: 'imput_url',
+    campoPeligro: 'peligro_reputacional',
+  },
+  twitter: {
+    tabla: 'x_twitter_posts_gh_agrupados',
+    campoFecha: 'date_posted',
+    campoTitulo: 'asunto',
+    campoSnippet: 'description',
+    campoImagen: 'photo_url',
+    campoMedio: 'user_name',
+    campoUrl: 'url',
+    campoPeligro: 'peligro_reputacional',
+  },
+  tiktok: {
+    tabla: 'tiktok_posts_gh_agrupados',
+    campoFecha: 'created_time',
+    campoTitulo: 'asunto',
+    campoSnippet: 'description',
+    campoImagen: 'profile_avatar',
+    campoMedio: 'user_name',
+    campoUrl: 'url',
+    campoPeligro: 'peligro_reputacional',
+  },
+  facebook: {
+    tabla: 'fb_posts_gh_agrupados',
+    campoFecha: 'date_posted',
+    campoTitulo: 'ia-asunto',
+    campoSnippet: 'content',
+    campoImagen: 'post-image',
+    campoMedio: 'user_name',
+    campoUrl: 'url',
+    campoPeligro: 'peligro_reputacional',
+  },
+  linkedin: {
+    tabla: 'linkedin_gh_filtradas',
+    campoFecha: 'posted_date',
+    campoTitulo: 'asunto_ia',
+    campoSnippet: 'texto',
+    campoImagen: 'image_url',
+    campoMedio: 'termino',
+    campoUrl: 'url',
+    campoPeligro: 'peligro_reputacional',
+  },
+  mybusiness: {
+    tabla: 'my_business_reviews',
+    campoFecha: 'iso_date',
+    campoTitulo: 'tipo_review',
+    campoSnippet: 'snipet',
+    campoImagen: 'thumbnail',
+    campoMedio: 'user_name',
+    campoUrl: 'link_url',
+    campoPeligro: 'peligro_reputacional',
+    filtros: [{ campo: 'titularidad', valor: 'Privado' }],
+  },
 };
 
 /** Configuración de un canal privado. Mantiene compatibilidad con los wrappers existentes. */
