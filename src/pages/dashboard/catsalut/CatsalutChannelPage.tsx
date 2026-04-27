@@ -1,13 +1,16 @@
 import { useMemo } from 'react';
-import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { IconType } from 'react-icons';
-import { externalSupabase } from '@/integrations/external-supabase/client';
 import { AlertTriangle } from 'lucide-react';
 import PerfilReputacionalIA, { type PerfilBucket } from '@/components/PerfilReputacionalIA';
 import MencionesRecientes, { type MencionesConfig } from '@/components/MencionesRecientes';
-import { VIEW_BY_CANAL, type Canal, type VCanalRow } from '@/hooks/useCanalData';
+import { type Canal } from '@/hooks/useCanalData';
+import {
+  useKpiCanalGlobal, filterByCanal, filterByGestionLike, filterByGestionExacta,
+  aggregateKpi, toPerfilBucket, type KpiRow,
+} from '@/hooks/useKpiCanal';
 
 const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
   noticias: {
@@ -111,105 +114,58 @@ interface ChannelStats {
   qs: SegmentStats;
   sinQs: SegmentStats;
   maxDate: Date;
+  pctRiesgoReal: number;
   bucketTotal: PerfilBucket;
   bucketQS: PerfilBucket;
   bucketSinQS: PerfilBucket;
 }
 
-const METRIC_KEYS = ['influencia','fiabilidad','afinidad','admiracion','impacto','rechazo','preocupacion','descredito'] as const;
-
 function fmt(n: number): string { return (n ?? 0).toLocaleString('es-ES'); }
 function fmtNum(n: number | null, d = 2): string { return n == null ? '—' : n.toFixed(d); }
+function fmtPct(n: number, d = 1): string { return `${n.toFixed(d)}%`; }
 function fmtFecha(d: Date): string { return format(d, "d 'de' LLL yyyy", { locale: es }); }
 
-function aggregateSegment(rows: VCanalRow[]): SegmentStats {
-  let s = 0, n = 0;
-  for (const r of rows) if (r.nota_media != null) { s += r.nota_media; n++; }
-  return { menciones: rows.length, notaMedia: n > 0 ? s / n : null };
-}
-function aggregateBucket(label: string, rows: VCanalRow[]): PerfilBucket {
-  const sums: Record<string, { sum: number; n: number }> = {};
-  METRIC_KEYS.forEach(k => sums[k] = { sum: 0, n: 0 });
-  for (const r of rows) {
-    METRIC_KEYS.forEach(k => {
-      const v = (r as any)[k] as number | null;
-      if (v != null) { sums[k].sum += v; sums[k].n++; }
-    });
-  }
-  const promedios: Record<string, number | null> = {};
-  METRIC_KEYS.forEach(k => { promedios[k] = sums[k].n > 0 ? sums[k].sum / sums[k].n : null; });
-  return { label, menciones: rows.length, promedios };
-}
-
-async function fetchChannelStats(cfg: CatsalutChannelConfig): Promise<ChannelStats> {
+function buildChannelStats(rowsCanal: KpiRow[]): ChannelStats {
   const empty: ChannelStats = {
     total: { menciones: 0, notaMedia: null },
     qs:    { menciones: 0, notaMedia: null },
     sinQs: { menciones: 0, notaMedia: null },
     maxDate: new Date(),
+    pctRiesgoReal: 0,
     bucketTotal: { label: 'CATSALUT Total', menciones: 0, promedios: {} },
     bucketQS:    { label: 'Concierto QS',   menciones: 0, promedios: {} },
     bucketSinQS: { label: 'Sin QS',         menciones: 0, promedios: {} },
   };
+  if (rowsCanal.length === 0) return empty;
 
-  const view = VIEW_BY_CANAL[CANAL_MAP[cfg.canal]];
-  const { data, error } = await externalSupabase
-    .from(view)
-    .select('*')
-    .ilike('gestion_hospitalaria', 'CATSALUT%')
-    .order('fecha', { ascending: false })
-    .limit(5000);
+  const qsRows    = filterByGestionExacta(rowsCanal, 'CATSALUT - Quirónsalud (concierto)');
+  const sinQsRows = filterByGestionExacta(rowsCanal, 'CATSALUT');
 
-  if (error) {
-    console.error(`[catsalut/${cfg.canal}] error ${view}:`, error);
-    return empty;
-  }
-
-  const rows = (data ?? []) as VCanalRow[];
-  if (rows.length === 0) return empty;
-
-  const qsRows    = rows.filter(r => r.gestion_hospitalaria === 'CATSALUT - Quirónsalud (concierto)');
-  const sinQsRows = rows.filter(r => r.gestion_hospitalaria === 'CATSALUT');
-
-  let maxDate = new Date(0);
-  for (const r of rows) {
-    if (r.fecha) {
-      const d = new Date(r.fecha);
-      if (!isNaN(d.getTime()) && d > maxDate) maxDate = d;
-    }
-  }
+  const aggTotal = aggregateKpi(rowsCanal);
+  const aggQS    = aggregateKpi(qsRows);
+  const aggSinQs = aggregateKpi(sinQsRows);
 
   return {
-    total: aggregateSegment(rows),
-    qs:    aggregateSegment(qsRows),
-    sinQs: aggregateSegment(sinQsRows),
-    maxDate: maxDate.getTime() === 0 ? new Date() : maxDate,
-    bucketTotal: aggregateBucket('CATSALUT Total', rows),
-    bucketQS:    aggregateBucket('Concierto QS',   qsRows),
-    bucketSinQS: aggregateBucket('Sin QS',         sinQsRows),
+    total: { menciones: aggTotal.menciones, notaMedia: aggTotal.notaMedia },
+    qs:    { menciones: aggQS.menciones,    notaMedia: aggQS.notaMedia },
+    sinQs: { menciones: aggSinQs.menciones, notaMedia: aggSinQs.notaMedia },
+    maxDate: aggTotal.fechaMax ?? new Date(),
+    pctRiesgoReal: aggTotal.pctRiesgoReal,
+    bucketTotal: toPerfilBucket('CATSALUT Total', aggTotal),
+    bucketQS:    toPerfilBucket('Concierto QS',   aggQS),
+    bucketSinQS: toPerfilBucket('Sin QS',         aggSinQs),
   };
-}
-
-export async function prefetchCatsalutChannel(queryClient: QueryClient, cfg: CatsalutChannelConfig) {
-  return queryClient.prefetchQuery({
-    queryKey: ['catsalut_channel', cfg.canal],
-    queryFn: () => fetchChannelStats(cfg),
-    staleTime: 30 * 60 * 1000,
-  });
 }
 
 export default function CatsalutChannelPage({ cfg }: { cfg: CatsalutChannelConfig }) {
   const queryClient = useQueryClient();
-  const { data: stats, isLoading, isFetching, dataUpdatedAt } = useQuery({
-    queryKey: ['catsalut_channel', cfg.canal],
-    queryFn: () => fetchChannelStats(cfg),
-    staleTime: 30 * 60 * 1000,
-    gcTime: 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchInterval: 10 * 60 * 1000,
-    refetchIntervalInBackground: true,
-  });
+  const { data: kpiRows, isLoading, isFetching, dataUpdatedAt } = useKpiCanalGlobal();
+
+  const stats = useMemo<ChannelStats | undefined>(() => {
+    if (!kpiRows) return undefined;
+    const catsalutCanal = filterByCanal(filterByGestionLike(kpiRows, 'CATSALUT%'), CANAL_MAP[cfg.canal]);
+    return buildChannelStats(catsalutCanal);
+  }, [kpiRows, cfg.canal]);
 
   const Icon = cfg.Icon;
   const isEmpty = !!stats && stats.total.menciones === 0;
@@ -249,7 +205,7 @@ export default function CatsalutChannelPage({ cfg }: { cfg: CatsalutChannelConfi
             </div>
             <button
               type="button"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['catsalut_channel', cfg.canal] })}
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['kpi_canal_global'] })}
               className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-foreground"
             >
               🔄 Recargar
@@ -283,6 +239,14 @@ export default function CatsalutChannelPage({ cfg }: { cfg: CatsalutChannelConfi
         <SegmentCard label="Sin QS" sub="resto de CATSALUT" stats={stats?.sinQs} loading={isLoading} tone="blue" />
       </div>
 
+      {stats && stats.total.menciones > 0 && (
+        <div className="rounded-lg border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
+          <span className="font-semibold uppercase tracking-wider">Riesgo real</span>{' '}
+          <span className="ml-2 tabular-nums text-foreground font-bold text-sm">{fmtPct(stats.pctRiesgoReal)}</span>{' '}
+          <span className="ml-1">de las menciones (alto + crítico + medio-alto)</span>
+        </div>
+      )}
+
       {isEmpty && !isLoading && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-600 dark:text-amber-400">
           <AlertTriangle className="h-4 w-4" />
@@ -311,7 +275,7 @@ export default function CatsalutChannelPage({ cfg }: { cfg: CatsalutChannelConfi
           <p className="mt-1 text-foreground">{rangoActual}</p>
         </div>
         <div>
-          <p>Fuente: Supabase · Vista: {VIEW_BY_CANAL[CANAL_MAP[cfg.canal]]} · Filtro: gestion_hospitalaria ILIKE 'CATSALUT%'</p>
+          <p>Fuente: Supabase · Vista materializada: v_kpi_canal_30d · Filtro: gestion_hospitalaria ILIKE 'CATSALUT%' · canal = {CANAL_MAP[cfg.canal]}</p>
         </div>
       </div>
     </div>
