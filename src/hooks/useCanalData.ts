@@ -55,12 +55,17 @@ export const VIEW_BY_CANAL: Record<Canal, string> = {
 export const ALL_CANALES: Canal[] = ['medios','instagram','tiktok','facebook','linkedin','twitter','mybusiness'];
 
 /**
- * Hook genérico que lee una vista helper v_canal_<canal>.
+ * Hook genérico que lee una vista helper `v_canal_<canal>` para LISTAS PAGINADAS.
+ *
+ * ⚠️ NO USAR PARA AGREGADOS / KPIs — PostgREST devuelve máx. 1.000 filas por petición,
+ * así que cualquier agregación client-side sobre canales grandes (TikTok, Twitter...)
+ * mentiría. Para totales y métricas usa `useKpiCanalGlobal()` (vista materializada).
+ *
  * Las vistas YA traen el filtro de 30d incorporado, así que NO añadimos gte de fecha.
  */
-export function useCanalData(canal: Canal, segmento: SegmentoFiltro = {}) {
+export function useCanalData(canal: Canal, segmento: SegmentoFiltro = {}, limit = 50) {
   return useQuery({
-    queryKey: ['canal', canal, segmento],
+    queryKey: ['canal', canal, segmento, limit],
     queryFn: async (): Promise<VCanalRow[]> => {
       let q = externalSupabase.from(VIEW_BY_CANAL[canal]).select('*');
 
@@ -81,7 +86,7 @@ export function useCanalData(canal: Canal, segmento: SegmentoFiltro = {}) {
         q = q.eq('grupo_hospitalario', segmento.grupoHospitalario);
       }
 
-      q = q.order('fecha', { ascending: false }).limit(2000);
+      q = q.order('fecha', { ascending: false }).limit(limit);
 
       const { data, error } = await q;
       if (error) {

@@ -1,12 +1,13 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { externalSupabase } from '@/integrations/external-supabase/client';
+import { useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from 'react-icons/si';
 import { FaXTwitter, FaLinkedin } from 'react-icons/fa6';
 import { BiNews } from 'react-icons/bi';
 import type { IconType } from 'react-icons';
-import { VIEW_BY_CANAL, type Canal } from '@/hooks/useCanalData';
+import { type Canal } from '@/hooks/useCanalData';
+import { useKpiCanalGlobal, filterByCanal, filterByGestionLike, type KpiRow } from '@/hooks/useKpiCanal';
 
 type ChannelKey = 'noticias' | 'instagram' | 'x_twitter' | 'tiktok' | 'facebook' | 'linkedin' | 'mybusiness';
 
@@ -39,52 +40,33 @@ function fmt(n: number) { return (n ?? 0).toLocaleString('es-ES'); }
 function fmtPct(n: number) { return `${n.toFixed(1)}%`; }
 function fmtFecha(d: Date) { return format(d, 'd MMM yyyy', { locale: es }); }
 
-async function fetchCanal(cfg: ChannelConfig): Promise<ChannelStats> {
-  const view = VIEW_BY_CANAL[cfg.canal];
-  const { data, error } = await externalSupabase
-    .from(view)
-    .select('gestion_hospitalaria, fecha')
-    .ilike('gestion_hospitalaria', 'CATSALUT%')
-    .order('fecha', { ascending: false })
-    .limit(5000);
-
-  if (error) {
-    console.error(`[resumen catsalut/${cfg.key}] error:`, error);
-    return { total: 0, qs: 0, sinQs: 0, maxDate: null };
-  }
-
+function buildCanalStats(rowsCanal: KpiRow[]): ChannelStats {
   let total = 0, qs = 0, sinQs = 0;
   let maxDate: Date | null = null;
-  for (const r of (data ?? [])) {
-    total++;
-    if (r.gestion_hospitalaria === 'CATSALUT - Quirónsalud (concierto)') qs++;
-    if (r.gestion_hospitalaria === 'CATSALUT') sinQs++;
-    if (r.fecha) {
-      const d = new Date(r.fecha);
+  for (const r of rowsCanal) {
+    const m = r.menciones ?? 0;
+    total += m;
+    if (r.gestion_hospitalaria === 'CATSALUT - Quirónsalud (concierto)') qs += m;
+    if (r.gestion_hospitalaria === 'CATSALUT') sinQs += m;
+    if (r.fecha_max) {
+      const d = new Date(r.fecha_max);
       if (!isNaN(d.getTime()) && (!maxDate || d > maxDate)) maxDate = d;
     }
   }
   return { total, qs, sinQs, maxDate };
 }
 
-async function fetchResumen(): Promise<Record<ChannelKey, ChannelStats>> {
-  const result = {} as Record<ChannelKey, ChannelStats>;
-  await Promise.all(CHANNELS.map(async c => { result[c.key] = await fetchCanal(c); }));
-  return result;
-}
-
 export default function CatsalutResumen() {
   const queryClient = useQueryClient();
-  const { data: stats, isLoading, isFetching, dataUpdatedAt } = useQuery({
-    queryKey: ['catsalut_resumen'],
-    queryFn: fetchResumen,
-    staleTime: 30 * 60 * 1000,
-    gcTime: 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchInterval: 10 * 60 * 1000,
-    refetchIntervalInBackground: true,
-  });
+  const { data: kpiRows, isLoading, isFetching, dataUpdatedAt } = useKpiCanalGlobal();
+
+  const stats = useMemo(() => {
+    if (!kpiRows) return undefined;
+    const catsalut = filterByGestionLike(kpiRows, 'CATSALUT%');
+    const out = {} as Record<ChannelKey, ChannelStats>;
+    CHANNELS.forEach(c => { out[c.key] = buildCanalStats(filterByCanal(catsalut, c.canal)); });
+    return out;
+  }, [kpiRows]);
 
   const totalGlobal = stats ? Object.values(stats).reduce((s, c) => s + c.total, 0) : 0;
   const qsGlobal    = stats ? Object.values(stats).reduce((s, c) => s + c.qs, 0) : 0;
@@ -123,7 +105,7 @@ export default function CatsalutResumen() {
             )}
           </div>
           <button
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['catsalut_resumen'] })}
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['kpi_canal_global'] })}
             className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-white"
           >
             🔄 Recargar

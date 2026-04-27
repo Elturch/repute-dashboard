@@ -9,6 +9,7 @@ import { FaXTwitter, FaLinkedin } from "react-icons/fa6";
 import { Newspaper } from "lucide-react";
 import { useFJDMenciones, type FJDMencion, type FJDCanal } from "@/hooks/useFJDMenciones";
 import PerfilReputacionalIA, { type PerfilBucket } from "@/components/PerfilReputacionalIA";
+import { useKpiCanalGlobal, filterByGrupo, aggregateKpi } from "@/hooks/useKpiCanal";
 
 const CANAL_ORDER: FJDCanal[] = [
   "tiktok", "mybusiness", "medios", "instagram", "twitter", "facebook", "linkedin",
@@ -88,26 +89,29 @@ export default function FJDPage() {
   const { data, isLoading, error } = useFJDMenciones();
   const menciones = data ?? [];
 
+  // KPIs agregados para FJD desde la vista materializada (191 filas, sin riesgo de cap).
+  const { data: kpiRows } = useKpiCanalGlobal();
+  const fjdKpi = useMemo(() => {
+    if (!kpiRows) return null;
+    const fjdRows = filterByGrupo(kpiRows, ['Hospital Fundación Jiménez Díaz', 'Fundación Jiménez Díaz']);
+    return aggregateKpi(fjdRows);
+  }, [kpiRows]);
+
   const [filtroCanal, setFiltroCanal] = useState<"all" | FJDCanal>("all");
   const [filtroRiesgo, setFiltroRiesgo] = useState<"all" | PeligroLevel>("all");
   const [busqueda, setBusqueda] = useState("");
 
   // KPIs
   const stats = useMemo(() => {
-    const total = menciones.length;
-    const notaIaMedia = avg(menciones.map(m => m.nota_media));
-    const peligroCounts: Record<string, number> = {};
-    menciones.forEach(m => {
-      const k = (m.peligro ?? "SIN").toUpperCase();
-      peligroCounts[k] = (peligroCounts[k] ?? 0) + 1;
-    });
-    const altos = (peligroCounts["ALTO"] ?? 0) + (peligroCounts["CRÍTICO"] ?? 0) + (peligroCounts["CRITICO"] ?? 0);
-    const pctAlto = total > 0 ? (altos / total) * 100 : 0;
+    // Total y % riesgo vienen de la vista materializada (números reales, no capados).
+    const total = fjdKpi?.menciones ?? menciones.length;
+    const notaIaMedia = fjdKpi?.notaMedia ?? avg(menciones.map(m => m.nota_media));
+    const pctAlto = fjdKpi?.pctRiesgoReal ?? 0;
     const mb = menciones.filter(m => m.canal === "mybusiness");
     const mbCount = mb.length;
     const mbRating = avg(mb.map(m => m.rating ?? m.nota_media));
     return { total, notaIaMedia, pctAlto, mbCount, mbRating };
-  }, [menciones]);
+  }, [menciones, fjdKpi]);
 
   // Distribución por canal
   const distribucion = useMemo(() => {

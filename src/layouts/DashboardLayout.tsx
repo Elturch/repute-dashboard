@@ -7,29 +7,26 @@ import { Monitor, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/NotificationBell";
 import { OnboardingModal } from "@/components/OnboardingModal";
-import { prefetchPrivadosChannel } from "@/pages/dashboard/privados/PrivadosChannelPage";
-import { CFG_MEDIOS } from "@/pages/dashboard/privados/PrivadosNoticias";
-import { CFG_INSTAGRAM } from "@/pages/dashboard/privados/PrivadosInstagram";
-import { CFG_TWITTER } from "@/pages/dashboard/privados/PrivadosTwitter";
-import { CFG_TIKTOK } from "@/pages/dashboard/privados/PrivadosTikTok";
-import { CFG_FACEBOOK } from "@/pages/dashboard/privados/PrivadosFacebook";
-import { CFG_LINKEDIN } from "@/pages/dashboard/privados/PrivadosLinkedIn";
-import { CFG_MYBUSINESS } from "@/pages/dashboard/privados/PrivadosMyBusiness";
+import { externalSupabase } from "@/integrations/external-supabase/client";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    Promise.all([
-      prefetchPrivadosChannel(queryClient, CFG_MEDIOS),
-      prefetchPrivadosChannel(queryClient, CFG_INSTAGRAM),
-      prefetchPrivadosChannel(queryClient, CFG_TWITTER),
-      prefetchPrivadosChannel(queryClient, CFG_TIKTOK),
-      prefetchPrivadosChannel(queryClient, CFG_FACEBOOK),
-      prefetchPrivadosChannel(queryClient, CFG_LINKEDIN),
-      prefetchPrivadosChannel(queryClient, CFG_MYBUSINESS),
-    ]).catch(() => { /* silencioso */ });
+    // Prefetch único de la vista materializada de KPIs (≈191 filas, 144 KB).
+    queryClient.prefetchQuery({
+      queryKey: ['kpi_canal_global'],
+      queryFn: async () => {
+        const { data, error } = await externalSupabase
+          .from('v_kpi_canal_30d')
+          .select('*')
+          .limit(2000);
+        if (error) throw error;
+        return data ?? [];
+      },
+      staleTime: 30 * 60 * 1000,
+    }).catch(() => { /* silencioso */ });
   }, [queryClient]);
 
   return (
