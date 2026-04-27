@@ -1,111 +1,84 @@
+## Opción A — Migrar KPIs a `v_kpi_canal_30d` (vista materializada)
 
+Dejas `v_canal_*` solo para listas (con `limit(50)` paginado), y mueves todas las **agregaciones** (totales, % QS, nota media, perfiles, riesgo) a una sola query contra `v_kpi_canal_30d`. Esto elimina el bug del cap de 1.000 filas y deja un único hit ligero por sesión.
 
-# Plan: Upgrade v4.0 to match Looker v2.0 detail level
+### 1. Nuevo hook `src/hooks/useKpiCanal.ts`
 
-## What I learned from the Looker dashboards
+Una sola query global (todas las filas de la vista agregada — son pocas, una por combinación canal × titularidad × grupo × gestion). Cachea 30 min. Filtros se aplican client-side sobre el array.
 
-The v2.0 "Grupo Quirón reputation life panel" has this structure visible in the sidebar:
+```ts
+export type KpiRow = {
+  canal: 'medios'|'instagram'|'tiktok'|'facebook'|'linkedin'|'twitter'|'mybusiness';
+  titularidad: string | null;
+  grupo_hospitalario: string | null;
+  gestion_hospitalaria: string | null;
+  menciones: number;
+  nota_media: number | null;
+  preocupacion: number | null; rechazo: number | null; descredito: number | null;
+  afinidad: number | null; fiabilidad: number | null; admiracion: number | null;
+  impacto: number | null; influencia: number | null;
+  peligro_bajo: number; peligro_medio_bajo: number; peligro_medio: number;
+  peligro_medio_alto: number; peligro_alto: number; peligro_critico: number;
+  peligro_real: number;            // ALTO + CRÍTICO + MEDIO_ALTO
+  peligro_no_procede: number;
+  fecha_max: string | null;
+};
 
-```text
-├── Vista general Privados + Gestión...
-├── P-1 Grupos Hospitalarios
-├── Vistas singulares
-├── NEWS          ← dedicated full page per channel
-├── FACEBOOK      ← with charts, tables, individual mentions
-├── INSTAGRAM     ← broken down by group within each channel
-├── X (Twitter)   ← date range filtering
-├── TikTok
-├── LinkedIn
-├── My Business
-└── Base de informes
+useKpiCanalGlobal()  // useQuery key=['kpi_canal_global'], devuelve KpiRow[]
 ```
 
-Each channel page has: per-group breakdown, time series charts, individual mention tables with titulares/URLs, and date range filtering.
+Helpers exportados:
+- `aggregateKpi(rows: KpiRow[])` → suma `menciones`, pondera `nota_media` por menciones, suma todos los buckets de peligro, devuelve `fechaMax`.
+- `filterByCanal(rows, canal)`, `filterByTitularidad`, `filterByGestionLike(rows, 'SERMAS%')`, `filterByGestionExacta`, `filterByGrupo`. Composables.
 
-## What's missing in v4.0
+### 2. Refactor páginas Resumen (totales correctos, una sola query)
 
-1. **No dedicated per-channel pages** — Canales.tsx only shows summary badges, not the full detail the v2.0 has per platform
-2. **No date range filtering** — v2.0 has date range selector on every page
-3. **No individual mention listings** — no titulares, URLs, or drill-down to individual items
-4. **Benchmarking still uses invented metrics** (fortaleza, riesgo, potencia) — these composite indices were supposed to be removed
-5. **Explorador is a placeholder** — empty page
-6. **No "Vistas singulares"** concept — per-hospital/entity views
+- **`PrivadosResumen.tsx`**: filtra `titularidad === 'Privado'` agrupando por `grupo_hospitalario` para el ranking 8-grupos. Mantiene la UI tal cual.
+- **`SermasResumen.tsx`**: filtra `gestion_hospitalaria` ILIKE `SERMAS%` y separa Total / Gestión QS / Sin QS / FJD client-side.
+- **`CatsalutResumen.tsx`**: ILIKE `CATSALUT%` + separación Total / Concierto QS / Sin QS.
 
-## Changes
+Cada página deja de hacer 7 queries paralelas a `v_canal_*` para totales — todo sale de la misma `KpiRow[]` global.
 
-### 1. Create 7 dedicated channel pages (NEW)
+### 3. Refactor páginas Channel (segmentos + perfil + riesgo)
 
-Create `src/pages/dashboard/canales/` directory with:
-- `NoticiasChannel.tsx` — Full noticias analysis: per-group table, top medios, time series chart, individual mention listing with titulares/URLs
-- `FacebookChannel.tsx` — FB analysis per group, mention listing with captions
-- `InstagramChannel.tsx` — IG analysis per group
-- `TikTokChannel.tsx` — TikTok analysis per group
-- `TwitterChannel.tsx` — X/Twitter analysis per group
-- `LinkedInChannel.tsx` — LinkedIn analysis per group
-- `MyBusinessChannel.tsx` — My Business with ratings
+- **`PrivadosChannelPage.tsx`**, **`SermasChannelPage.tsx`**, **`CatsalutChannelPage.tsx`**, **`FJDPage.tsx`**:
+  - **KPIs y perfil reputacional** salen de `useKpiCanalGlobal()` filtrado por `canal` + segmento.
+  - **Listas (`MencionesRecientes`)** se mantienen exactamente como están: leen tablas rápidas con `id DESC` y `limit(50)` — esa parte ya no agrega.
+  - Se elimina el bloque `fetchChannelStats` que leía 5.000 filas de `v_canal_*` para luego sumar; pasa a `aggregateKpi(filterByCanal(filterByGestionLike(rows, 'SERMAS%'), cfg.canal))`.
 
-Each page will:
-- Fetch data from ALL group views for that channel (e.g. NoticiasChannel fetches from `noticias_quironsalud`, `noticias_sermas`, `noticias_gh_privados`, etc.)
-- Show KPI summary cards (total mentions, avg nota, % peligro alto)
-- Show per-group comparison table with 9 real metrics
-- Show time series chart (mentions over time)
-- Show scrollable table of individual mentions (titular, medio, fecha, nota, peligro, URL link)
-- Include date range filter (date picker component)
+- **Nuevo KPI `% riesgo real`** en cada Channel: `peligro_real / menciones`. Card discreta junto a Nota IA.
 
-### 2. Add global date range filter component (NEW)
+### 4. `useCanalData` — restringir a listas paginadas
 
-Create `src/components/DateRangeFilter.tsx` — reusable date range picker that can be placed on any page. Uses React state + context to filter data client-side.
+Cambiar default `limit(2000)` → `limit(50)`, exponer parámetro `limit` opcional y un `count` con `select('*', { count: 'exact', head: false })` para mostrar "mostrando 50 de N" (N viene realmente del KPI, pero el count exacto es backup). Marcar el hook como **solo para listas**, no para totales.
 
-### 3. Fix Benchmarking — remove invented metrics
+### 5. Validación
 
-Update `src/hooks/useBenchmarkData.ts` and `src/pages/dashboard/core/Benchmarking.tsx`:
-- Remove `fortaleza`, `riesgo`, `potencia` composite fields
-- Replace with the 9 real emotional metrics
-- Radar chart shows all 9 metrics + nota
-- Bar charts show individual real metrics, not composites
-- Ranking based on `nota_media` (primary) and individual emotional metrics
+Comparar contra los números de referencia que diste:
+```
+PrivadosNoticias → Total: 33.933 (sumando los 8 grupos)
+SermasTikTok    → SERMAS Total: 18.578 | Gestión QS: 3.101 | FJD: 1.385
+CatsalutMedios  → CATSALUT Total: 215 | Concierto QS: 17
+```
+Si algo no cuadra, log de la `KpiRow[]` global en consola para debugging.
 
-### 4. Update Canales.tsx as channel index
+### Archivos tocados
 
-Transform current `Canales.tsx` into a channel index/overview that links to each dedicated channel page. Each channel card becomes a navigation link showing summary KPIs.
+Crear:
+- `src/hooks/useKpiCanal.ts`
 
-### 5. Update routing and sidebar
+Editar:
+- `src/pages/dashboard/privados/PrivadosResumen.tsx`
+- `src/pages/dashboard/privados/PrivadosChannelPage.tsx`
+- `src/pages/dashboard/sermas/SermasResumen.tsx`
+- `src/pages/dashboard/sermas/SermasChannelPage.tsx`
+- `src/pages/dashboard/catsalut/CatsalutResumen.tsx`
+- `src/pages/dashboard/catsalut/CatsalutChannelPage.tsx`
+- `src/pages/dashboard/fjd/FJDPage.tsx`
+- `src/hooks/useCanalData.ts` (limit a 50, marcar solo-listas)
 
-- Add routes for `/dashboard/canales/noticias`, `/dashboard/canales/facebook`, etc.
-- Update `AppSidebar.tsx` to show channel sub-items under "Canales" (collapsible, like Ayuso)
+### Pre-requisito (tú, en Supabase)
 
-### 6. Build Explorador with real search
+`v_kpi_canal_30d` tiene que ser **MATERIALIZED VIEW** con índices en `(canal, titularidad)`, `(canal, gestion_hospitalaria)`, `(canal, grupo_hospitalario)` y un cron de refresh (cada 30-60 min basta — los datos del dashboard son a 30 días). Sin esto la query global timeoutea igual.
 
-Replace the placeholder `Explorador.tsx` with:
-- Text search across all views (filter by titular/text)
-- Dropdown filters: grupo, canal, nivel de riesgo, date range
-- Results table with clickable URLs
-
-## Files to create/modify
-
-| File | Action |
-|------|--------|
-| `src/pages/dashboard/canales/NoticiasChannel.tsx` | CREATE |
-| `src/pages/dashboard/canales/FacebookChannel.tsx` | CREATE |
-| `src/pages/dashboard/canales/InstagramChannel.tsx` | CREATE |
-| `src/pages/dashboard/canales/TikTokChannel.tsx` | CREATE |
-| `src/pages/dashboard/canales/TwitterChannel.tsx` | CREATE |
-| `src/pages/dashboard/canales/LinkedInChannel.tsx` | CREATE |
-| `src/pages/dashboard/canales/MyBusinessChannel.tsx` | CREATE |
-| `src/components/DateRangeFilter.tsx` | CREATE |
-| `src/components/ChannelPage.tsx` | CREATE (shared layout for all channel pages) |
-| `src/hooks/useChannelData.ts` | CREATE (hook to fetch all groups for a specific channel) |
-| `src/pages/dashboard/core/Canales.tsx` | REWRITE (index with links) |
-| `src/pages/dashboard/core/Benchmarking.tsx` | REWRITE (remove invented metrics) |
-| `src/hooks/useBenchmarkData.ts` | REWRITE (remove composites) |
-| `src/pages/dashboard/core/Explorador.tsx` | REWRITE (real search) |
-| `src/App.tsx` | ADD 7 new routes |
-| `src/components/AppSidebar.tsx` | ADD channel sub-nav |
-
-## Technical details
-
-- `ChannelPage.tsx` is a shared component that takes a channel key and renders the full detail view. Each channel page file is a thin wrapper passing the right config.
-- `useChannelData(channelKey)` hook fetches from all group views for that channel type, using the existing `GROUP_VIEWS` config from `useGroupChannels.ts`.
-- Date filtering is client-side: the hook fetches all data, the `DateRangeFilter` filters the normalized rows by date field before aggregation.
-- Individual mention table shows: fecha, titular (truncated), medio/plataforma, nota, peligro (badge), URL (external link icon).
-
+**Confírmame que la vista materializada está creada** y procedo con el refactor.
