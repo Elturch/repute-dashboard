@@ -202,19 +202,21 @@ function MencionCard({ m, cfg }: { m: Record<string, unknown>; cfg: MencionesCon
   return (
     <li className="flex gap-4 rounded-lg border border-border bg-card p-4 hover:bg-white/[0.02] transition-colors">
       {/* Imagen */}
-      <div className="flex-shrink-0 w-32 h-24 rounded-md overflow-hidden bg-muted flex items-center justify-center">
-        {imagen && !imgError ? (
-          <img
-            src={imagen}
-            alt={titulo ?? ''}
-            loading="lazy"
-            className="w-full h-full object-cover"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <ImageOff className="w-6 h-6 text-muted-foreground/40" />
-        )}
-      </div>
+      {cfg.campoImagen && (
+        <div className="flex-shrink-0 w-32 h-24 rounded-md overflow-hidden bg-muted flex items-center justify-center">
+          {imagen && !imgError ? (
+            <img
+              src={imagen}
+              alt={titulo ?? ''}
+              loading="lazy"
+              className="w-full h-full object-cover"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <ImageOff className="w-6 h-6 text-muted-foreground/40" />
+          )}
+        </div>
+      )}
 
       {/* Contenido */}
       <div className="flex-1 min-w-0 space-y-1.5">
