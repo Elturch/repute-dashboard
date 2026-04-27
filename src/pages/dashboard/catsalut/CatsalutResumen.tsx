@@ -32,7 +32,6 @@ interface ChannelStats {
   total: number;
   qs: number;
   sinQs: number;
-  fjd: number;
   maxDate: Date | null;
 }
 
@@ -44,29 +43,28 @@ async function fetchCanal(cfg: ChannelConfig): Promise<ChannelStats> {
   const view = VIEW_BY_CANAL[cfg.canal];
   const { data, error } = await externalSupabase
     .from(view)
-    .select('gestion_hospitalaria, grupo_hospitalario, fecha')
-    .ilike('gestion_hospitalaria', 'SERMAS%')
+    .select('gestion_hospitalaria, fecha')
+    .ilike('gestion_hospitalaria', 'CATSALUT%')
     .order('fecha', { ascending: false })
     .limit(5000);
 
   if (error) {
-    console.error(`[resumen sermas/${cfg.key}] error:`, error);
-    return { total: 0, qs: 0, sinQs: 0, fjd: 0, maxDate: null };
+    console.error(`[resumen catsalut/${cfg.key}] error:`, error);
+    return { total: 0, qs: 0, sinQs: 0, maxDate: null };
   }
 
-  let total = 0, qs = 0, sinQs = 0, fjd = 0;
+  let total = 0, qs = 0, sinQs = 0;
   let maxDate: Date | null = null;
   for (const r of (data ?? [])) {
     total++;
-    if (r.gestion_hospitalaria === 'SERMAS - Quirónsalud (gestión)') qs++;
-    if (r.gestion_hospitalaria === 'SERMAS') sinQs++;
-    if (r.grupo_hospitalario === 'Hospital Fundación Jiménez Díaz' || r.grupo_hospitalario === 'Fundación Jiménez Díaz') fjd++;
+    if (r.gestion_hospitalaria === 'CATSALUT - Quirónsalud (concierto)') qs++;
+    if (r.gestion_hospitalaria === 'CATSALUT') sinQs++;
     if (r.fecha) {
       const d = new Date(r.fecha);
       if (!isNaN(d.getTime()) && (!maxDate || d > maxDate)) maxDate = d;
     }
   }
-  return { total, qs, sinQs, fjd, maxDate };
+  return { total, qs, sinQs, maxDate };
 }
 
 async function fetchResumen(): Promise<Record<ChannelKey, ChannelStats>> {
@@ -75,10 +73,10 @@ async function fetchResumen(): Promise<Record<ChannelKey, ChannelStats>> {
   return result;
 }
 
-export default function SermasResumen() {
+export default function CatsalutResumen() {
   const queryClient = useQueryClient();
   const { data: stats, isLoading, isFetching, dataUpdatedAt } = useQuery({
-    queryKey: ['sermas_resumen_v2'],
+    queryKey: ['catsalut_resumen'],
     queryFn: fetchResumen,
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
@@ -90,7 +88,6 @@ export default function SermasResumen() {
 
   const totalGlobal = stats ? Object.values(stats).reduce((s, c) => s + c.total, 0) : 0;
   const qsGlobal    = stats ? Object.values(stats).reduce((s, c) => s + c.qs, 0) : 0;
-  const fjdGlobal   = stats ? Object.values(stats).reduce((s, c) => s + c.fjd, 0) : 0;
   const canalesActivos = stats ? CHANNELS.filter(cfg => stats[cfg.key].total > 0).length : 0;
 
   return (
@@ -98,19 +95,18 @@ export default function SermasResumen() {
       <header className="px-8 py-6 border-b border-white/5 flex items-start justify-between gap-6 flex-wrap">
         <div>
           <p className="text-[10px] uppercase tracking-widest text-[#6b7280] mb-2">
-            Sistema Madrileño de Salud · Total vs Gestión QS vs Sin QS · Últimos 30 días
+            Servicio Catalán de la Salud · Total vs Concierto QS vs Sin QS · Últimos 30 días
           </p>
-          <h1 className="text-3xl font-bold tracking-tight">SERMAS — Resumen por canal</h1>
+          <h1 className="text-3xl font-bold tracking-tight">CATSALUT — Resumen por canal</h1>
           <p className="text-sm text-[#9ca3af] mt-2 max-w-3xl">
             {stats && totalGlobal > 0 ? (
               <>
-                Quirónsalud gestiona <span className="text-emerald-400 font-medium">{fmt(qsGlobal)}</span> de las{' '}
-                <span className="text-white font-medium">{fmt(totalGlobal)}</span> menciones SERMAS
+                Quirónsalud opera en concierto con <span className="text-emerald-400 font-medium">{fmt(qsGlobal)}</span> de las{' '}
+                <span className="text-white font-medium">{fmt(totalGlobal)}</span> menciones CATSALUT
                 {' '}(<span className="text-emerald-400 font-medium">{fmtPct((qsGlobal/totalGlobal)*100)}</span>) en{' '}
-                <span className="text-white font-medium">{canalesActivos}</span> canales activos · FJD destaca con{' '}
-                <span className="text-amber-400 font-medium">{fmt(fjdGlobal)}</span>.
+                <span className="text-white font-medium">{canalesActivos}</span> canales activos.
               </>
-            ) : 'Cargando comparativa SERMAS...'}
+            ) : 'Cargando comparativa CATSALUT...'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -127,7 +123,7 @@ export default function SermasResumen() {
             )}
           </div>
           <button
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['sermas_resumen_v2'] })}
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['catsalut_resumen'] })}
             className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-white"
           >
             🔄 Recargar
@@ -157,7 +153,6 @@ export default function SermasResumen() {
                 <div className="text-[10px] text-[#9ca3af] mt-1 flex items-center gap-1">
                   <span className="text-emerald-400 tabular-nums font-medium">{fmt(c?.qs ?? 0)}</span>
                   <span>QS</span>
-                  <span className="ml-auto text-amber-400 tabular-nums">{fmt(c?.fjd ?? 0)} FJD</span>
                 </div>
               )}
             </div>
@@ -173,7 +168,7 @@ export default function SermasResumen() {
 
       <footer className="px-8 py-6 border-t border-white/5 text-[10px] uppercase tracking-widest text-[#6b7280] flex justify-between flex-wrap gap-2">
         <span>Fuente: Supabase · Vistas: v_canal_*</span>
-        <span>Filtrado: gestion_hospitalaria ILIKE 'SERMAS%'</span>
+        <span>Filtrado: gestion_hospitalaria ILIKE 'CATSALUT%'</span>
       </footer>
     </div>
   );
@@ -198,11 +193,10 @@ function ChannelSection({ cfg, stats, isLoading }: { cfg: ChannelConfig; stats?:
         </div>
       </header>
 
-      <div className="p-6 relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        <SegBox label="SERMAS Total" value={stats?.total} tone="neutral" loading={isLoading} />
-        <SegBox label="Gestión QS"   value={stats?.qs}    tone="emerald" loading={isLoading} share={stats && stats.total > 0 ? (stats.qs / stats.total) * 100 : undefined} />
-        <SegBox label="Sin QS"       value={stats?.sinQs} tone="blue"    loading={isLoading} share={stats && stats.total > 0 ? (stats.sinQs / stats.total) * 100 : undefined} />
-        <SegBox label="FJD"          value={stats?.fjd}   tone="amber"   loading={isLoading} share={stats && stats.total > 0 ? (stats.fjd / stats.total) * 100 : undefined} sub="joya de la corona" />
+      <div className="p-6 relative grid grid-cols-1 md:grid-cols-3 gap-3">
+        <SegBox label="CATSALUT Total" value={stats?.total} tone="neutral" loading={isLoading} />
+        <SegBox label="Concierto QS"   value={stats?.qs}    tone="emerald" loading={isLoading} share={stats && stats.total > 0 ? (stats.qs / stats.total) * 100 : undefined} />
+        <SegBox label="Sin QS"         value={stats?.sinQs} tone="blue"    loading={isLoading} share={stats && stats.total > 0 ? (stats.sinQs / stats.total) * 100 : undefined} />
 
         {isEmpty && (
           <div className="absolute inset-0 bg-[#0f1420]/85 backdrop-blur-[1px] flex items-center justify-center">
@@ -220,22 +214,19 @@ const TONE_CLASSES: Record<string, { border: string; bg: string; text: string }>
   neutral: { border: 'border-white/10',          bg: 'bg-white/[0.02]',           text: 'text-white' },
   emerald: { border: 'border-emerald-500/30',    bg: 'bg-emerald-500/[0.06]',     text: 'text-emerald-400' },
   blue:    { border: 'border-blue-500/30',       bg: 'bg-blue-500/[0.06]',        text: 'text-blue-400' },
-  amber:   { border: 'border-amber-500/30',      bg: 'bg-amber-500/[0.06]',       text: 'text-amber-400' },
 };
 
-function SegBox({ label, value, tone, loading, share, sub }: {
+function SegBox({ label, value, tone, loading, share }: {
   label: string;
   value?: number;
-  tone: 'neutral' | 'emerald' | 'blue' | 'amber';
+  tone: 'neutral' | 'emerald' | 'blue';
   loading: boolean;
   share?: number;
-  sub?: string;
 }) {
   const c = TONE_CLASSES[tone];
   return (
     <div className={`rounded-lg border ${c.border} ${c.bg} p-3`}>
       <p className="text-[10px] uppercase tracking-wider text-[#9ca3af] font-semibold">{label}</p>
-      {sub && <p className="text-[9px] text-[#6b7280] mt-0.5">{sub}</p>}
       {loading ? (
         <div className="h-7 w-16 bg-white/5 rounded mt-2 animate-pulse" />
       ) : (

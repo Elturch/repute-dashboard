@@ -9,7 +9,6 @@ import PerfilReputacionalIA, { type PerfilBucket } from '@/components/PerfilRepu
 import MencionesRecientes, { type MencionesConfig } from '@/components/MencionesRecientes';
 import { VIEW_BY_CANAL, type Canal, type VCanalRow } from '@/hooks/useCanalData';
 
-/* MENCIONES — sin tocar (cada canal mantiene su tabla rápida con id DESC). */
 const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
   noticias: {
     tabla: 'noticias_general_filtradas',
@@ -21,7 +20,7 @@ const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
     campoUrl: 'url',
     campoPeligro: 'Peligro_reputacional',
     campoPresenciaMarca: 'Presencia_de_marca',
-    filtros: [{ campo: 'titularidad', valor: 'Sanidad Pública AC' }],
+    filtros: [{ campo: 'titularidad', valor: 'Sanidad Pública Cataluña' }],
   },
   instagram: {
     tabla: 'ig_posts_general_filtrada',
@@ -82,14 +81,13 @@ const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
     campoUrl: 'link_url',
     campoPeligro: 'peligro_reputacional',
     campoPresenciaMarca: 'presencia_marca',
-    filtros: [{ campo: 'titularidad', valor: 'Sanidad Pública AC' }],
+    filtros: [{ campo: 'titularidad', valor: 'Sanidad Pública Cataluña' }],
   },
 };
 
-export type SermasCanalKey = 'noticias' | 'instagram' | 'x_twitter' | 'tiktok' | 'facebook' | 'linkedin' | 'mybusiness';
+export type CatsalutCanalKey = 'noticias' | 'instagram' | 'x_twitter' | 'tiktok' | 'facebook' | 'linkedin' | 'mybusiness';
 
-/** Mapeo wrapper-key → vista canal real */
-const CANAL_MAP: Record<SermasCanalKey, Canal> = {
+const CANAL_MAP: Record<CatsalutCanalKey, Canal> = {
   noticias:   'medios',
   instagram:  'instagram',
   x_twitter:  'twitter',
@@ -99,24 +97,19 @@ const CANAL_MAP: Record<SermasCanalKey, Canal> = {
   mybusiness: 'mybusiness',
 };
 
-export type SermasChannelConfig = {
-  canal: SermasCanalKey;
+export type CatsalutChannelConfig = {
+  canal: CatsalutCanalKey;
   titulo: string;
   Icon: IconType;
   brandColor: string;
   short: string;
 };
 
-interface SegmentStats {
-  menciones: number;
-  notaMedia: number | null;
-}
-
+interface SegmentStats { menciones: number; notaMedia: number | null; }
 interface ChannelStats {
   total: SegmentStats;
   qs: SegmentStats;
   sinQs: SegmentStats;
-  fjd: SegmentStats;
   maxDate: Date;
   bucketTotal: PerfilBucket;
   bucketQS: PerfilBucket;
@@ -130,13 +123,10 @@ function fmtNum(n: number | null, d = 2): string { return n == null ? '—' : n.
 function fmtFecha(d: Date): string { return format(d, "d 'de' LLL yyyy", { locale: es }); }
 
 function aggregateSegment(rows: VCanalRow[]): SegmentStats {
-  let notaSum = 0, notaN = 0;
-  for (const r of rows) {
-    if (r.nota_media != null) { notaSum += r.nota_media; notaN++; }
-  }
-  return { menciones: rows.length, notaMedia: notaN > 0 ? notaSum / notaN : null };
+  let s = 0, n = 0;
+  for (const r of rows) if (r.nota_media != null) { s += r.nota_media; n++; }
+  return { menciones: rows.length, notaMedia: n > 0 ? s / n : null };
 }
-
 function aggregateBucket(label: string, rows: VCanalRow[]): PerfilBucket {
   const sums: Record<string, { sum: number; n: number }> = {};
   METRIC_KEYS.forEach(k => sums[k] = { sum: 0, n: 0 });
@@ -151,37 +141,35 @@ function aggregateBucket(label: string, rows: VCanalRow[]): PerfilBucket {
   return { label, menciones: rows.length, promedios };
 }
 
-async function fetchChannelStats(cfg: SermasChannelConfig): Promise<ChannelStats> {
+async function fetchChannelStats(cfg: CatsalutChannelConfig): Promise<ChannelStats> {
   const empty: ChannelStats = {
     total: { menciones: 0, notaMedia: null },
     qs:    { menciones: 0, notaMedia: null },
     sinQs: { menciones: 0, notaMedia: null },
-    fjd:   { menciones: 0, notaMedia: null },
     maxDate: new Date(),
-    bucketTotal: { label: 'SERMAS Total', menciones: 0, promedios: {} },
-    bucketQS:    { label: 'Gestión QS',   menciones: 0, promedios: {} },
-    bucketSinQS: { label: 'Sin QS',       menciones: 0, promedios: {} },
+    bucketTotal: { label: 'CATSALUT Total', menciones: 0, promedios: {} },
+    bucketQS:    { label: 'Concierto QS',   menciones: 0, promedios: {} },
+    bucketSinQS: { label: 'Sin QS',         menciones: 0, promedios: {} },
   };
 
   const view = VIEW_BY_CANAL[CANAL_MAP[cfg.canal]];
   const { data, error } = await externalSupabase
     .from(view)
     .select('*')
-    .ilike('gestion_hospitalaria', 'SERMAS%')
+    .ilike('gestion_hospitalaria', 'CATSALUT%')
     .order('fecha', { ascending: false })
     .limit(5000);
 
   if (error) {
-    console.error(`[sermas/${cfg.canal}] error ${view}:`, error);
+    console.error(`[catsalut/${cfg.canal}] error ${view}:`, error);
     return empty;
   }
 
   const rows = (data ?? []) as VCanalRow[];
   if (rows.length === 0) return empty;
 
-  const qsRows    = rows.filter(r => r.gestion_hospitalaria === 'SERMAS - Quirónsalud (gestión)');
-  const sinQsRows = rows.filter(r => r.gestion_hospitalaria === 'SERMAS');
-  const fjdRows   = rows.filter(r => r.grupo_hospitalario === 'Hospital Fundación Jiménez Díaz' || r.grupo_hospitalario === 'Fundación Jiménez Díaz');
+  const qsRows    = rows.filter(r => r.gestion_hospitalaria === 'CATSALUT - Quirónsalud (concierto)');
+  const sinQsRows = rows.filter(r => r.gestion_hospitalaria === 'CATSALUT');
 
   let maxDate = new Date(0);
   for (const r of rows) {
@@ -195,26 +183,25 @@ async function fetchChannelStats(cfg: SermasChannelConfig): Promise<ChannelStats
     total: aggregateSegment(rows),
     qs:    aggregateSegment(qsRows),
     sinQs: aggregateSegment(sinQsRows),
-    fjd:   aggregateSegment(fjdRows),
     maxDate: maxDate.getTime() === 0 ? new Date() : maxDate,
-    bucketTotal: aggregateBucket('SERMAS Total', rows),
-    bucketQS:    aggregateBucket('Gestión QS',   qsRows),
-    bucketSinQS: aggregateBucket('Sin QS',       sinQsRows),
+    bucketTotal: aggregateBucket('CATSALUT Total', rows),
+    bucketQS:    aggregateBucket('Concierto QS',   qsRows),
+    bucketSinQS: aggregateBucket('Sin QS',         sinQsRows),
   };
 }
 
-export async function prefetchSermasChannel(queryClient: QueryClient, cfg: SermasChannelConfig) {
+export async function prefetchCatsalutChannel(queryClient: QueryClient, cfg: CatsalutChannelConfig) {
   return queryClient.prefetchQuery({
-    queryKey: ['sermas_channel_v2', cfg.canal],
+    queryKey: ['catsalut_channel', cfg.canal],
     queryFn: () => fetchChannelStats(cfg),
     staleTime: 30 * 60 * 1000,
   });
 }
 
-export default function SermasChannelPage({ cfg }: { cfg: SermasChannelConfig }) {
+export default function CatsalutChannelPage({ cfg }: { cfg: CatsalutChannelConfig }) {
   const queryClient = useQueryClient();
   const { data: stats, isLoading, isFetching, dataUpdatedAt } = useQuery({
-    queryKey: ['sermas_channel_v2', cfg.canal],
+    queryKey: ['catsalut_channel', cfg.canal],
     queryFn: () => fetchChannelStats(cfg),
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
@@ -242,7 +229,7 @@ export default function SermasChannelPage({ cfg }: { cfg: SermasChannelConfig })
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5">
               <Icon className="h-3.5 w-3.5" style={{ color: cfg.brandColor }} />
-              SERMAS · {cfg.short}
+              CATSALUT · {cfg.short}
             </span>
             <span>·</span>
             <span>{rangoActual}</span>
@@ -262,7 +249,7 @@ export default function SermasChannelPage({ cfg }: { cfg: SermasChannelConfig })
             </div>
             <button
               type="button"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['sermas_channel_v2', cfg.canal] })}
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['catsalut_channel', cfg.canal] })}
               className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-foreground"
             >
               🔄 Recargar
@@ -276,41 +263,37 @@ export default function SermasChannelPage({ cfg }: { cfg: SermasChannelConfig })
         <p className="max-w-3xl text-sm text-muted-foreground">
           {stats && stats.total.menciones > 0 ? (
             <>
-              Sistema Madrileño de Salud · Quirónsalud gestiona{' '}
+              Servicio Catalán de la Salud · Quirónsalud opera en concierto con{' '}
               <span className="text-foreground font-medium">{fmt(stats.qs.menciones)}</span> menciones
               {stats.total.menciones > 0 && (
-                <> ({((stats.qs.menciones / stats.total.menciones) * 100).toFixed(1)}% del total SERMAS)</>
-              )}
-              {stats.fjd.menciones > 0 && (
-                <> · FJD destaca con <span className="text-amber-500 font-medium">{fmt(stats.fjd.menciones)}</span></>
+                <> ({((stats.qs.menciones / stats.total.menciones) * 100).toFixed(1)}% del total CATSALUT)</>
               )}.
             </>
           ) : isLoading ? (
-            'Cargando comparativa SERMAS Total · Gestión QS · Sin QS · FJD.'
+            'Cargando comparativa CATSALUT Total · Concierto QS · Sin QS.'
           ) : (
             'Sin datos en la ventana actual.'
           )}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <SegmentCard label="SERMAS Total" sub="todos los hospitales" stats={stats?.total} loading={isLoading} tone="neutral" />
-        <SegmentCard label="Gestión QS" sub="FJD, Rey Juan Carlos, Infanta Elena, Villalba" stats={stats?.qs} loading={isLoading} tone="emerald" />
-        <SegmentCard label="Sin QS" sub="resto de SERMAS" stats={stats?.sinQs} loading={isLoading} tone="blue" />
-        <SegmentCard label="FJD" sub="Fundación Jiménez Díaz · joya de la corona" stats={stats?.fjd} loading={isLoading} tone="amber" />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <SegmentCard label="CATSALUT Total" sub="todos los hospitales concertados" stats={stats?.total} loading={isLoading} tone="neutral" />
+        <SegmentCard label="Concierto QS" sub="hospitales con concierto Quirónsalud" stats={stats?.qs} loading={isLoading} tone="emerald" />
+        <SegmentCard label="Sin QS" sub="resto de CATSALUT" stats={stats?.sinQs} loading={isLoading} tone="blue" />
       </div>
 
       {isEmpty && !isLoading && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-600 dark:text-amber-400">
           <AlertTriangle className="h-4 w-4" />
-          <span>Sin datos para SERMAS en este canal · scraper en mantenimiento o sin cobertura</span>
+          <span>Sin datos para CATSALUT en este canal · scraper en mantenimiento o sin cobertura</span>
         </div>
       )}
 
       {stats && stats.total.menciones > 0 && (
         <PerfilReputacionalIA
-          contextLabel={`SERMAS · ${cfg.short}`}
-          highlightLabel="Gestión QS"
+          contextLabel={`CATSALUT · ${cfg.short}`}
+          highlightLabel="Concierto QS"
           total={stats.bucketTotal}
           highlight={stats.bucketQS}
           resto={stats.bucketSinQS}
@@ -328,7 +311,7 @@ export default function SermasChannelPage({ cfg }: { cfg: SermasChannelConfig })
           <p className="mt-1 text-foreground">{rangoActual}</p>
         </div>
         <div>
-          <p>Fuente: Supabase · Vista: {VIEW_BY_CANAL[CANAL_MAP[cfg.canal]]} · Filtro: gestion_hospitalaria ILIKE 'SERMAS%'</p>
+          <p>Fuente: Supabase · Vista: {VIEW_BY_CANAL[CANAL_MAP[cfg.canal]]} · Filtro: gestion_hospitalaria ILIKE 'CATSALUT%'</p>
         </div>
       </div>
     </div>
@@ -339,7 +322,6 @@ const TONE_CLASSES: Record<string, { border: string; bg: string; text: string; a
   neutral: { border: 'border-border', bg: 'bg-card', text: 'text-foreground', accent: 'text-muted-foreground' },
   emerald: { border: 'border-emerald-500/40', bg: 'bg-emerald-500/5', text: 'text-emerald-600 dark:text-emerald-400', accent: 'text-emerald-700 dark:text-emerald-300' },
   blue:    { border: 'border-blue-500/40',    bg: 'bg-blue-500/5',    text: 'text-blue-600 dark:text-blue-400',       accent: 'text-blue-700 dark:text-blue-300' },
-  amber:   { border: 'border-amber-500/40',   bg: 'bg-amber-500/5',   text: 'text-amber-600 dark:text-amber-400',     accent: 'text-amber-700 dark:text-amber-300' },
 };
 
 function SegmentCard({
@@ -349,7 +331,7 @@ function SegmentCard({
   sub?: string;
   stats?: SegmentStats;
   loading: boolean;
-  tone: 'neutral' | 'emerald' | 'blue' | 'amber';
+  tone: 'neutral' | 'emerald' | 'blue';
 }) {
   const c = TONE_CLASSES[tone];
   return (

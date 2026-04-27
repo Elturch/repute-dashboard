@@ -12,7 +12,9 @@ import {
 import { AlertTriangle } from 'lucide-react';
 import PerfilReputacionalIA, { type PerfilBucket } from '@/components/PerfilReputacionalIA';
 import MencionesRecientes, { type MencionesConfig } from '@/components/MencionesRecientes';
+import { VIEW_BY_CANAL, type Canal, type VCanalRow } from '@/hooks/useCanalData';
 
+/* ─────────────── MENCIONES por canal (sin tocar — siguen sus tablas rápidas) ─────────────── */
 const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
   medios: {
     tabla: 'noticias_general_filtradas',
@@ -96,7 +98,7 @@ export type PrivadosChannelConfig = {
   short: string;
   Icon: IconType;
   brandColor: string;
-  // Las siguientes ya no se usan pero se mantienen para no romper los wrappers:
+  // Compat — ya no se usan:
   view?: string;
   dateField?: string;
   preclassified?: boolean;
@@ -104,25 +106,6 @@ export type PrivadosChannelConfig = {
   groupField?: string;
   titularityField?: string;
 };
-
-interface MvRow {
-  canal: string;
-  titularidad: string | null;
-  grupo_hospitalario: string | null;
-  gestion: string | null;
-  menciones: number;
-  nota_media: number | null;
-  fecha_max: string | null;
-  influencia?: number | null;
-  fiabilidad?: number | null;
-  afinidad?: number | null;
-  admiracion?: number | null;
-  impacto?: number | null;
-  compromiso?: number | null;
-  rechazo?: number | null;
-  preocupacion?: number | null;
-  descredito?: number | null;
-}
 
 interface FilaGrupo {
   grupo: GrupoPrivado;
@@ -145,23 +128,27 @@ interface ChannelStats {
   bucketResto: PerfilBucket;
 }
 
-function fmt(n: number): string {
-  return (n ?? 0).toLocaleString('es-ES');
-}
-function fmtPct(n: number, digits = 1): string {
-  return `${n.toFixed(digits)}%`;
-}
-function fmtFecha(d: Date): string {
-  return format(d, "d 'de' LLL yyyy", { locale: es });
+const METRIC_KEYS = ['influencia','fiabilidad','afinidad','admiracion','impacto','rechazo','preocupacion','descredito'] as const;
+
+function fmt(n: number): string { return (n ?? 0).toLocaleString('es-ES'); }
+function fmtPct(n: number, digits = 1): string { return `${n.toFixed(digits)}%`; }
+function fmtFecha(d: Date): string { return format(d, "d 'de' LLL yyyy", { locale: es }); }
+
+function aggregateBucket(label: string, rows: VCanalRow[]): PerfilBucket {
+  const sums: Record<string, { sum: number; n: number }> = {};
+  METRIC_KEYS.forEach(k => sums[k] = { sum: 0, n: 0 });
+  for (const r of rows) {
+    METRIC_KEYS.forEach(k => {
+      const v = (r as any)[k] as number | null;
+      if (v != null) { sums[k].sum += v; sums[k].n++; }
+    });
+  }
+  const promedios: Record<string, number | null> = {};
+  METRIC_KEYS.forEach(k => { promedios[k] = sums[k].n > 0 ? sums[k].sum / sums[k].n : null; });
+  return { label, menciones: rows.length, promedios };
 }
 
 async function fetchChannelStats(cfg: PrivadosChannelConfig): Promise<ChannelStats> {
-  const { data, error } = await externalSupabase
-    .from('mv_dashboard_resumen_30d')
-    .select('*')
-    .eq('canal', cfg.key)
-    .eq('titularidad', 'Privado');
-
   const emptyBucket = (label: string): PerfilBucket => ({ label, menciones: 0, promedios: {} });
   const empty: ChannelStats = {
     filas: NOMBRES_GRUPOS_PRIVADOS.map(g => ({ grupo: g, count: 0, share: 0, barPct: 0, notaMedia: null })),
@@ -176,38 +163,49 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig): Promise<ChannelSta
     bucketResto: emptyBucket('Privados sin QS'),
   };
 
+  const view = VIEW_BY_CANAL[cfg.key as Canal];
+  const { data, error } = await externalSupabase
+    .from(view)
+    .select('*')
+    .eq('titularidad', 'Privado')
+    .order('fecha', { ascending: false })
+    .limit(5000);
+
   if (error) {
-    console.error(`[${cfg.key}] error mv_dashboard_resumen_30d:`, error);
+    console.error(`[privados/${cfg.key}] error ${view}:`, error);
     return empty;
   }
 
-  const rows = (data ?? []) as MvRow[];
+  const rows = (data ?? []) as VCanalRow[];
+  if (rows.length === 0) return empty;
 
-  const counts = new Map<GrupoPrivado, { menciones: number; notaWeighted: number; notaCount: number }>();
-  NOMBRES_GRUPOS_PRIVADOS.forEach(g => counts.set(g, { menciones: 0, notaWeighted: 0, notaCount: 0 }));
+  // Agregación por grupo_hospitalario
+  const counts = new Map<GrupoPrivado, { menciones: number; notaSum: number; notaN: number }>();
+  NOMBRES_GRUPOS_PRIVADOS.forEach(g => counts.set(g, { menciones: 0, notaSum: 0, notaN: 0 }));
 
   let total = 0;
-  let totalNotaWeighted = 0;
-  let totalNotaCount = 0;
+  let totalNotaSum = 0;
+  let totalNotaN = 0;
   let maxDate = new Date(0);
+  const validas: VCanalRow[] = [];
 
   for (const r of rows) {
     if (!r.grupo_hospitalario) continue;
     const g = r.grupo_hospitalario as GrupoPrivado;
     if (!NOMBRES_GRUPOS_PRIVADOS.includes(g)) continue;
     const cur = counts.get(g)!;
-    const m = Number(r.menciones) || 0;
-    cur.menciones += m;
+    cur.menciones++;
     if (r.nota_media != null) {
-      cur.notaWeighted += r.nota_media * m;
-      cur.notaCount += m;
-      totalNotaWeighted += r.nota_media * m;
-      totalNotaCount += m;
+      cur.notaSum += r.nota_media;
+      cur.notaN++;
+      totalNotaSum += r.nota_media;
+      totalNotaN++;
     }
     counts.set(g, cur);
-    total += m;
-    if (r.fecha_max) {
-      const d = new Date(r.fecha_max);
+    total++;
+    validas.push(r);
+    if (r.fecha) {
+      const d = new Date(r.fecha);
       if (!isNaN(d.getTime()) && d > maxDate) maxDate = d;
     }
   }
@@ -221,7 +219,7 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig): Promise<ChannelSta
         count: c.menciones,
         share: total > 0 ? (c.menciones / total) * 100 : 0,
         barPct: (c.menciones / max) * 100,
-        notaMedia: c.notaCount > 0 ? c.notaWeighted / c.notaCount : null,
+        notaMedia: c.notaN > 0 ? c.notaSum / c.notaN : null,
       };
     })
     .sort((a, b) => b.count - a.count);
@@ -229,40 +227,15 @@ async function fetchChannelStats(cfg: PrivadosChannelConfig): Promise<ChannelSta
   const qsRow = filas.find(f => f.grupo === 'Quirónsalud');
   const qsRank = filas.findIndex(f => f.grupo === 'Quirónsalud') + 1;
 
-  // Buckets para el scorecard reputacional IA
-  function aggregateBucket(label: string, rowsBucket: MvRow[]): PerfilBucket {
-    const METRIC_KEYS = ['influencia','fiabilidad','afinidad','admiracion','impacto','compromiso','rechazo','preocupacion','descredito'];
-    const sums: Record<string, { weighted: number; count: number }> = {};
-    METRIC_KEYS.forEach(k => sums[k] = { weighted: 0, count: 0 });
-    let menciones = 0;
-    for (const r of rowsBucket) {
-      const m = Number(r.menciones) || 0;
-      menciones += m;
-      METRIC_KEYS.forEach(k => {
-        const v = (r as any)[k] as number | null | undefined;
-        if (v != null) {
-          sums[k].weighted += v * m;
-          sums[k].count += m;
-        }
-      });
-    }
-    const promedios: Record<string, number | null> = {};
-    METRIC_KEYS.forEach(k => {
-      promedios[k] = sums[k].count > 0 ? sums[k].weighted / sums[k].count : null;
-    });
-    return { label, menciones, promedios };
-  }
-
-  const validas = rows.filter(r => r.grupo_hospitalario && NOMBRES_GRUPOS_PRIVADOS.includes(r.grupo_hospitalario as GrupoPrivado));
   const bucketTotal = aggregateBucket('Total privados', validas);
-  const bucketQS = aggregateBucket('Quirónsalud', validas.filter(r => r.grupo_hospitalario === 'Quirónsalud'));
+  const bucketQS    = aggregateBucket('Quirónsalud',     validas.filter(r => r.grupo_hospitalario === 'Quirónsalud'));
   const bucketResto = aggregateBucket('Privados sin QS', validas.filter(r => r.grupo_hospitalario !== 'Quirónsalud'));
 
   return {
     filas,
     total,
     maxDate: maxDate.getTime() === 0 ? new Date() : maxDate,
-    notaMediaTotal: totalNotaCount > 0 ? totalNotaWeighted / totalNotaCount : null,
+    notaMediaTotal: totalNotaN > 0 ? totalNotaSum / totalNotaN : null,
     qsCount: qsRow?.count ?? 0,
     qsShare: qsRow?.share ?? 0,
     qsRank,
@@ -333,9 +306,7 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
             </div>
             <button
               type="button"
-              onClick={() => {
-                queryClient.invalidateQueries({ queryKey: ['privados_channel', cfg.key] });
-              }}
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['privados_channel', cfg.key] })}
               className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-foreground"
             >
               🔄 Recargar
@@ -362,22 +333,9 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
 
       {/* KPI row */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Kpi
-          label="Total menciones"
-          value={stats ? fmt(stats.total) : '—'}
-          sub="últimos 30 días"
-        />
-        <Kpi
-          label="Quirónsalud"
-          value={stats ? fmt(stats.qsCount) : '—'}
-          sub={stats ? `${fmtPct(stats.qsShare)} del total` : undefined}
-          highlight
-        />
-        <Kpi
-          label="Posición"
-          value={stats?.qsRank ? `#${stats.qsRank}` : '—'}
-          sub="de 8 grupos privados"
-        />
+        <Kpi label="Total menciones" value={stats ? fmt(stats.total) : '—'} sub="últimos 30 días" />
+        <Kpi label="Quirónsalud" value={stats ? fmt(stats.qsCount) : '—'} sub={stats ? `${fmtPct(stats.qsShare)} del total` : undefined} highlight />
+        <Kpi label="Posición" value={stats?.qsRank ? `#${stats.qsRank}` : '—'} sub="de 8 grupos privados" />
       </div>
 
       {/* League table */}
@@ -402,13 +360,9 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
               return (
                 <li
                   key={f.grupo}
-                  className={`grid grid-cols-[3rem_1fr_6rem_5rem] items-center gap-4 px-4 py-3 text-sm ${
-                    isQS ? 'bg-primary/5' : ''
-                  }`}
+                  className={`grid grid-cols-[3rem_1fr_6rem_5rem] items-center gap-4 px-4 py-3 text-sm ${isQS ? 'bg-primary/5' : ''}`}
                 >
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
+                  <span className="font-mono text-xs text-muted-foreground">{String(i + 1).padStart(2, '0')}</span>
                   <div className="min-w-0 space-y-1.5">
                     <div className="flex items-center gap-2">
                       <span className="truncate font-medium text-foreground">{f.grupo}</span>
@@ -416,19 +370,12 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                       <div
                         className="h-full rounded-full"
-                        style={{
-                          width: `${f.barPct}%`,
-                          backgroundColor: COLOR_POR_GRUPO_PRIVADO[f.grupo],
-                        }}
+                        style={{ width: `${f.barPct}%`, backgroundColor: COLOR_POR_GRUPO_PRIVADO[f.grupo] }}
                       />
                     </div>
                   </div>
-                  <span className="text-right font-mono text-sm font-semibold text-foreground">
-                    {fmt(f.count)}
-                  </span>
-                  <span className="text-right font-mono text-xs text-muted-foreground">
-                    {fmtPct(f.share)}
-                  </span>
+                  <span className="text-right font-mono text-sm font-semibold text-foreground">{fmt(f.count)}</span>
+                  <span className="text-right font-mono text-xs text-muted-foreground">{fmtPct(f.share)}</span>
                 </li>
               );
             })}
@@ -457,10 +404,7 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
 
       {/* Menciones recientes (lazy-load) */}
       {stats && MENCIONES_BY_CHANNEL[cfg.key] && (
-        <MencionesRecientes
-          cfg={MENCIONES_BY_CHANNEL[cfg.key] as MencionesConfig}
-          contextLabel={cfg.label}
-        />
+        <MencionesRecientes cfg={MENCIONES_BY_CHANNEL[cfg.key] as MencionesConfig} contextLabel={cfg.label} />
       )}
 
       {/* Footer */}
@@ -470,7 +414,7 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
           <p className="mt-1 text-foreground">{rangoActual}</p>
         </div>
         <div>
-          <p>Fuente: MySQL · Make · Supabase · Vista: mv_dashboard_resumen_30d</p>
+          <p>Fuente: Supabase · Vista: {VIEW_BY_CANAL[cfg.key as Canal]} · Filtro: titularidad = Privado</p>
         </div>
       </div>
     </div>
@@ -479,27 +423,11 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
 
 /* ─────────────── subcomponentes ─────────────── */
 
-function Kpi({
-  label,
-  value,
-  sub,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  highlight?: boolean;
-}) {
+function Kpi({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
   return (
-    <div
-      className={`rounded-lg border p-4 ${
-        highlight ? 'border-primary/40 bg-primary/5' : 'border-border bg-card'
-      }`}
-    >
+    <div className={`rounded-lg border p-4 ${highlight ? 'border-primary/40 bg-primary/5' : 'border-border bg-card'}`}>
       <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className={`mt-2 text-3xl font-bold ${highlight ? 'text-primary' : 'text-foreground'}`}>
-        {value}
-      </p>
+      <p className={`mt-2 text-3xl font-bold ${highlight ? 'text-primary' : 'text-foreground'}`}>{value}</p>
       {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
     </div>
   );

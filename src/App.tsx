@@ -45,6 +45,16 @@ import SermasFacebook from "./pages/dashboard/sermas/SermasFacebook";
 import SermasLinkedIn from "./pages/dashboard/sermas/SermasLinkedIn";
 import SermasMyBusiness from "./pages/dashboard/sermas/SermasMyBusiness";
 
+// CATSALUT
+import CatsalutResumen from "./pages/dashboard/catsalut/CatsalutResumen";
+import CatsalutMedios from "./pages/dashboard/catsalut/CatsalutMedios";
+import CatsalutInstagram from "./pages/dashboard/catsalut/CatsalutInstagram";
+import CatsalutTwitter from "./pages/dashboard/catsalut/CatsalutTwitter";
+import CatsalutTikTok from "./pages/dashboard/catsalut/CatsalutTikTok";
+import CatsalutFacebook from "./pages/dashboard/catsalut/CatsalutFacebook";
+import CatsalutLinkedIn from "./pages/dashboard/catsalut/CatsalutLinkedIn";
+import CatsalutMyBusiness from "./pages/dashboard/catsalut/CatsalutMyBusiness";
+
 // FJD (hospital destacado)
 import FJDPage from "./pages/dashboard/fjd/FJDPage";
 
@@ -110,6 +120,14 @@ const App = () => (
             <Route path="sermas/facebook" element={<SermasFacebook />} />
             <Route path="sermas/linkedin" element={<SermasLinkedIn />} />
             <Route path="sermas/mybusiness" element={<SermasMyBusiness />} />
+            <Route path="catsalut" element={<CatsalutResumen />} />
+            <Route path="catsalut/medios" element={<CatsalutMedios />} />
+            <Route path="catsalut/instagram" element={<CatsalutInstagram />} />
+            <Route path="catsalut/twitter" element={<CatsalutTwitter />} />
+            <Route path="catsalut/tiktok" element={<CatsalutTikTok />} />
+            <Route path="catsalut/facebook" element={<CatsalutFacebook />} />
+            <Route path="catsalut/linkedin" element={<CatsalutLinkedIn />} />
+            <Route path="catsalut/mybusiness" element={<CatsalutMyBusiness />} />
             <Route path="medios" element={<MediosGlobal />} />
             <Route path="evolucion" element={<EvolucionGlobal />} />
             <Route path="riesgo" element={<Riesgo />} />
