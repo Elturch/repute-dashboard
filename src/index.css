@@ -56,22 +56,42 @@
   }
 }
 
-/* ========== Modo TV (rotación automática, portrait) ========== */
-body.tv-mode {
-  font-size: 17px;
+/* ========== Modo TV (65" portrait, 1080×1920 → 2160×3840) ========== */
+/* Tipografía base escalada con vw para que funcione en 1080p y 4K portrait. */
+.tv-panel {
+  font-size: clamp(20px, 1.6vw, 32px);
 }
-body.tv-mode h1 { font-size: 2.25rem; line-height: 1.15; }
-body.tv-mode h2 { font-size: 1.6rem; line-height: 1.2; }
-body.tv-mode h3 { font-size: 1.25rem; }
+.tv-panel h1 { font-size: clamp(56px, 6vw, 96px); line-height: 1; font-weight: 800; }
+.tv-panel h2 { font-size: clamp(36px, 4vw, 56px); line-height: 1.1; }
+.tv-panel h3 { font-size: clamp(24px, 2.4vw, 38px); }
 
-/* En portrait, colapsar grids amplios a 2 columnas para que se lea de lejos */
-@media (max-aspect-ratio: 1/1) {
-  body.tv-mode .grid-cols-3,
-  body.tv-mode .grid-cols-4,
-  body.tv-mode .lg\:grid-cols-3,
-  body.tv-mode .lg\:grid-cols-4,
-  body.tv-mode .md\:grid-cols-3,
-  body.tv-mode .md\:grid-cols-4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
+.tv-panel .big-kpi-number {
+  font-size: clamp(140px, 14vw, 240px);
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+.tv-panel .big-kpi-label {
+  font-size: clamp(36px, 3.5vw, 60px);
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+.tv-panel .sub-kpi-number {
+  font-size: clamp(60px, 6vw, 100px);
+  line-height: 1;
+  font-weight: 800;
+}
+.tv-panel .sub-kpi-label {
+  font-size: clamp(20px, 1.8vw, 36px);
+  letter-spacing: 0.08em;
+  opacity: 0.6;
+}
+.tv-panel .table-row {
+  font-size: clamp(22px, 2vw, 36px);
+  padding: 0.75rem 0;
+}
+
+/* Cuando el body lleva tv-mode, ocultar cualquier scrollbar y prevenir overflow horizontal */
+body.tv-mode {
+  overflow: hidden;
 }
