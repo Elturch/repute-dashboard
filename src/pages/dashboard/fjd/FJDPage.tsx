@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Star, ExternalLink, AlertTriangle } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  LineChart, Line, Legend,
+  LineChart, Line, Legend, Cell,
 } from "recharts";
 import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from "react-icons/si";
 import { FaXTwitter, FaLinkedin } from "react-icons/fa6";
@@ -242,7 +242,7 @@ export default function FJDPage() {
                   />
                   <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                     {distribucion.map((d, i) => (
-                      <rect key={i} fill={d.color} />
+                      <Cell key={i} fill={d.color} />
                     ))}
                   </Bar>
                 </BarChart>
