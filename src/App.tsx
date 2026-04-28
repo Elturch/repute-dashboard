@@ -165,7 +165,6 @@ const App = () => (
             {/* Legacy redirect */}
             <Route path="admin" element={<Navigate to="/dashboard/sistema/admin" replace />} />
           </Route>
-          <Route path="/dashboard/tv" element={<ModoTV />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
