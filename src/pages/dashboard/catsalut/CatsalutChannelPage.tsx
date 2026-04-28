@@ -9,8 +9,14 @@ import MencionesRecientes, { type MencionesConfig } from '@/components/Menciones
 import { type Canal } from '@/hooks/useCanalData';
 import {
   useKpiCanalGlobal, filterByCanal, filterByGestionLike, filterByGestionExacta,
-  aggregateKpi, toPerfilBucket, type KpiRow,
+  aggregateKpi, toPerfilBucket, groupByGrupo, type KpiRow,
 } from '@/hooks/useKpiCanal';
+
+/** Renombra el rollup "Quirónsalud" para que el cliente entienda qué hospitales incluye en CATSALUT. */
+function displayGrupoCatsalut(grupo: string): string {
+  if (grupo === 'Quirónsalud') return 'H. General de Catalunya + Sagrat Cor';
+  return grupo;
+}
 
 const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
   noticias: {
@@ -269,6 +275,10 @@ export default function CatsalutChannelPage({ cfg }: { cfg: CatsalutChannelConfi
         <MencionesRecientes cfg={MENCIONES_BY_CHANNEL[cfg.canal] as MencionesConfig} contextLabel={cfg.short} />
       )}
 
+      {stats && stats.total.menciones > 0 && kpiRows && (
+        <TablaGruposCatsalut rowsCanal={filterByCanal(filterByGestionLike(kpiRows, 'CATSALUT%'), CANAL_MAP[cfg.canal])} totalMenciones={stats.total.menciones} />
+      )}
+
       <div className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-muted/30 p-4 text-xs text-muted-foreground md:grid-cols-2">
         <div>
           <p className="font-semibold uppercase tracking-wider">Período</p>
@@ -277,6 +287,47 @@ export default function CatsalutChannelPage({ cfg }: { cfg: CatsalutChannelConfi
         <div>
           <p>Fuente: Supabase · Vista materializada: v_kpi_canal_30d · Filtro: gestion_hospitalaria ILIKE 'CATSALUT%' · canal = {CANAL_MAP[cfg.canal]}</p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function TablaGruposCatsalut({ rowsCanal, totalMenciones }: { rowsCanal: KpiRow[]; totalMenciones: number }) {
+  const grupos = Array.from(groupByGrupo(rowsCanal).entries())
+    .map(([grupo, agg]) => ({ grupo, agg }))
+    .sort((a, b) => b.agg.menciones - a.agg.menciones);
+
+  if (grupos.length === 0) return null;
+
+  return (
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="px-4 py-3 border-b border-border">
+        <h3 className="text-sm font-semibold text-foreground">Comparativa por hospital</h3>
+        <p className="text-[11px] text-muted-foreground mt-0.5">3 grupos hospitalarios CATSALUT · ordenados por menciones</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4">
+        {grupos.map(({ grupo, agg }) => {
+          const pct = totalMenciones > 0 ? (agg.menciones / totalMenciones) * 100 : 0;
+          const esQS = grupo === 'Quirónsalud';
+          return (
+            <div
+              key={grupo}
+              className={`rounded-lg border p-4 ${esQS ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-border bg-muted/20'}`}
+            >
+              <p className={`text-xs font-semibold uppercase tracking-wider ${esQS ? 'text-emerald-700 dark:text-emerald-300' : 'text-muted-foreground'}`}>
+                {displayGrupoCatsalut(grupo)}
+              </p>
+              {esQS && <p className="text-[10px] text-emerald-700/70 dark:text-emerald-400/70 mt-0.5">Concierto Quirónsalud</p>}
+              <p className={`mt-2 text-2xl font-bold tabular-nums ${esQS ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}`}>
+                {fmt(agg.menciones)}
+              </p>
+              <div className="mt-2 flex items-center justify-between text-[11px]">
+                <span className="text-muted-foreground">{fmtPct(pct)} del canal</span>
+                <span className="text-muted-foreground tabular-nums">Nota {fmtNum(agg.notaMedia)}</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

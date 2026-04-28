@@ -236,7 +236,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>
             <span className="flex items-center gap-1.5">
-              <Hospital className="h-3 w-3" />
+              <Building2 className="h-3 w-3 text-violet-500" />
               CATSALUT
             </span>
           </SidebarGroupLabel>
