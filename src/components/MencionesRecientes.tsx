@@ -93,7 +93,7 @@ export default function MencionesRecientes({ cfg, contextLabel }: { cfg: Mencion
   const hayFiltros = !!riesgo || !!medio;
 
   return (
-    <section className="space-y-4">
+    <section data-tv-hide className="space-y-4 tv-hide">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h2 className="text-xs uppercase tracking-wider text-muted-foreground">
           Menciones recientes{contextLabel ? ` · ${contextLabel}` : ''}
