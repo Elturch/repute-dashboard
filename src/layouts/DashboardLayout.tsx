@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Outlet, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Monitor, Download, Tv } from "lucide-react";
+import { Download, Tv } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/NotificationBell";
 import { OnboardingModal } from "@/components/OnboardingModal";
