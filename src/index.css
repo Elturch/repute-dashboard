@@ -55,3 +55,23 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 }
+
+/* ========== Modo TV (rotación automática, portrait) ========== */
+body.tv-mode {
+  font-size: 17px;
+}
+body.tv-mode h1 { font-size: 2.25rem; line-height: 1.15; }
+body.tv-mode h2 { font-size: 1.6rem; line-height: 1.2; }
+body.tv-mode h3 { font-size: 1.25rem; }
+
+/* En portrait, colapsar grids amplios a 2 columnas para que se lea de lejos */
+@media (max-aspect-ratio: 1/1) {
+  body.tv-mode .grid-cols-3,
+  body.tv-mode .grid-cols-4,
+  body.tv-mode .lg\:grid-cols-3,
+  body.tv-mode .lg\:grid-cols-4,
+  body.tv-mode .md\:grid-cols-3,
+  body.tv-mode .md\:grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
