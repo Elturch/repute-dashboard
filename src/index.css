@@ -56,42 +56,27 @@
   }
 }
 
-/* ========== Modo TV (65" portrait, 1080×1920 → 2160×3840) ========== */
-/* Tipografía base escalada con vw para que funcione en 1080p y 4K portrait. */
-.tv-panel {
-  font-size: clamp(20px, 1.6vw, 32px);
-}
-.tv-panel h1 { font-size: clamp(56px, 6vw, 96px); line-height: 1; font-weight: 800; }
-.tv-panel h2 { font-size: clamp(36px, 4vw, 56px); line-height: 1.1; }
-.tv-panel h3 { font-size: clamp(24px, 2.4vw, 38px); }
+/* ========== Modo TV (rota entre páginas reales del dashboard) ========== */
 
-.tv-panel .big-kpi-number {
-  font-size: clamp(140px, 14vw, 240px);
-  line-height: 1;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-}
-.tv-panel .big-kpi-label {
-  font-size: clamp(36px, 3.5vw, 60px);
-  letter-spacing: 0.1em;
-  font-weight: 700;
-}
-.tv-panel .sub-kpi-number {
-  font-size: clamp(60px, 6vw, 100px);
-  line-height: 1;
-  font-weight: 800;
-}
-.tv-panel .sub-kpi-label {
-  font-size: clamp(20px, 1.8vw, 36px);
-  letter-spacing: 0.08em;
-  opacity: 0.6;
-}
-.tv-panel .table-row {
-  font-size: clamp(22px, 2vw, 36px);
-  padding: 0.75rem 0;
+/* Oculta cualquier sección marcada con data-tv-hide o .tv-hide en modo TV.
+   Lo usa MencionesRecientes para no mostrar la lista en pantalla a 5m. */
+body.tv-mode-active [data-tv-hide],
+body.tv-mode-active .tv-hide {
+  display: none !important;
 }
 
-/* Cuando el body lleva tv-mode, ocultar cualquier scrollbar y prevenir overflow horizontal */
-body.tv-mode {
-  overflow: hidden;
+/* Más respiro general en modo TV (se ve a distancia) */
+body.tv-mode-active {
+  font-size: 16px;
+}
+body.tv-mode-active main {
+  padding: 1.5rem 2rem;
+}
+
+/* Adaptación a portrait: grids muy anchos colapsan */
+@media (orientation: portrait) {
+  body.tv-mode-active .grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.tv-mode-active .grid-cols-6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.tv-mode-active .grid-cols-7 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  body.tv-mode-active .lg\:grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

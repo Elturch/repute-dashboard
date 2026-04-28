@@ -18,7 +18,6 @@ const routes = [
   { path: "/dashboard/notificaciones", label: "Notificaciones", desc: "Historial completo de alertas y notificaciones" },
   { path: "/dashboard/especiales", label: "Especiales (Índice)", desc: "Listado de monográficos de reputación" },
   { path: "/dashboard/especiales/ayuso", label: "Especial Ayuso", desc: "Monográfico: Eventos, Métricas, Medios, Cascadas, Social, Hitos, Evolución" },
-  { path: "/dashboard/tv", label: "Modo TV P", desc: "Presentación fullscreen para pantalla vertical 65″" },
   { path: "/dashboard/sistema/admin", label: "Administración", desc: "Gestión de datos y vistas externas" },
   { path: "/dashboard/sistema/usuarios", label: "Usuarios", desc: "Gestión de usuarios del sistema" },
   { path: "/dashboard/sistema/configuracion", label: "Configuración", desc: "Parámetros del sistema" },

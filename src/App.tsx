@@ -74,7 +74,6 @@ import Admin from "./pages/dashboard/Admin";
 import Usuarios from "./pages/dashboard/sistema/Usuarios";
 import Configuracion from "./pages/dashboard/sistema/Configuracion";
 import Integridad from "./pages/dashboard/sistema/Integridad";
-import ModoTV from "./pages/dashboard/ModoTV";
 import Reportes from "./pages/dashboard/Reportes";
 import Notificaciones from "./pages/dashboard/Notificaciones";
 import Docs from "./pages/dashboard/Docs";
@@ -166,7 +165,6 @@ const App = () => (
             {/* Legacy redirect */}
             <Route path="admin" element={<Navigate to="/dashboard/sistema/admin" replace />} />
           </Route>
-          <Route path="/dashboard/tv" element={<ModoTV />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

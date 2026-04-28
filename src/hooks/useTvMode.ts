@@ -1,33 +1,34 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import type { Canal } from "./useCanalData";
 
-export type TvPanel =
-  | { type: 'canal';  canal: Canal;  titulo: string }
-  | { type: 'bloque'; bloque: 'sermas' | 'catsalut' | 'fjd'; titulo: string };
-
-export const TV_PANELS: readonly TvPanel[] = [
-  { type: 'canal',  canal: 'medios',     titulo: 'MEDIOS' },
-  { type: 'canal',  canal: 'instagram',  titulo: 'INSTAGRAM' },
-  { type: 'canal',  canal: 'twitter',    titulo: 'X (TWITTER)' },
-  { type: 'canal',  canal: 'tiktok',     titulo: 'TIKTOK' },
-  { type: 'canal',  canal: 'mybusiness', titulo: 'RESEÑAS GOOGLE' },
-  { type: 'bloque', bloque: 'sermas',    titulo: 'SERMAS' },
-  { type: 'bloque', bloque: 'catsalut',  titulo: 'CATSALUT' },
-  { type: 'bloque', bloque: 'fjd',       titulo: 'FUNDACIÓN JIMÉNEZ DÍAZ' },
+/**
+ * Modo TV: rota entre páginas reales del dashboard cada SLIDE_MS.
+ * No reinventa paneles: reusa Privados Resumen, canales Privados, SERMAS,
+ * CATSALUT y FJD. Las menciones recientes se ocultan vía .tv-mode-active en CSS.
+ */
+export const TV_PLAYLIST = [
+  "/dashboard/privados",
+  "/dashboard/privados/noticias",
+  "/dashboard/privados/instagram",
+  "/dashboard/privados/tiktok",
+  "/dashboard/privados/twitter",
+  "/dashboard/privados/mybusiness",
+  "/dashboard/sermas",
+  "/dashboard/catsalut",
+  "/dashboard/fjd",
 ] as const;
 
-const SLIDE_DURATION_MS = 45_000;
+const SLIDE_MS = 30_000;
 const STORAGE_KEY = "qs_tv_mode_active";
 
 export function useTvMode() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [active, setActive] = useState<boolean>(() => {
     return typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY) === "1";
   });
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -35,67 +36,78 @@ export function useTvMode() {
     else localStorage.removeItem(STORAGE_KEY);
   }, [active]);
 
-  // Auto-rotación
+  // Índice del panel actual derivado de la URL
+  const idx = TV_PLAYLIST.findIndex(p => p === location.pathname);
+  const currentIndex = idx >= 0 ? idx : 0;
+
+  // Auto-rotación: avanza navegando a la siguiente ruta
   useEffect(() => {
     if (!active) return;
     const startedAt = Date.now();
     const interval = setInterval(() => {
       const elapsed = Date.now() - startedAt;
-      const pct = Math.min(100, (elapsed / SLIDE_DURATION_MS) * 100);
+      const pct = Math.min(100, (elapsed / SLIDE_MS) * 100);
       setProgress(pct);
-      if (elapsed >= SLIDE_DURATION_MS) {
-        setCurrentIndex(i => (i + 1) % TV_PANELS.length);
+      if (elapsed >= SLIDE_MS) {
+        const next = (currentIndex + 1) % TV_PLAYLIST.length;
+        navigate(TV_PLAYLIST[next], { replace: true });
         setProgress(0);
       }
     }, 100);
     return () => clearInterval(interval);
-  }, [active, currentIndex]);
+  }, [active, currentIndex, navigate]);
 
   // Refrescar datos al cambiar de panel
   useEffect(() => {
     if (!active) return;
     queryClient.invalidateQueries({ queryKey: ['kpi_canal_global'] });
-    queryClient.invalidateQueries({ queryKey: ['tv-canal-raw'] });
+    queryClient.invalidateQueries({ queryKey: ['kpi-canal-global'] });
   }, [active, currentIndex, queryClient]);
+
+  // Body class para estilos TV (oculta menciones, ajusta grids portrait)
+  useEffect(() => {
+    if (active) document.body.classList.add('tv-mode-active');
+    else document.body.classList.remove('tv-mode-active');
+    return () => { document.body.classList.remove('tv-mode-active'); };
+  }, [active]);
 
   // ESC sale
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && active) {
         setActive(false);
-        navigate('/dashboard');
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [active, navigate]);
+  }, [active]);
 
   const start = useCallback(() => {
-    setCurrentIndex(0);
     setProgress(0);
     setActive(true);
-    navigate('/dashboard/tv');
+    navigate(TV_PLAYLIST[0], { replace: true });
   }, [navigate]);
 
   const stop = useCallback(() => {
     setActive(false);
-    navigate('/dashboard');
-  }, [navigate]);
+  }, []);
 
   const next = useCallback(() => {
-    setCurrentIndex(i => (i + 1) % TV_PANELS.length);
+    const n = (currentIndex + 1) % TV_PLAYLIST.length;
+    navigate(TV_PLAYLIST[n], { replace: true });
     setProgress(0);
-  }, []);
+  }, [currentIndex, navigate]);
 
   const prev = useCallback(() => {
-    setCurrentIndex(i => (i - 1 + TV_PANELS.length) % TV_PANELS.length);
+    const p = (currentIndex - 1 + TV_PLAYLIST.length) % TV_PLAYLIST.length;
+    navigate(TV_PLAYLIST[p], { replace: true });
     setProgress(0);
-  }, []);
+  }, [currentIndex, navigate]);
 
   return {
     active, currentIndex, progress,
-    current: TV_PANELS[currentIndex],
-    total: TV_PANELS.length,
+    currentPath: TV_PLAYLIST[currentIndex],
+    total: TV_PLAYLIST.length,
     start, stop, next, prev,
   };
 }
