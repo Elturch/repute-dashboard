@@ -181,7 +181,7 @@ export default function FJDPage() {
           <h1 className="text-3xl font-bold tracking-tight">Fundación Jiménez Díaz</h1>
         </div>
         <p className="text-sm text-amber-600">
-          Joya de la corona · Hospital público gestionado por Quirónsalud · SERMAS
+          Hospital público gestionado por Quirónsalud · SERMAS
         </p>
       </header>
 
