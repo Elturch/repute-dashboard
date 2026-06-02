@@ -1,35 +1,63 @@
 
-## Problema
+## Objetivo
 
-En `/dashboard/fjd` el componente `PerfilReputacionalIA` se está alimentando con `perfilEmpty` tanto en `total` como en `resto`, así que no hay comparación real. Visualmente FJD aparece sola y, en otros indicadores, queda contrastada implícitamente contra "el total del mercado" (privados + SERMAS + CATSALUT), lo cual no es justo: la FJD es un hospital del SERMAS gestionado por QS, y la comparativa relevante es **FJD vs resto de hospitales SERMAS**, donde históricamente FJD sale líder.
+Dejar **explícito y para no especialistas** quién gana o pierde en cada métrica IA, en **todas** las páginas que usan `PerfilReputacionalIA` (FJD, Privados Resumen, SERMAS, CATSALUT y cualquier futura). Cambio único en el componente compartido.
 
-## Cambio
+## Cambios en `src/components/PerfilReputacionalIA.tsx`
 
-En `src/pages/dashboard/fjd/FJDPage.tsx`, dentro del `useMemo` que prepara los buckets del perfil:
+### 1. Flecha de dirección pegada a cada nombre de métrica
 
-1. Filtrar `kpiRows` por `filterByGestionLike(rows, 'SERMAS%')` → todas las filas SERMAS (gestión QS y no QS).
-2. Construir tres buckets vía `aggregateKpi` + `toPerfilBucket`:
-   - **`highlight`**: solo filas de la FJD (ya se hace con `filterByGrupo`).
-   - **`resto`**: SERMAS excluyendo FJD → etiqueta `"Resto SERMAS"`.
-   - **`total`**: SERMAS completo (incluida FJD) → etiqueta `"Total SERMAS"`.
-3. Pasar al componente:
-   ```text
-   contextLabel="FJD vs hospitales SERMAS · 30 días"
-   highlightLabel="FJD"
-   highlightColor="#f59e0b"
-   ```
+En la definición de `POSITIVAS` y `NEGATIVAS`, generar un label con sufijo direccional que se reutilice en radar y tabla:
 
-Con esto el radar mostrará FJD vs Resto SERMAS y la tabla de métricas comparará correctamente; el subtítulo dejará claro que la base es SERMAS, no el mercado entero.
+- Positivas → `"INFLUENCIA ↑"`, `"FIABILIDAD ↑"`, etc. (verde tenue en el símbolo ↑)
+- Negativas → `"RECHAZO ↓"`, `"PREOCUPACIÓN ↓"`, `"DESCRÉDITO ↓"` (rojo tenue en el símbolo ↓)
 
-## Detalles técnicos
+La flecha se pinta dentro del `ColoredAxisTick` del radar como un `<tspan>` adicional con color fijo (verde/rojo según `positive`), y se añade también en la columna "Métrica" del `NumericTable` con el mismo color.
 
-- Los promedios (`influencia`, `fiabilidad`, etc.) ya están ponderados por menciones en `aggregateKpi`, así que la comparación es consistente.
-- Mantener `menciones` del `highlight` desde el agregado de la vista (no desde `menciones.length` del hook de menciones recientes, que está capado).
-- El resto de la página (KPIs superiores, distribución por canal, evolución, lista de menciones recientes) **no se toca** — siguen siendo vistas FJD-only correctas.
-- No hace falta migración ni cambios en hooks; todo se resuelve con los helpers ya existentes (`filterByGestionLike`, `filterByGrupo`, `aggregateKpi`, `toPerfilBucket`).
+### 2. Mini-leyenda direccional sobre el radar
+
+Justo encima del radar (donde ya están las leyendas de colores), añadir una segunda línea más pequeña:
+
+```text
+↑ más alto = mejor   ·   ↓ más bajo = mejor
+```
+
+Con ↑ en verde y ↓ en rojo. Tipografía pequeña, en línea con la estética actual.
+
+### 3. Glosario plegable "¿Qué significa cada término?"
+
+Justo después de `NumericTable`, antes del bloque final de iconos ★ ● ⚠, añadir un `<Collapsible>` (ya disponible en `src/components/ui/collapsible.tsx`) cerrado por defecto. Al abrirlo muestra dos columnas:
+
+**Positivas (más alto = mejor)**
+- **Influencia**: alcance y capacidad de la mención para llegar a audiencia relevante.
+- **Fiabilidad**: grado en que la fuente o el contenido se percibe como creíble y riguroso.
+- **Afinidad**: cercanía emocional o identificación que la mención genera hacia el hospital.
+- **Admiración**: reconocimiento positivo del trabajo, logros o profesionales.
+- **Impacto**: repercusión potencial de la mención en la opinión pública.
+
+**Negativas (más bajo = mejor)**
+- **Rechazo**: oposición, crítica abierta o sentimiento contrario.
+- **Preocupación**: inquietud o alarma que transmite el contenido.
+- **Descrédito**: daño reputacional explícito: acusaciones, pérdida de confianza, escándalo.
+
+Cabecera del Collapsible: `"¿Qué significa cada término?"` con icono `HelpCircle` de lucide y caret rotando.
+
+### 4. Mantener todo lo que ya funciona
+
+- La inversión interna para el radar (10 − valor en negativas) se queda igual.
+- La lógica de `statusFor` (★ lidera / ● en línea / ⚠ por debajo) ya invierte correctamente; no se toca.
+- Colores, dimensiones y resto del layout sin cambios.
+
+## Archivos tocados
+
+- **`src/components/PerfilReputacionalIA.tsx`** (único archivo modificado).
+- **No** hay que tocar las páginas que lo consumen (FJD, PrivadosResumen, SermasResumen, CatsalutResumen, etc.): heredan el cambio automáticamente.
 
 ## Verificación
 
-1. Cargar `/dashboard/fjd` → el bloque "Perfil reputacional IA" muestra dos series (FJD ámbar y Resto SERMAS), no una sola línea.
-2. El contador "X dimensiones lidera" debe ser alto (FJD sale ganadora en la mayoría de métricas positivas frente al SERMAS no-QS).
-3. El contextLabel debe leer "FJD vs hospitales SERMAS · 30 días".
+1. `/dashboard/fjd` → radar muestra `RECHAZO ↓` con flecha roja, `INFLUENCIA ↑` con flecha verde, y el valor crudo del eje sigue siendo legible.
+2. Encima del radar aparece la mini-leyenda `↑ más alto = mejor · ↓ más bajo = mejor`.
+3. En la tabla, la columna "Métrica" también muestra las flechas.
+4. Click en "¿Qué significa cada término?" despliega las 8 definiciones.
+5. Ir a `/dashboard/privados` y `/dashboard/sermas` → el mismo bloque mejorado aparece sin tocar esas páginas.
+6. Las páginas de canal específico (Instagram, TikTok…) que usan `PerfilReputacionalIA` también heredan los cambios.
