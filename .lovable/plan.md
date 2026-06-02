@@ -1,84 +1,35 @@
-## Opción A — Migrar KPIs a `v_kpi_canal_30d` (vista materializada)
 
-Dejas `v_canal_*` solo para listas (con `limit(50)` paginado), y mueves todas las **agregaciones** (totales, % QS, nota media, perfiles, riesgo) a una sola query contra `v_kpi_canal_30d`. Esto elimina el bug del cap de 1.000 filas y deja un único hit ligero por sesión.
+## Problema
 
-### 1. Nuevo hook `src/hooks/useKpiCanal.ts`
+En `/dashboard/fjd` el componente `PerfilReputacionalIA` se está alimentando con `perfilEmpty` tanto en `total` como en `resto`, así que no hay comparación real. Visualmente FJD aparece sola y, en otros indicadores, queda contrastada implícitamente contra "el total del mercado" (privados + SERMAS + CATSALUT), lo cual no es justo: la FJD es un hospital del SERMAS gestionado por QS, y la comparativa relevante es **FJD vs resto de hospitales SERMAS**, donde históricamente FJD sale líder.
 
-Una sola query global (todas las filas de la vista agregada — son pocas, una por combinación canal × titularidad × grupo × gestion). Cachea 30 min. Filtros se aplican client-side sobre el array.
+## Cambio
 
-```ts
-export type KpiRow = {
-  canal: 'medios'|'instagram'|'tiktok'|'facebook'|'linkedin'|'twitter'|'mybusiness';
-  titularidad: string | null;
-  grupo_hospitalario: string | null;
-  gestion_hospitalaria: string | null;
-  menciones: number;
-  nota_media: number | null;
-  preocupacion: number | null; rechazo: number | null; descredito: number | null;
-  afinidad: number | null; fiabilidad: number | null; admiracion: number | null;
-  impacto: number | null; influencia: number | null;
-  peligro_bajo: number; peligro_medio_bajo: number; peligro_medio: number;
-  peligro_medio_alto: number; peligro_alto: number; peligro_critico: number;
-  peligro_real: number;            // ALTO + CRÍTICO + MEDIO_ALTO
-  peligro_no_procede: number;
-  fecha_max: string | null;
-};
+En `src/pages/dashboard/fjd/FJDPage.tsx`, dentro del `useMemo` que prepara los buckets del perfil:
 
-useKpiCanalGlobal()  // useQuery key=['kpi_canal_global'], devuelve KpiRow[]
-```
+1. Filtrar `kpiRows` por `filterByGestionLike(rows, 'SERMAS%')` → todas las filas SERMAS (gestión QS y no QS).
+2. Construir tres buckets vía `aggregateKpi` + `toPerfilBucket`:
+   - **`highlight`**: solo filas de la FJD (ya se hace con `filterByGrupo`).
+   - **`resto`**: SERMAS excluyendo FJD → etiqueta `"Resto SERMAS"`.
+   - **`total`**: SERMAS completo (incluida FJD) → etiqueta `"Total SERMAS"`.
+3. Pasar al componente:
+   ```text
+   contextLabel="FJD vs hospitales SERMAS · 30 días"
+   highlightLabel="FJD"
+   highlightColor="#f59e0b"
+   ```
 
-Helpers exportados:
-- `aggregateKpi(rows: KpiRow[])` → suma `menciones`, pondera `nota_media` por menciones, suma todos los buckets de peligro, devuelve `fechaMax`.
-- `filterByCanal(rows, canal)`, `filterByTitularidad`, `filterByGestionLike(rows, 'SERMAS%')`, `filterByGestionExacta`, `filterByGrupo`. Composables.
+Con esto el radar mostrará FJD vs Resto SERMAS y la tabla de métricas comparará correctamente; el subtítulo dejará claro que la base es SERMAS, no el mercado entero.
 
-### 2. Refactor páginas Resumen (totales correctos, una sola query)
+## Detalles técnicos
 
-- **`PrivadosResumen.tsx`**: filtra `titularidad === 'Privado'` agrupando por `grupo_hospitalario` para el ranking 8-grupos. Mantiene la UI tal cual.
-- **`SermasResumen.tsx`**: filtra `gestion_hospitalaria` ILIKE `SERMAS%` y separa Total / Gestión QS / Sin QS / FJD client-side.
-- **`CatsalutResumen.tsx`**: ILIKE `CATSALUT%` + separación Total / Concierto QS / Sin QS.
+- Los promedios (`influencia`, `fiabilidad`, etc.) ya están ponderados por menciones en `aggregateKpi`, así que la comparación es consistente.
+- Mantener `menciones` del `highlight` desde el agregado de la vista (no desde `menciones.length` del hook de menciones recientes, que está capado).
+- El resto de la página (KPIs superiores, distribución por canal, evolución, lista de menciones recientes) **no se toca** — siguen siendo vistas FJD-only correctas.
+- No hace falta migración ni cambios en hooks; todo se resuelve con los helpers ya existentes (`filterByGestionLike`, `filterByGrupo`, `aggregateKpi`, `toPerfilBucket`).
 
-Cada página deja de hacer 7 queries paralelas a `v_canal_*` para totales — todo sale de la misma `KpiRow[]` global.
+## Verificación
 
-### 3. Refactor páginas Channel (segmentos + perfil + riesgo)
-
-- **`PrivadosChannelPage.tsx`**, **`SermasChannelPage.tsx`**, **`CatsalutChannelPage.tsx`**, **`FJDPage.tsx`**:
-  - **KPIs y perfil reputacional** salen de `useKpiCanalGlobal()` filtrado por `canal` + segmento.
-  - **Listas (`MencionesRecientes`)** se mantienen exactamente como están: leen tablas rápidas con `id DESC` y `limit(50)` — esa parte ya no agrega.
-  - Se elimina el bloque `fetchChannelStats` que leía 5.000 filas de `v_canal_*` para luego sumar; pasa a `aggregateKpi(filterByCanal(filterByGestionLike(rows, 'SERMAS%'), cfg.canal))`.
-
-- **Nuevo KPI `% riesgo real`** en cada Channel: `peligro_real / menciones`. Card discreta junto a Nota IA.
-
-### 4. `useCanalData` — restringir a listas paginadas
-
-Cambiar default `limit(2000)` → `limit(50)`, exponer parámetro `limit` opcional y un `count` con `select('*', { count: 'exact', head: false })` para mostrar "mostrando 50 de N" (N viene realmente del KPI, pero el count exacto es backup). Marcar el hook como **solo para listas**, no para totales.
-
-### 5. Validación
-
-Comparar contra los números de referencia que diste:
-```
-PrivadosNoticias → Total: 33.933 (sumando los 8 grupos)
-SermasTikTok    → SERMAS Total: 18.578 | Gestión QS: 3.101 | FJD: 1.385
-CatsalutMedios  → CATSALUT Total: 215 | Concierto QS: 17
-```
-Si algo no cuadra, log de la `KpiRow[]` global en consola para debugging.
-
-### Archivos tocados
-
-Crear:
-- `src/hooks/useKpiCanal.ts`
-
-Editar:
-- `src/pages/dashboard/privados/PrivadosResumen.tsx`
-- `src/pages/dashboard/privados/PrivadosChannelPage.tsx`
-- `src/pages/dashboard/sermas/SermasResumen.tsx`
-- `src/pages/dashboard/sermas/SermasChannelPage.tsx`
-- `src/pages/dashboard/catsalut/CatsalutResumen.tsx`
-- `src/pages/dashboard/catsalut/CatsalutChannelPage.tsx`
-- `src/pages/dashboard/fjd/FJDPage.tsx`
-- `src/hooks/useCanalData.ts` (limit a 50, marcar solo-listas)
-
-### Pre-requisito (tú, en Supabase)
-
-`v_kpi_canal_30d` tiene que ser **MATERIALIZED VIEW** con índices en `(canal, titularidad)`, `(canal, gestion_hospitalaria)`, `(canal, grupo_hospitalario)` y un cron de refresh (cada 30-60 min basta — los datos del dashboard son a 30 días). Sin esto la query global timeoutea igual.
-
-**Confírmame que la vista materializada está creada** y procedo con el refactor.
+1. Cargar `/dashboard/fjd` → el bloque "Perfil reputacional IA" muestra dos series (FJD ámbar y Resto SERMAS), no una sola línea.
+2. El contador "X dimensiones lidera" debe ser alto (FJD sale ganadora en la mayoría de métricas positivas frente al SERMAS no-QS).
+3. El contextLabel debe leer "FJD vs hospitales SERMAS · 30 días".
