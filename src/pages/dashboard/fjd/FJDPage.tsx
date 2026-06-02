@@ -9,7 +9,13 @@ import { FaXTwitter, FaLinkedin } from "react-icons/fa6";
 import { Newspaper } from "lucide-react";
 import { useFJDMenciones, type FJDMencion, type FJDCanal } from "@/hooks/useFJDMenciones";
 import PerfilReputacionalIA, { type PerfilBucket } from "@/components/PerfilReputacionalIA";
-import { useKpiCanalGlobal, filterByGrupo, aggregateKpi } from "@/hooks/useKpiCanal";
+import {
+  useKpiCanalGlobal,
+  filterByGrupo,
+  filterByGestionLike,
+  aggregateKpi,
+  toPerfilBucket,
+} from "@/hooks/useKpiCanal";
 
 const CANAL_ORDER: FJDCanal[] = [
   "tiktok", "mybusiness", "medios", "instagram", "twitter", "facebook", "linkedin",
@@ -97,6 +103,20 @@ export default function FJDPage() {
     return aggregateKpi(fjdRows);
   }, [kpiRows]);
 
+  // Comparativa FJD vs hospitales SERMAS (la base correcta, no el total del mercado).
+  const perfilBuckets = useMemo(() => {
+    if (!kpiRows) return null;
+    const FJD_GRUPOS = ['Hospital Fundación Jiménez Díaz', 'Fundación Jiménez Díaz'];
+    const sermasRows = filterByGestionLike(kpiRows, 'SERMAS%');
+    const fjdRows = sermasRows.filter(r => FJD_GRUPOS.includes(r.grupo_hospitalario ?? ''));
+    const restoRows = sermasRows.filter(r => !FJD_GRUPOS.includes(r.grupo_hospitalario ?? ''));
+    return {
+      total: toPerfilBucket('Total SERMAS', aggregateKpi(sermasRows)),
+      highlight: toPerfilBucket('FJD', aggregateKpi(fjdRows)),
+      resto: toPerfilBucket('Resto SERMAS', aggregateKpi(restoRows)),
+    };
+  }, [kpiRows]);
+
   const [filtroCanal, setFiltroCanal] = useState<"all" | FJDCanal>("all");
   const [filtroRiesgo, setFiltroRiesgo] = useState<"all" | PeligroLevel>("all");
   const [busqueda, setBusqueda] = useState("");
@@ -136,22 +156,6 @@ export default function FJDPage() {
       .sort()
       .map(day => ({ fecha: day, ...byDay[day] }));
   }, [menciones]);
-
-  // Perfil IA
-  const perfilHighlight: PerfilBucket = useMemo(() => ({
-    label: "Fundación Jiménez Díaz",
-    menciones: menciones.length,
-    promedios: {
-      influencia: avg(menciones.map(m => m.influencia)),
-      fiabilidad: avg(menciones.map(m => m.fiabilidad)),
-      afinidad: avg(menciones.map(m => m.afinidad)),
-      admiracion: avg(menciones.map(m => m.admiracion)),
-      impacto: avg(menciones.map(m => m.impacto)),
-      rechazo: avg(menciones.map(m => m.rechazo)),
-      preocupacion: avg(menciones.map(m => m.preocupacion)),
-      descredito: avg(menciones.map(m => m.descredito)),
-    },
-  }), [menciones]);
 
   const perfilEmpty: PerfilBucket = { label: "—", menciones: 0, promedios: EMPTY_PROMEDIOS };
 
@@ -289,11 +293,11 @@ export default function FJDPage() {
 
           {/* Perfil reputacional IA */}
           <PerfilReputacionalIA
-            contextLabel="FJD · 30 días"
-            highlightLabel="Fundación Jiménez Díaz"
-            total={perfilEmpty}
-            highlight={perfilHighlight}
-            resto={perfilEmpty}
+            contextLabel="FJD vs hospitales SERMAS · 30 días"
+            highlightLabel="FJD"
+            total={perfilBuckets?.total ?? perfilEmpty}
+            highlight={perfilBuckets?.highlight ?? perfilEmpty}
+            resto={perfilBuckets?.resto ?? perfilEmpty}
             highlightColor="#f59e0b"
           />
 
