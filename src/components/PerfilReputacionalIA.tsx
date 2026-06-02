@@ -1,6 +1,6 @@
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
-import { Wrench } from 'lucide-react';
-import { useMemo } from 'react';
+import { Wrench, HelpCircle, ChevronDown } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 export interface PerfilBucket {
   label: string;
@@ -31,6 +31,17 @@ const COLOR_BAD      = '#ef4444';
 const RADAR_TOTAL = '#f59e0b';
 const RADAR_QS    = '#10b981';
 const RADAR_SINQS = '#3b82f6';
+
+const GLOSARIO: Record<string, string> = {
+  influencia:  'Alcance y capacidad de la mención para llegar a audiencia relevante.',
+  fiabilidad:  'Grado en que la fuente o el contenido se percibe como creíble y riguroso.',
+  afinidad:    'Cercanía emocional o identificación que la mención genera hacia el hospital.',
+  admiracion:  'Reconocimiento positivo del trabajo, logros o profesionales.',
+  impacto:     'Repercusión potencial de la mención en la opinión pública.',
+  rechazo:     'Oposición, crítica abierta o sentimiento contrario.',
+  preocupacion:'Inquietud o alarma que transmite el contenido.',
+  descredito:  'Daño reputacional explícito: acusaciones, pérdida de confianza, escándalo.',
+};
 
 function fmtNum(n: number | null, d = 2): string { return n == null ? '—' : n.toFixed(d); }
 
@@ -73,15 +84,17 @@ export default function PerfilReputacionalIA({
   }, [highlight, resto]);
 
   const statusMap = useMemo(() => {
-    const map: Record<string, { color: string; icon: string; value: number | null }> = {};
+    const map: Record<string, { color: string; icon: string; value: number | null; positive: boolean }> = {};
     ALL_METRICAS.forEach(m => {
       const hi = highlight.promedios[m.key];
       const re = resto.promedios[m.key];
       const s = statusFor(m, hi, re);
-      map[m.label] = { color: s.color, icon: s.icon, value: hi };
+      map[m.label] = { color: s.color, icon: s.icon, value: hi, positive: m.positive };
     });
     return map;
   }, [highlight, resto]);
+
+  const [glosarioOpen, setGlosarioOpen] = useState(false);
 
   const allNull = ALL_METRICAS.every(m => highlight.promedios[m.key] == null);
   if (allNull) {
@@ -171,10 +184,17 @@ export default function PerfilReputacionalIA({
             </RadarChart>
           </ResponsiveContainer>
         </div>
-        <p className="text-[12px] text-[#9ca3af] text-center mt-3 leading-relaxed">
-          Métricas negativas (rechazo, preocupación, descrédito) invertidas para que <span className="font-bold text-white">"más extenso = mejor"</span> en todas las direcciones.<br/>
-          Color del eje: <span className="text-[#22c55e] font-bold">verde</span> si {highlightLabel} lidera, <span className="text-[#ef4444] font-bold">rojo</span> si está por debajo. Valores reales junto a cada eje.
-        </p>
+        <div className="text-[12px] text-[#9ca3af] text-center mt-3 leading-relaxed space-y-1.5">
+          <p>
+            <span className="text-[#22c55e] font-bold">↑</span> junto a la métrica = <span className="text-white font-semibold">más alto es mejor</span>
+            <span className="mx-3 text-white/30">·</span>
+            <span className="text-[#ef4444] font-bold">↓</span> = <span className="text-white font-semibold">más bajo es mejor</span>
+          </p>
+          <p>
+            Métricas negativas invertidas en el radar para que <span className="font-bold text-white">"más extenso = mejor"</span> siempre. Valores reales junto a cada eje.<br/>
+            Color del eje: <span className="text-[#22c55e] font-bold">verde</span> si {highlightLabel} lidera, <span className="text-[#ef4444] font-bold">rojo</span> si está por debajo.
+          </p>
+        </div>
       </div>
 
       <NumericTable
@@ -186,6 +206,50 @@ export default function PerfilReputacionalIA({
         highlightColor={highlightColor}
         highlightLabel={highlightLabel}
       />
+
+      <div className="mt-4 bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setGlosarioOpen(o => !o)}
+          className="w-full px-7 py-3.5 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors"
+        >
+          <span className="flex items-center gap-2 text-[12px] uppercase tracking-[0.2em] font-bold text-[#e5e7eb]">
+            <HelpCircle className="w-4 h-4 text-[#9ca3af]" />
+            ¿Qué significa cada término?
+          </span>
+          <ChevronDown className={`w-4 h-4 text-[#9ca3af] transition-transform ${glosarioOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {glosarioOpen && (
+          <div className="px-7 pb-6 pt-2 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4 border-t border-white/5">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] font-bold mb-3" style={{ color: COLOR_GOOD }}>
+                Positivas <span className="text-[#6b7280] font-normal normal-case tracking-normal">— más alto = mejor ↑</span>
+              </p>
+              <dl className="space-y-2.5 text-sm">
+                {POSITIVAS.map(m => (
+                  <div key={m.key}>
+                    <dt className="font-semibold text-white inline">{m.label}: </dt>
+                    <dd className="inline text-[#9ca3af]">{GLOSARIO[m.key]}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] font-bold mb-3" style={{ color: COLOR_BAD }}>
+                Negativas <span className="text-[#6b7280] font-normal normal-case tracking-normal">— más bajo = mejor ↓</span>
+              </p>
+              <dl className="space-y-2.5 text-sm">
+                {NEGATIVAS.map(m => (
+                  <div key={m.key}>
+                    <dt className="font-semibold text-white inline">{m.label}: </dt>
+                    <dd className="inline text-[#9ca3af]">{GLOSARIO[m.key]}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="mt-6 pt-4 border-t border-white/5 flex items-center gap-8 text-sm text-[#9ca3af] flex-wrap">
         <span className="flex items-center gap-1.5"><span className="text-[#22c55e] font-bold text-base">★</span> {highlightLabel} lidera</span>
@@ -214,11 +278,14 @@ function ColoredAxisTick(props: any) {
   const { x, y, textAnchor, payload, statusMap } = props;
   const info = statusMap[payload.value];
   if (!info) return null;
+  const arrow = info.positive ? '↑' : '↓';
+  const arrowColor = info.positive ? COLOR_GOOD : COLOR_BAD;
   return (
     <g>
       <text x={x} y={y} textAnchor={textAnchor}>
         <tspan x={x} dy="0" fontSize="12" fontWeight="700" fill="#d1d5db" letterSpacing="0.5">
           {payload.value.toUpperCase()}
+          <tspan dx="4" fontSize="13" fontWeight="900" fill={arrowColor}>{arrow}</tspan>
         </tspan>
         <tspan x={x} dy="1.4em" fontSize="22" fontWeight="800" fill={info.color}>
           {info.value != null ? info.value.toFixed(2) : 'n/a'}
@@ -282,6 +349,9 @@ function Row({ m, t, h, r, isLast }: {
     <div className={`grid grid-cols-[1.4fr_1fr_1.6fr_1fr] gap-4 px-7 py-5 items-baseline ${!isLast ? 'border-b border-white/[0.04]' : ''} ${noData ? 'opacity-50' : ''}`}>
       <span className="text-lg text-[#e5e7eb] font-medium">
         {m.label}
+        <span className="ml-1.5 font-bold" style={{ color: m.positive ? COLOR_GOOD : COLOR_BAD }}>
+          {m.positive ? '↑' : '↓'}
+        </span>
         {noData && <span className="ml-2 text-[10px] uppercase tracking-wider text-[#f59e0b]">no aplica</span>}
       </span>
       <span className="text-right tabular-nums text-3xl font-semibold" style={{ color: tot != null ? '#fcd34d' : '#6b7280' }}>{fmtNum(tot)}</span>
