@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Download, Tv, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { externalSupabase } from "@/integrations/external-supabase/client";
 import { useTvMode } from "@/hooks/useTvMode";
@@ -83,6 +84,7 @@ const DashboardLayout = () => {
               </span>
             </div>
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               <NotificationBell />
               <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => navigate("/dashboard/reportes")}>
                 <Download className="h-3.5 w-3.5" />
