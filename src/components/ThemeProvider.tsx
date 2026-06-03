@@ -20,6 +20,13 @@ function readInitial(): Theme {
   return "dark";
 }
 
+// Apply theme class synchronously at module load to avoid FOUC
+if (typeof document !== "undefined") {
+  const initial = readInitial();
+  if (initial === "dark") document.documentElement.classList.add("dark");
+  else document.documentElement.classList.remove("dark");
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => readInitial());
 
