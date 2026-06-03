@@ -144,6 +144,35 @@ export default function FJDPage() {
       .sort((a, b) => b.count - a.count);
   }, [menciones]);
 
+  // Comportamiento por canal: medias de métricas IA + % riesgo
+  const comportamientoCanal = useMemo(() => {
+    return CANAL_ORDER.map(c => {
+      const rows = menciones.filter(m => m.canal === c);
+      const count = rows.length;
+      const altoCount = rows.filter(m => {
+        const p = (m.peligro ?? "").toUpperCase().replace("CRITICO", "CRÍTICO");
+        return p === "ALTO" || p === "CRÍTICO";
+      }).length;
+      const ratingRows = c === "mybusiness" ? rows.map(m => m.rating ?? m.nota_media) : [];
+      return {
+        canal: c,
+        label: CANAL_LABEL[c],
+        color: CANAL_COLOR[c],
+        count,
+        pctAlto: count > 0 ? (altoCount / count) * 100 : 0,
+        nota: avg(rows.map(m => m.nota_media)),
+        afinidad: avg(rows.map(m => m.afinidad)),
+        fiabilidad: avg(rows.map(m => m.fiabilidad)),
+        admiracion: avg(rows.map(m => m.admiracion)),
+        impacto: avg(rows.map(m => m.impacto)),
+        preocupacion: avg(rows.map(m => m.preocupacion)),
+        rechazo: avg(rows.map(m => m.rechazo)),
+        descredito: avg(rows.map(m => m.descredito)),
+        rating: c === "mybusiness" ? avg(ratingRows) : null,
+      };
+    });
+  }, [menciones]);
+
   // Evolución temporal pivoteada
   const evolucion = useMemo(() => {
     const byDay: Record<string, Record<string, number>> = {};
@@ -258,6 +287,23 @@ export default function FJDPage() {
                 LinkedIn 0 · pendiente de arreglar identificador en el slug
               </div>
             )}
+          </section>
+
+          {/* Comportamiento por canal */}
+          <section className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+            <div className="mb-4">
+              <h2 className="text-sm uppercase tracking-[0.2em] text-white/60 font-medium">
+                Comportamiento por canal · 30 días
+              </h2>
+              <p className="text-xs text-white/40 mt-1">
+                Cómo se percibe FJD en cada canal. <span className="text-emerald-400">↑ positivas: más alto es mejor</span> · <span className="text-red-400">↓ negativas: más bajo es mejor</span>
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+              {comportamientoCanal.map(ch => (
+                <CanalCard key={ch.canal} ch={ch} />
+              ))}
+            </div>
           </section>
 
           {/* Evolución */}
