@@ -469,3 +469,120 @@ function MencionCard({ m }: { m: FJDMencion }) {
     </a>
   );
 }
+
+type CanalBehavior = {
+  canal: FJDCanal;
+  label: string;
+  color: string;
+  count: number;
+  pctAlto: number;
+  nota: number | null;
+  afinidad: number | null;
+  fiabilidad: number | null;
+  admiracion: number | null;
+  impacto: number | null;
+  preocupacion: number | null;
+  rechazo: number | null;
+  descredito: number | null;
+  rating: number | null;
+};
+
+function notaColorClass(n: number | null): string {
+  if (n == null) return "text-white/40";
+  if (n >= 7) return "text-red-400";
+  if (n >= 5) return "text-orange-400";
+  if (n >= 3) return "text-yellow-400";
+  return "text-emerald-400";
+}
+
+function MetricBar({
+  label, value, positive,
+}: { label: string; value: number | null; positive: boolean }) {
+  const pct = value != null ? Math.min(Math.max(value, 0), 10) * 10 : 0;
+  const barColor = positive ? "bg-emerald-500" : "bg-red-500";
+  return (
+    <div className="flex items-center gap-2 text-[11px]">
+      <span className="w-20 text-white/60 truncate">{label}</span>
+      <div className="flex-1 h-1.5 rounded bg-white/5 overflow-hidden">
+        {value != null && (
+          <div className={`h-full ${barColor}`} style={{ width: `${pct}%` }} />
+        )}
+      </div>
+      <span className="w-8 text-right font-mono tabular-nums text-white/80">
+        {value != null ? value.toFixed(1) : "—"}
+      </span>
+    </div>
+  );
+}
+
+function CanalCard({ ch }: { ch: CanalBehavior }) {
+  if (ch.count === 0) {
+    return (
+      <div className="rounded-lg border border-white/10 bg-white/[0.01] p-4 opacity-60">
+        <div className="flex items-center gap-2 mb-2">
+          <CanalIcon canal={ch.canal} className="h-4 w-4" />
+          <span className="text-sm font-medium text-white/70">{ch.label}</span>
+        </div>
+        <p className="text-xs text-white/40">Sin menciones en 30 días</p>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4 space-y-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span style={{ color: ch.color }}><CanalIcon canal={ch.canal} className="h-4 w-4" /></span>
+          <span className="text-sm font-semibold text-white">{ch.label}</span>
+        </div>
+        <span className="text-xs font-mono tabular-nums text-white/60">
+          {ch.count.toLocaleString()}
+        </span>
+      </div>
+
+      {/* Resumen */}
+      <div className="grid grid-cols-2 gap-2 text-xs border-y border-white/5 py-2">
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-white/40">Nota IA</p>
+          <p className={`font-mono font-semibold ${notaColorClass(ch.nota)}`}>
+            {ch.nota != null ? `${ch.nota.toFixed(2)} / 10` : "—"}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-white/40">Riesgo alto+crít</p>
+          <p className={`font-mono font-semibold ${ch.pctAlto >= 15 ? "text-red-400" : ch.pctAlto >= 5 ? "text-orange-400" : "text-emerald-400"}`}>
+            {ch.pctAlto.toFixed(1)}%
+          </p>
+        </div>
+      </div>
+
+      {/* Métricas positivas */}
+      <div className="space-y-1.5">
+        <p className="text-[10px] uppercase tracking-wider text-emerald-400/80">
+          ↑ Positivas
+        </p>
+        <MetricBar label="Afinidad" value={ch.afinidad} positive />
+        <MetricBar label="Fiabilidad" value={ch.fiabilidad} positive />
+        <MetricBar label="Admiración" value={ch.admiracion} positive />
+        <MetricBar label="Impacto" value={ch.impacto} positive />
+      </div>
+
+      {/* Métricas negativas */}
+      <div className="space-y-1.5">
+        <p className="text-[10px] uppercase tracking-wider text-red-400/80">
+          ↓ Negativas
+        </p>
+        <MetricBar label="Preocupación" value={ch.preocupacion} positive={false} />
+        <MetricBar label="Rechazo" value={ch.rechazo} positive={false} />
+        <MetricBar label="Descrédito" value={ch.descredito} positive={false} />
+      </div>
+
+      {/* Rating específico MyBusiness */}
+      {ch.canal === "mybusiness" && ch.rating != null && (
+        <div className="pt-2 border-t border-white/5 text-xs text-amber-400">
+          ★ {ch.rating.toFixed(2)} · {ch.count} reseñas
+        </div>
+      )}
+    </div>
+  );
+}
