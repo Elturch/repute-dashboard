@@ -204,7 +204,9 @@ function BloqueGroup({ bloque, collapsed, pathname }: { bloque: Bloque; collapse
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const isSuperadmin = localStorage.getItem("mr_is_superadmin") === "true";
+  const isSuperadmin =
+    localStorage.getItem("mr_is_superadmin") === "true" ||
+    localStorage.getItem("mr_user_role") === "superadmin";
   const { pathname } = useLocation();
 
   return (
