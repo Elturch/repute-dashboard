@@ -3,18 +3,28 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Outlet, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Download, Tv, X } from "lucide-react";
+import { Download, Tv, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { externalSupabase } from "@/integrations/external-supabase/client";
 import { useTvMode } from "@/hooks/useTvMode";
+import { clearSession, getSession } from "@/lib/auth";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const tv = useTvMode();
+
+  useEffect(() => {
+    if (!getSession()) navigate("/login", { replace: true });
+  }, [navigate]);
+
+  const handleLogout = async () => {
+    await clearSession();
+    navigate("/login", { replace: true });
+  };
 
   // Cursor oculto tras 3s sin movimiento (solo en modo TV)
   useEffect(() => {
@@ -93,6 +103,9 @@ const DashboardLayout = () => {
               <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={tv.start}>
                 <Tv className="h-3.5 w-3.5" />
                 TV Auto
+              </Button>
+              <Button variant="ghost" size="sm" className="gap-2 text-xs" onClick={handleLogout} title="Cerrar sesión">
+                <LogOut className="h-3.5 w-3.5" />
               </Button>
             </div>
           </header>
