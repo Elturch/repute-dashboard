@@ -103,14 +103,26 @@ const Login = () => {
         </div>
 
         {step === "email" ? (
-          <form onSubmit={requestCode} className="space-y-4">
+          <form onSubmit={requestCode} className="space-y-4" autoComplete="off">
+            {/* honeypot para neutralizar el autorrelleno de contraseñas */}
+            <input type="text" name="fakeuser" autoComplete="username" tabIndex={-1} aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }} />
+            <input type="password" name="fakepass" autoComplete="new-password" tabIndex={-1} aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }} />
             <Input
               type="email"
+              name="login_email_no_autofill"
               placeholder="tu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="h-12 bg-card border-border text-foreground placeholder:text-muted-foreground"
               required
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              inputMode="email"
+              data-lpignore="true"
+              data-form-type="other"
+              data-1p-ignore
             />
             <Button type="submit" className="w-full h-12 text-base font-medium" disabled={loading}>
               {loading ? "Enviando..." : "Enviar código"}
@@ -120,12 +132,19 @@ const Login = () => {
             </p>
           </form>
         ) : (
-          <form onSubmit={verifyCode} className="space-y-4">
+          <form onSubmit={verifyCode} className="space-y-4" autoComplete="off">
             <p className="text-center text-sm text-muted-foreground">
               Introduce el código enviado a <span className="font-medium text-foreground">{email}</span>
             </p>
             <div className="flex justify-center">
-              <InputOTP maxLength={6} value={code} onChange={setCode}>
+              <InputOTP
+                maxLength={6}
+                value={code}
+                onChange={setCode}
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                pattern="[0-9]*"
+              >
                 <InputOTPGroup>
                   <InputOTPSlot index={0} />
                   <InputOTPSlot index={1} />
