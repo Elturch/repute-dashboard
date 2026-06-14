@@ -1,46 +1,62 @@
-# Desglose por canal en FJD
+# Alta de usuarios con código numérico por email
 
-Hoy en `/dashboard/fjd` los KPIs son totales (menciones, nota IA media, % riesgo, reseñas Google) y el detalle por canal solo muestra **conteos** (barra horizontal) y **evolución temporal**. Falta lo importante: **cómo se comporta FJD en cada canal** (no solo cuánto se habla).
+## Objetivo
+- Tú, como superadmin, das de alta usuarios desde la pantalla **Sistema → Usuarios** introduciendo email + rol (lector / superadmin).
+- El usuario recibe un **código numérico de 6 dígitos** en su correo y lo introduce en el login para entrar.
+- Para el superadmin `datos@hablamosde.com`, el código se rellena solo automáticamente en el login (sin email).
+- Solo los superadmin pueden dar de alta o eliminar usuarios.
 
-## Qué añadir
+## Cambios en el login
+La pantalla actual de "magic link" pasa a ser un flujo de **2 pasos**:
+1. **Paso 1 – Email**: el usuario introduce su email y pulsa "Enviar código".
+   - Si es `datos@hablamosde.com` → entra directo como superadmin (sin código), igual que hoy.
+   - Si está dado de alta → se genera un código de 6 dígitos, se guarda en BD (hash + caducidad 10 min) y se envía por correo.
+   - Si no está dado de alta → mensaje "Tu email no tiene acceso a este panel".
+2. **Paso 2 – Código**: input de 6 dígitos. Al validar, se crea sesión y se redirige al dashboard.
 
-Una nueva sección **"Comportamiento por canal"** justo después de "Distribución por canal", antes de "Evolución temporal". Una tarjeta por canal con métricas clave calculadas sobre las menciones de ese canal.
+La sesión se guarda en `localStorage` (mismo patrón que ya hay con `mr_user_email` / `mr_is_superadmin`), añadiendo el rol y un token de sesión con caducidad.
 
-### Tarjeta por canal
+## Pantalla "Sistema → Usuarios"
+Solo visible/accesible para superadmin. Contiene:
+- **Tabla** de usuarios: email, rol, fecha de alta, último acceso, acciones (eliminar, cambiar rol).
+- **Botón "Añadir usuario"** → modal con email + selector de rol (lector / superadmin). Al guardar se crea en BD; el usuario podrá entrar la próxima vez que solicite código.
+- El propio superadmin no puede borrarse a sí mismo.
 
-Grid responsive (1 / 2 / 3 / 4 columnas según viewport). Cada tarjeta:
+## Datos (Lovable Cloud)
+Dos tablas nuevas en el backend de la app (no en la BD externa de menciones):
 
-```text
-┌─────────────────────────────┐
-│ [icon] TikTok      1.240    │  ← canal + total menciones
-├─────────────────────────────┤
-│ Nota IA          4.2 / 10   │  ← color verde/amarillo/rojo
-│ Riesgo alto+crít   12.3%    │
-├─────────────────────────────┤
-│ Positivas (↑ mejor)         │
-│  Afinidad      ▇▇▇▇░  6.1   │
-│  Fiabilidad    ▇▇▇░░  5.4   │
-│  Admiración    ▇▇░░░  3.8   │
-│  Impacto       ▇▇▇▇░  6.0   │
-│ Negativas (↓ mejor)         │
-│  Preocupación  ▇▇░░░  3.2   │
-│  Rechazo       ▇░░░░  1.8   │
-│  Descrédito    ▇░░░░  1.5   │
-└─────────────────────────────┘
-```
+- **`app_users`**: `email` (único, en minúsculas), `role` ('lector' | 'superadmin'), `created_by`, `last_login_at`.
+- **`login_codes`**: `email`, `code_hash`, `expires_at`, `consumed_at`, `attempts`. Caducidad 10 min, máximo 5 intentos, un solo uso.
 
-- Barra mini con color: **verde** para positivas, **rojo/ámbar** para negativas (consistente con la convención `positive ↑ / negative ↓` ya introducida en `PerfilReputacionalIA`).
-- Si el canal tiene 0 menciones, mostrar tarjeta apagada con "Sin menciones en 30 días".
-- En `mybusiness` añadir además una línea extra "★ rating medio · N reseñas".
+Semilla inicial: insertar `datos@hablamosde.com` como `superadmin`.
 
-## Fuente de datos
+Acceso: las tablas se consultan/modifican vía edge functions con la service role; el cliente nunca lee directamente `login_codes`.
 
-Reutilizar `useFJDMenciones()` (ya cargado en la página) y agregar **client-side** por `canal` con la misma `avg()` que ya existe en el archivo. Métricas a promediar: `nota_media`, `afinidad`, `fiabilidad`, `admiracion`, `impacto`, `preocupacion`, `rechazo`, `descredito`. Riesgo alto/crítico = `count(peligro ∈ {ALTO, CRÍTICO}) / count`.
+## Envío del código por correo
+Email del propio Lovable (sin servicios externos). Plantilla simple con el código grande, el nombre del panel y aviso de caducidad de 10 minutos. Asunto: "Tu código de acceso · Monitor Reputacional".
 
-No hace falta tocar hooks ni la base de datos. No hace falta nuevas vistas.
+## Edge functions
+Tres funciones backend:
+- `request-login-code`: recibe email, comprueba que existe en `app_users`, genera código, guarda hash y envía email.
+- `verify-login-code`: recibe email + código, valida (hash, caducidad, intentos, no consumido), marca consumido, devuelve `{ email, role }` y actualiza `last_login_at`.
+- `admin-users`: CRUD de usuarios (listar, crear, borrar, cambiar rol). Solo acepta peticiones cuando el llamante es superadmin (verificado por email + token de sesión).
 
-## Archivos
+## Protección de rutas
+- `DashboardLayout` comprueba al montar que existe sesión válida (email + rol + no caducada); si no, redirige a `/login`.
+- La ruta `sistema/usuarios` se oculta del sidebar y se bloquea si el rol no es `superadmin`.
+- Se añade un botón de "Cerrar sesión" en el header.
 
-- `src/pages/dashboard/fjd/FJDPage.tsx`: añadir `useMemo` `comportamientoCanal` y nueva `<section>` con grid de tarjetas. Subcomponente local `CanalCard`.
+## Ficheros afectados
+- `src/pages/Login.tsx` (rehecho con flujo email → código).
+- `src/pages/dashboard/sistema/Usuarios.tsx` (tabla + alta + borrado).
+- `src/layouts/DashboardLayout.tsx` (guardia de sesión + logout).
+- `src/components/AppSidebar.tsx` (ocultar "Usuarios" para no superadmin).
+- `src/lib/auth.ts` *(nuevo)*: helpers `getSession`, `setSession`, `clearSession`, `isSuperadmin`.
+- `src/hooks/useAdminUsers.ts` *(nuevo)*: invoca la edge function `admin-users`.
+- Edge functions: `request-login-code`, `verify-login-code`, `admin-users`.
+- Migración para crear `app_users` y `login_codes`, con GRANTs, RLS bloqueada al cliente (solo service role) y seed del superadmin.
 
-Sin cambios en otras páginas, hooks, ni esquema de datos.
+## Notas
+- El código es siempre de 6 dígitos, generado en servidor con aleatoriedad criptográfica.
+- El "auto-rellenado" del superadmin se hace en el frontend: si el email es `datos@hablamosde.com`, se salta el paso del código (como ya hace hoy), sin enviar correo.
+- Modelo simple, sin Supabase Auth: encaja con el patrón actual del proyecto que ya usa `localStorage` para identificar al superadmin.
