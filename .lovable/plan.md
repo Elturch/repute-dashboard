@@ -1,3 +1,20 @@
+# Auditoría LinkedIn / My Business en Resumen 30D (Privados)
+
+## Diagnóstico
+- **LinkedIn**: la vista `v_kpi_canal_30d` sólo devuelve 5 grupos privados con datos (Quirónsalud 127, Sanitas 212, Vithas 97, Hospiten 79, Viamed 42). Los términos `"HM Hospitales"` (114 posts), `"Ribera Salud"` (107) y `"HLA Hospitales"` (42) sí existen en `linkedin_gh_filtradas` pero **no están mapeados a su grupo hospitalario en la tabla `keywords` de Tasklet**, por eso no se agregan. No hay ruido de seguros: el término "Sanitas" no aparece en LinkedIn (Sanitas se cuenta vía Teknon, La Moraleja, La Zarzuela, Virgen del Mar, CIMA, La Luz) → no está entrando Sanitas Seguros.
+- **My Business**: el panel mide reseñas y comentarios de las fichas de Google Maps de cada hospital. El usuario quería que se etiquete claramente.
+- En ambos canales confirmado que Quirón Prevención / Sanitas Seguros no se cuelan.
+
+## Cambios de UI (sólo `src/pages/dashboard/privados/PrivadosResumen.tsx`)
+1. Añadir a `ChannelConfig` los campos opcionales `subtitulo` y `nota`.
+2. LinkedIn → subtítulo "Publicaciones corporativas" + nota: cobertura parcial, HM/Ribera/HLA pendientes de mapeo en Tasklet, Sanitas no incluye seguros, Quirónsalud no incluye Quirón Prevención.
+3. My Business → subtítulo "Reseñas y comentarios de Google" + nota explicando que sólo recoge reseñas/comentarios de fichas de Google Maps, no aseguradoras.
+4. Renderizar `subtitulo` debajo del nombre del canal en la tira de KPIs superior (texto pequeño gris).
+5. Renderizar `nota` como aviso amber con `AlertTriangle` dentro del `<ChannelSection>` (sólo si está definida).
+6. No tocar lógica de agregación ni filtros — el bug real (keywords sin mapear) es backend y queda en el wishlist de Tasklet.
+
+---
+
 # Alta de usuarios con código numérico por email
 
 ## Objetivo
