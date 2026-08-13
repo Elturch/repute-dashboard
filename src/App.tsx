@@ -58,6 +58,7 @@ import CatsalutMyBusiness from "./pages/dashboard/catsalut/CatsalutMyBusiness";
 
 // FJD (hospital destacado)
 import FJDPage from "./pages/dashboard/fjd/FJDPage";
+import AltaComplejidad from "./pages/dashboard/core/AltaComplejidad";
 
 // Especiales
 import EspecialesIndex from "./pages/dashboard/especiales/EspecialesIndex";
@@ -134,6 +135,7 @@ const App = () => (
             <Route path="riesgo" element={<Riesgo />} />
             <Route path="explorador" element={<Explorador />} />
             <Route path="fjd" element={<FJDPage />} />
+            <Route path="alta-complejidad" element={<AltaComplejidad />} />
             <Route path="relato" element={<Relato />} />
             <Route path="reportes" element={<Reportes />} />
             <Route path="notificaciones" element={<Notificaciones />} />

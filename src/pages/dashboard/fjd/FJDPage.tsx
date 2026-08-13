@@ -9,6 +9,7 @@ import { FaXTwitter, FaLinkedin } from "react-icons/fa6";
 import { Newspaper } from "lucide-react";
 import { useFJDMenciones, type FJDMencion, type FJDCanal } from "@/hooks/useFJDMenciones";
 import PerfilReputacionalIA, { type PerfilBucket } from "@/components/PerfilReputacionalIA";
+import FjdVsSermasBlock from "@/components/FjdVsSermasBlock";
 import {
   useKpiCanalGlobal,
   filterByGrupo,
@@ -392,6 +393,8 @@ export default function FJDPage() {
               ))}
             </div>
           </section>
+
+          <FjdVsSermasBlock />
         </>
       )}
     </div>
