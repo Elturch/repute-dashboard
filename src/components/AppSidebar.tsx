@@ -1,7 +1,7 @@
 import {
   Home, BarChart3, Network, Radio, Building2, TrendingUp, ShieldAlert, Search,
   FileText, Download, BookOpen, Settings, Users, ShieldCheck, Server,
-  ChevronRight, Newspaper, LayoutDashboard, Star,
+  ChevronRight, Newspaper, LayoutDashboard, Star, Award,
 } from "lucide-react";
 import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from "react-icons/si";
 import { FaXTwitter, FaLinkedin } from "react-icons/fa6";
@@ -76,6 +76,7 @@ const coreLinks: LinkItem[] = [
   { title: "Medios", url: "/dashboard/medios", icon: Building2 },
   { title: "Evolución", url: "/dashboard/evolucion", icon: TrendingUp },
   { title: "Riesgo y alertas", url: "/dashboard/riesgo", icon: ShieldAlert },
+  { title: "Alta Complejidad", url: "/dashboard/alta-complejidad", icon: Award },
   { title: "Explorador", url: "/dashboard/explorador", icon: Search },
   { title: "Relato IA", url: "/dashboard/relato", icon: FileText },
   { title: "Canales", url: "/dashboard/canales", icon: Radio },
