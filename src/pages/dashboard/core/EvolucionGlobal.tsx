@@ -3,9 +3,44 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { parseISO } from "date-fns";
 import { useWeeklySnapshots } from "@/hooks/useAuxiliaryData";
 import { useRelatoAcumulado, useContadoresSemanalesTrend } from "@/hooks/useDashboardData";
-import { safeFormat } from "@/lib/safe-format";
+
+const MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+function formatRangeShort(start: Date, end: Date): string {
+  const d1 = start.getDate();
+  const d2 = end.getDate();
+  const m1 = MONTHS_ES[start.getMonth()];
+  const m2 = MONTHS_ES[end.getMonth()];
+  if (m1 === m2) return `${d1}–${d2} ${m2}`;
+  return `${d1} ${m1}–${d2} ${m2}`;
+}
+
+function formatDateRange(startStr: string | null | undefined, endStr: string | null | undefined): string {
+  if (!startStr || !endStr) return "—";
+  const start = parseISO(startStr);
+  const end = parseISO(endStr);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return "—";
+  return formatRangeShort(start, end);
+}
+
+function parseIsoWeek(weekStr: string): { start: Date; end: Date } | null {
+  const match = weekStr.match(/^(\d{4})-W(\d{1,2})$/);
+  if (!match) return null;
+  const year = parseInt(match[1], 10);
+  const week = parseInt(match[2], 10);
+  if (week < 1 || week > 53) return null;
+  const jan4 = new Date(year, 0, 4);
+  const jan4Day = jan4.getDay() || 7;
+  const week1Monday = new Date(year, 0, 4 - jan4Day + 1);
+  const start = new Date(week1Monday);
+  start.setDate(week1Monday.getDate() + (week - 1) * 7);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  return { start, end };
+}
 
 const EvolucionGlobal = () => {
   const { data: snapshots, isLoading: loadingSnap } = useWeeklySnapshots();
