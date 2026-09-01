@@ -125,7 +125,7 @@ const Ecosistema = () => {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Ecosistema Hospitalario</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {groups.length} universos · {groups.reduce((s, g) => s + g.totalCount, 0).toLocaleString()} menciones · 9 métricas emocionales + nota + peligro
+          {groups.length} universos · {(groups.find(g => g.key === 'general')?.count ?? 0).toLocaleString('es-ES')} menciones · métricas emocionales + nota + peligro
         </p>
       </div>
 
@@ -135,7 +135,7 @@ const Ecosistema = () => {
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {primary.map(g => (
-            <GroupCard key={g.groupKey} group={g} highlight={g.groupKey === 'quironsalud'} />
+            <GroupCard key={g.key} seg={g} channels={canales?.[g.key] ?? []} highlight={g.key === 'quironsalud'} />
           ))}
         </div>
       </div>
@@ -144,7 +144,7 @@ const Ecosistema = () => {
         <h2 className="text-lg font-semibold text-foreground mb-3">Contexto competitivo y público</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {others.map(g => (
-            <GroupCard key={g.groupKey} group={g} />
+            <GroupCard key={g.key} seg={g} channels={canales?.[g.key] ?? []} />
           ))}
         </div>
       </div>
