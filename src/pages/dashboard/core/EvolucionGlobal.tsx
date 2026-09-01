@@ -97,11 +97,11 @@ const EvolucionGlobal = () => {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Evolución Histórica</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Series temporales del ecosistema · {chartData.length} semanas registradas
+          Serie semanal viva de Quirónsalud · {chartData.length} semanas registradas
         </p>
       </div>
 
-      {relato && (
+      {relato && relatoReciente && (
         <Card className="border-border/50 bg-primary/5">
           <CardContent className="py-4">
             <p className="text-sm text-foreground">{relato.resumen_narrativo}</p>
