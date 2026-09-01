@@ -23,7 +23,7 @@ interface SegmentoRow {
 const num = (v: unknown) => (v == null ? 0 : Number(v) || 0);
 
 export interface SegmentoAggregated extends GroupAggregated {
-  peligro_real: number;
+  peligro_real?: number;
 }
 
 function mapRow(r: SegmentoRow): SegmentoAggregated {
