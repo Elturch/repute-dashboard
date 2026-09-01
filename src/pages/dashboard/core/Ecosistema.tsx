@@ -75,8 +75,20 @@ function GroupCard({ group, highlight }: { group: GroupAgg; highlight?: boolean 
   );
 }
 
+const SEG_METRICS: { key: string; label: string }[] = [
+  { key: 'preocupacion', label: 'Preocupación' },
+  { key: 'rechazo', label: 'Rechazo' },
+  { key: 'descredito', label: 'Descrédito' },
+  { key: 'afinidad', label: 'Afinidad' },
+  { key: 'fiabilidad', label: 'Fiabilidad' },
+  { key: 'admiracion', label: 'Admiración' },
+  { key: 'impacto', label: 'Impacto' },
+  { key: 'influencia', label: 'Influencia' },
+];
+
 const Ecosistema = () => {
   const { data: groups, isLoading } = useAllGroups();
+  const { data: segmentos, isLoading: segLoading } = useBenchmarkSegmentos();
 
   if (isLoading) {
     return (
