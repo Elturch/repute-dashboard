@@ -139,6 +139,7 @@ const Ecosistema = () => {
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle className="text-sm">Comparativa global por grupo</CardTitle>
+          <p className="text-xs text-muted-foreground">Recuentos reales agregados en servidor</p>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -148,24 +149,27 @@ const Ecosistema = () => {
                   <th className="text-left py-2 pr-4 text-muted-foreground">Grupo</th>
                   <th className="text-center py-2 px-1 text-muted-foreground">N</th>
                   <th className="text-center py-2 px-1 text-muted-foreground">Nota</th>
-                  {METRIC_KEYS.map(k => (
-                    <th key={k} className="text-center py-2 px-1 text-muted-foreground" title={METRIC_LABELS[k]}>
-                      {METRIC_LABELS[k].slice(0, 4)}
+                  {SEG_METRICS.map(m => (
+                    <th key={m.key} className="text-center py-2 px-1 text-muted-foreground" title={m.label}>
+                      {m.label.slice(0, 4)}
                     </th>
                   ))}
                   <th className="text-center py-2 px-1 text-muted-foreground">%Pel</th>
                 </tr>
               </thead>
               <tbody>
-                {groups.map(g => (
-                  <tr key={g.groupKey} className="border-b border-border/30">
-                    <td className="py-2 pr-4 font-medium text-foreground">{g.label}</td>
-                    <td className="text-center py-2 px-1 text-foreground">{g.totalCount}</td>
-                    <MetricCell value={g.nota} />
-                    {METRIC_KEYS.map(k => <MetricCell key={k} value={g[k]} />)}
-                    <td className="text-center py-2 px-1 text-red-400">{g.peligroAltoPct.toFixed(1)}%</td>
+                {(segmentos ?? []).map(s => (
+                  <tr key={s.key} className={`border-b border-border/30 ${s.primary ? 'bg-primary/5' : ''}`}>
+                    <td className="py-2 pr-4 font-medium text-foreground">{s.label}</td>
+                    <td className="text-center py-2 px-1 text-foreground">{s.count.toLocaleString('es-ES')}</td>
+                    <MetricCell value={s.nota_media} />
+                    {SEG_METRICS.map(m => <MetricCell key={m.key} value={Number((s as any)[m.key]) || 0} />)}
+                    <td className="text-center py-2 px-1 text-red-400">{s.peligro_alto_pct.toFixed(1)}%</td>
                   </tr>
                 ))}
+                {segLoading && (
+                  <tr><td colSpan={SEG_METRICS.length + 4} className="py-4"><Skeleton className="h-4 w-full" /></td></tr>
+                )}
               </tbody>
             </table>
           </div>
