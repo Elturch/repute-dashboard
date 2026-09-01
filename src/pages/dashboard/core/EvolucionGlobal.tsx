@@ -3,9 +3,44 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { parseISO } from "date-fns";
 import { useWeeklySnapshots } from "@/hooks/useAuxiliaryData";
 import { useRelatoAcumulado, useContadoresSemanalesTrend } from "@/hooks/useDashboardData";
-import { safeFormat } from "@/lib/safe-format";
+
+const MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+function formatRangeShort(start: Date, end: Date): string {
+  const d1 = start.getDate();
+  const d2 = end.getDate();
+  const m1 = MONTHS_ES[start.getMonth()];
+  const m2 = MONTHS_ES[end.getMonth()];
+  if (m1 === m2) return `${d1}–${d2} ${m2}`;
+  return `${d1} ${m1}–${d2} ${m2}`;
+}
+
+function formatDateRange(startStr: string | null | undefined, endStr: string | null | undefined): string {
+  if (!startStr || !endStr) return "—";
+  const start = parseISO(startStr);
+  const end = parseISO(endStr);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return "—";
+  return formatRangeShort(start, end);
+}
+
+function parseIsoWeek(weekStr: string): { start: Date; end: Date } | null {
+  const match = weekStr.match(/^(\d{4})-W(\d{1,2})$/);
+  if (!match) return null;
+  const year = parseInt(match[1], 10);
+  const week = parseInt(match[2], 10);
+  if (week < 1 || week > 53) return null;
+  const jan4 = new Date(year, 0, 4);
+  const jan4Day = jan4.getDay() || 7;
+  const week1Monday = new Date(year, 0, 4 - jan4Day + 1);
+  const start = new Date(week1Monday);
+  start.setDate(week1Monday.getDate() + (week - 1) * 7);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  return { start, end };
+}
 
 const EvolucionGlobal = () => {
   const { data: snapshots, isLoading: loadingSnap } = useWeeklySnapshots();
@@ -15,7 +50,7 @@ const EvolucionGlobal = () => {
   const chartData = useMemo(() => {
     if (!snapshots?.length) return [];
     return snapshots.map((s: any) => ({
-      semana: s.semana ?? safeFormat(s.fecha_inicio, 'dd/MM'),
+      semana: formatDateRange(s.fecha_inicio, s.fecha_fin),
       menciones: s.n_menciones ?? 0,
       alertas: s.n_alertas ?? 0,
       variacion: s.variacion_vs_semana_anterior ?? 0,
@@ -24,13 +59,16 @@ const EvolucionGlobal = () => {
 
   const contadorData = useMemo(() => {
     if (!contadores?.length) return [];
-    return contadores.map((c: any) => ({
-      semana: c.semana ?? '',
-      escaneadas: c.total_escaneadas ?? 0,
-      relevantes: c.total_relevantes ?? 0,
-      riesgoAlto: c.total_riesgo_alto ?? 0,
-      riesgoMedio: c.total_riesgo_medio ?? 0,
-    }));
+    return contadores.map((c: any) => {
+      const range = parseIsoWeek(c.semana);
+      return {
+        semana: range ? formatRangeShort(range.start, range.end) : (c.semana ?? ''),
+        escaneadas: c.total_escaneadas ?? 0,
+        relevantes: c.total_relevantes ?? 0,
+        riesgoAlto: c.total_riesgo_alto ?? 0,
+        riesgoMedio: c.total_riesgo_medio ?? 0,
+      };
+    });
   }, [contadores]);
 
   const isLoading = loadingSnap || loadingCont;
