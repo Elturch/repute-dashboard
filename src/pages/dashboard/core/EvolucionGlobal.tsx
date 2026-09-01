@@ -71,6 +71,15 @@ const EvolucionGlobal = () => {
     });
   }, [contadores]);
 
+  const relatoReciente = useMemo(() => {
+    if (!relato) return false;
+    const raw = (relato as any).created_at ?? (relato as any).fecha_fin;
+    if (!raw) return false;
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return false;
+    return Date.now() - d.getTime() <= 21 * 24 * 60 * 60 * 1000;
+  }, [relato]);
+
   const isLoading = loadingSnap || loadingCont;
 
   if (isLoading) {
