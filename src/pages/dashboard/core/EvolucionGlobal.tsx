@@ -50,7 +50,7 @@ const EvolucionGlobal = () => {
   const chartData = useMemo(() => {
     if (!snapshots?.length) return [];
     return snapshots.map((s: any) => ({
-      semana: s.semana ?? safeFormat(s.fecha_inicio, 'dd/MM'),
+      semana: formatDateRange(s.fecha_inicio, s.fecha_fin),
       menciones: s.n_menciones ?? 0,
       alertas: s.n_alertas ?? 0,
       variacion: s.variacion_vs_semana_anterior ?? 0,
@@ -59,13 +59,16 @@ const EvolucionGlobal = () => {
 
   const contadorData = useMemo(() => {
     if (!contadores?.length) return [];
-    return contadores.map((c: any) => ({
-      semana: c.semana ?? '',
-      escaneadas: c.total_escaneadas ?? 0,
-      relevantes: c.total_relevantes ?? 0,
-      riesgoAlto: c.total_riesgo_alto ?? 0,
-      riesgoMedio: c.total_riesgo_medio ?? 0,
-    }));
+    return contadores.map((c: any) => {
+      const range = parseIsoWeek(c.semana);
+      return {
+        semana: range ? formatRangeShort(range.start, range.end) : (c.semana ?? ''),
+        escaneadas: c.total_escaneadas ?? 0,
+        relevantes: c.total_relevantes ?? 0,
+        riesgoAlto: c.total_riesgo_alto ?? 0,
+        riesgoMedio: c.total_riesgo_medio ?? 0,
+      };
+    });
   }, [contadores]);
 
   const isLoading = loadingSnap || loadingCont;
