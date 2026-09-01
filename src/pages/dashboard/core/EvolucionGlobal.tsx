@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { parseISO } from "date-fns";
-import { useWeeklySnapshots } from "@/hooks/useAuxiliaryData";
+import { useEvolucionSemanal } from "@/hooks/useEvolucionSemanal";
 import { useRelatoAcumulado, useContadoresSemanalesTrend } from "@/hooks/useDashboardData";
 
 const MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -43,7 +43,7 @@ function parseIsoWeek(weekStr: string): { start: Date; end: Date } | null {
 }
 
 const EvolucionGlobal = () => {
-  const { data: snapshots, isLoading: loadingSnap } = useWeeklySnapshots();
+  const { data: snapshots, isLoading: loadingSnap } = useEvolucionSemanal();
   const { data: relato } = useRelatoAcumulado();
   const { data: contadores, isLoading: loadingCont } = useContadoresSemanalesTrend();
 
@@ -71,6 +71,15 @@ const EvolucionGlobal = () => {
     });
   }, [contadores]);
 
+  const relatoReciente = useMemo(() => {
+    if (!relato) return false;
+    const raw = (relato as any).created_at ?? (relato as any).fecha_fin;
+    if (!raw) return false;
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return false;
+    return Date.now() - d.getTime() <= 21 * 24 * 60 * 60 * 1000;
+  }, [relato]);
+
   const isLoading = loadingSnap || loadingCont;
 
   if (isLoading) {
@@ -88,11 +97,11 @@ const EvolucionGlobal = () => {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Evolución Histórica</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Series temporales del ecosistema · {chartData.length} semanas registradas
+          Serie semanal viva de Quirónsalud · {chartData.length} semanas registradas
         </p>
       </div>
 
-      {relato && (
+      {relato && relatoReciente && (
         <Card className="border-border/50 bg-primary/5">
           <CardContent className="py-4">
             <p className="text-sm text-foreground">{relato.resumen_narrativo}</p>
