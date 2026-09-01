@@ -4,7 +4,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Trophy, Shield } from "lucide-react";
-import { useBenchmarkData, type GroupAggregated } from "@/hooks/useBenchmarkData";
+import { type GroupAggregated } from "@/hooks/useBenchmarkData";
+import { useBenchmarkSegmentos } from "@/hooks/useBenchmarkSegmentos";
 
 const QS_COLOR = "hsl(217, 91%, 60%)";
 const NEUTRAL_COLORS = [
@@ -52,7 +53,7 @@ function ScoreBar({ label, value, max = 10, color, pos }: {
 }
 
 const Benchmarking = () => {
-  const { data: groups, isLoading } = useBenchmarkData();
+  const { data: groups, isLoading } = useBenchmarkSegmentos();
 
   if (isLoading) {
     return (
