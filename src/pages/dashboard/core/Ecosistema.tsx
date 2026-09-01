@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Network, Building2 } from "lucide-react";
 import { useAllGroups } from "@/hooks/useGroupChannels";
+import { useBenchmarkSegmentos } from "@/hooks/useBenchmarkSegmentos";
 import { METRIC_KEYS, METRIC_LABELS, type GroupAgg, type ChannelAgg } from "@/lib/data-aggregation";
 
 function NotaIndicator({ value }: { value: number }) {
