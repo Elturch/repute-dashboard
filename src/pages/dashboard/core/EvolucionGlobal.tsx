@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { parseISO } from "date-fns";
-import { useWeeklySnapshots } from "@/hooks/useAuxiliaryData";
+import { useEvolucionSemanal } from "@/hooks/useEvolucionSemanal";
 import { useRelatoAcumulado, useContadoresSemanalesTrend } from "@/hooks/useDashboardData";
 
 const MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -43,7 +43,7 @@ function parseIsoWeek(weekStr: string): { start: Date; end: Date } | null {
 }
 
 const EvolucionGlobal = () => {
-  const { data: snapshots, isLoading: loadingSnap } = useWeeklySnapshots();
+  const { data: snapshots, isLoading: loadingSnap } = useEvolucionSemanal();
   const { data: relato } = useRelatoAcumulado();
   const { data: contadores, isLoading: loadingCont } = useContadoresSemanalesTrend();
 
