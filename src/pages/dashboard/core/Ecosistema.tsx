@@ -2,9 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Network, Building2 } from "lucide-react";
-import { useAllGroups } from "@/hooks/useGroupChannels";
-import { useBenchmarkSegmentos } from "@/hooks/useBenchmarkSegmentos";
-import { METRIC_KEYS, METRIC_LABELS, type GroupAgg, type ChannelAgg } from "@/lib/data-aggregation";
+import { useBenchmarkSegmentos, type SegmentoAggregated } from "@/hooks/useBenchmarkSegmentos";
+import { useSegmentoCanales, type ChannelRow } from "@/hooks/useSegmentoCanales";
 
 function NotaIndicator({ value }: { value: number }) {
   const color = value >= 7 ? 'text-green-400' : value >= 5 ? 'text-yellow-400' : 'text-red-400';
@@ -16,66 +15,7 @@ function MetricCell({ value }: { value: number }) {
   return <td className={`text-center py-1 px-1 ${color} text-xs`}>{value > 0 ? value.toFixed(1) : '—'}</td>;
 }
 
-function ChannelTable({ channels }: { channels: ChannelAgg[] }) {
-  const active = channels.filter(c => c.count > 0);
-  if (!active.length) return null;
-
-  return (
-    <div className="overflow-x-auto mt-2">
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="border-b border-border/50">
-            <th className="text-left py-1 pr-2 text-muted-foreground">Canal</th>
-            <th className="text-center py-1 px-1 text-muted-foreground">N</th>
-            <th className="text-center py-1 px-1 text-muted-foreground">Nota</th>
-            {METRIC_KEYS.map(k => (
-              <th key={k} className="text-center py-1 px-1 text-muted-foreground" title={METRIC_LABELS[k]}>
-                {METRIC_LABELS[k].slice(0, 4)}
-              </th>
-            ))}
-            <th className="text-center py-1 px-1 text-muted-foreground">%Pel</th>
-          </tr>
-        </thead>
-        <tbody>
-          {active.map(ch => (
-            <tr key={ch.channel} className="border-b border-border/20">
-              <td className="py-1 pr-2 text-foreground">{ch.label}</td>
-              <td className="text-center py-1 px-1 text-muted-foreground">{ch.count}</td>
-              <MetricCell value={ch.nota} />
-              {METRIC_KEYS.map(k => <MetricCell key={k} value={ch[k]} />)}
-              <td className="text-center py-1 px-1 text-red-400 text-xs">
-                {ch.peligroAltoPct > 0 ? `${ch.peligroAltoPct}%` : '—'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function GroupCard({ group, highlight }: { group: GroupAgg; highlight?: boolean }) {
-  return (
-    <Card className={`border-border/50 ${highlight ? 'ring-2 ring-primary/50 bg-primary/5' : ''}`}>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Building2 className="h-4 w-4 text-muted-foreground" />
-          {group.label}
-          {highlight && <Badge variant="default" className="text-xs">Principal</Badge>}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        <div className="flex items-baseline justify-between">
-          <NotaIndicator value={group.nota} />
-          <span className="text-xs text-muted-foreground">{group.totalCount} menciones</span>
-        </div>
-        <ChannelTable channels={group.channels} />
-      </CardContent>
-    </Card>
-  );
-}
-
-const SEG_METRICS: { key: string; label: string }[] = [
+const SEG_METRICS: { key: keyof ChannelRow; label: string }[] = [
   { key: 'preocupacion', label: 'Preocupación' },
   { key: 'rechazo', label: 'Rechazo' },
   { key: 'descredito', label: 'Descrédito' },
@@ -86,9 +26,69 @@ const SEG_METRICS: { key: string; label: string }[] = [
   { key: 'influencia', label: 'Influencia' },
 ];
 
+function ChannelTable({ channels }: { channels: ChannelRow[] }) {
+  const active = channels.filter(c => c.n > 0);
+  if (!active.length) return null;
+
+  return (
+    <div className="overflow-x-auto mt-2">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-border/50">
+            <th className="text-left py-1 pr-2 text-muted-foreground">Canal</th>
+            <th className="text-center py-1 px-1 text-muted-foreground">N</th>
+            <th className="text-center py-1 px-1 text-muted-foreground">Nota</th>
+            {SEG_METRICS.map(m => (
+              <th key={m.key} className="text-center py-1 px-1 text-muted-foreground" title={m.label}>
+                {m.label.slice(0, 4)}
+              </th>
+            ))}
+            <th className="text-center py-1 px-1 text-muted-foreground">%Pel</th>
+          </tr>
+        </thead>
+        <tbody>
+          {active.map(ch => (
+            <tr key={ch.canal} className="border-b border-border/20">
+              <td className="py-1 pr-2 text-foreground">{ch.label}</td>
+              <td className="text-center py-1 px-1 text-muted-foreground">{ch.n.toLocaleString('es-ES')}</td>
+              <MetricCell value={ch.nota_media} />
+              {SEG_METRICS.map(m => <MetricCell key={m.key} value={Number(ch[m.key]) || 0} />)}
+              <td className="text-center py-1 px-1 text-red-400 text-xs">
+                {ch.peligro_alto_pct > 0 ? `${ch.peligro_alto_pct.toFixed(1)}%` : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function GroupCard({ seg, channels, highlight }: { seg: SegmentoAggregated; channels: ChannelRow[]; highlight?: boolean }) {
+  return (
+    <Card className={`border-border/50 ${highlight ? 'ring-2 ring-primary/50 bg-primary/5' : ''}`}>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-muted-foreground" />
+          {seg.label}
+          {highlight && <Badge variant="default" className="text-xs">Principal</Badge>}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <div className="flex items-baseline justify-between">
+          <NotaIndicator value={seg.nota_media} />
+          <span className="text-xs text-muted-foreground">{seg.count.toLocaleString('es-ES')} menciones</span>
+        </div>
+        <ChannelTable channels={channels} />
+      </CardContent>
+    </Card>
+  );
+}
+
 const Ecosistema = () => {
-  const { data: groups, isLoading } = useAllGroups();
   const { data: segmentos, isLoading: segLoading } = useBenchmarkSegmentos();
+  const { data: canales } = useSegmentoCanales();
+  const isLoading = segLoading;
 
   if (isLoading) {
     return (
@@ -101,7 +101,7 @@ const Ecosistema = () => {
     );
   }
 
-  if (!groups || groups.length === 0) {
+  if (!segmentos || segmentos.length === 0) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-foreground">Ecosistema Hospitalario</h1>
@@ -116,15 +116,16 @@ const Ecosistema = () => {
   }
 
   const primaryKeys = ['quironsalud', 'fjd', 'gestion_qs', 'catsalut_qs'];
-  const primary = groups.filter(g => primaryKeys.includes(g.groupKey));
-  const others = groups.filter(g => !primaryKeys.includes(g.groupKey));
+  const groups = segmentos;
+  const primary = segmentos.filter(g => primaryKeys.includes(g.key));
+  const others = segmentos.filter(g => !primaryKeys.includes(g.key));
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Ecosistema Hospitalario</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {groups.length} universos · {groups.reduce((s, g) => s + g.totalCount, 0).toLocaleString()} menciones · 9 métricas emocionales + nota + peligro
+          {groups.length} universos · {(groups.find(g => g.key === 'general')?.count ?? 0).toLocaleString('es-ES')} menciones · métricas emocionales + nota + peligro
         </p>
       </div>
 
@@ -134,7 +135,7 @@ const Ecosistema = () => {
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {primary.map(g => (
-            <GroupCard key={g.groupKey} group={g} highlight={g.groupKey === 'quironsalud'} />
+            <GroupCard key={g.key} seg={g} channels={canales?.[g.key] ?? []} highlight={g.key === 'quironsalud'} />
           ))}
         </div>
       </div>
@@ -143,7 +144,7 @@ const Ecosistema = () => {
         <h2 className="text-lg font-semibold text-foreground mb-3">Contexto competitivo y público</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {others.map(g => (
-            <GroupCard key={g.groupKey} group={g} />
+            <GroupCard key={g.key} seg={g} channels={canales?.[g.key] ?? []} />
           ))}
         </div>
       </div>
