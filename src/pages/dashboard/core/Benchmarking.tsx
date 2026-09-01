@@ -53,7 +53,7 @@ function ScoreBar({ label, value, max = 10, color, pos }: {
 }
 
 const Benchmarking = () => {
-  const { data: groups, isLoading } = useBenchmarkData();
+  const { data: groups, isLoading } = useBenchmarkSegmentos();
 
   if (isLoading) {
     return (
