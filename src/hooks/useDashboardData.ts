@@ -7,7 +7,7 @@ export function useRelatoAcumulado() {
     queryFn: async () => {
       const { data, error } = await externalSupabase
         .from('relato_acumulado')
-        .select('nota_media_ponderada, riesgo_agregado, recomendacion_accion, resumen_narrativo')
+        .select('nota_media_ponderada, riesgo_agregado, recomendacion_accion, resumen_narrativo, fecha_inicio, fecha_fin, created_at')
         .order('fecha_inicio', { ascending: false })
         .limit(1)
         .maybeSingle();
