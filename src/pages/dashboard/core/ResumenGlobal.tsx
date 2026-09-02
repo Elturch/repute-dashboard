@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,11 +13,12 @@ import { safeFormat, safeFormatDistance } from "@/lib/safe-format";
 import {
   useRelatoAcumulado,
   useContadoresSemanales,
-  useContadoresSemanalesTrend,
   useCascadasActivasDetalle,
   useUltimosEventos,
-  useWeeklySnapshots,
 } from "@/hooks/useDashboardData";
+import { useBenchmarkSegmentos } from "@/hooks/useBenchmarkSegmentos";
+import { useEvolucionSemanal } from "@/hooks/useEvolucionSemanal";
+import type { SegmentoAggregated } from "@/hooks/useBenchmarkSegmentos";
 
 /* ── helpers ── */
 
@@ -72,6 +74,47 @@ function truncate(s: string, max: number) {
   return s.length > max ? s.slice(0, max) + "…" : s;
 }
 
+const MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+function formatRangeShort(start: Date, end: Date): string {
+  const d1 = start.getDate();
+  const d2 = end.getDate();
+  const m1 = MONTHS_ES[start.getMonth()];
+  const m2 = MONTHS_ES[end.getMonth()];
+  if (m1 === m2) return `${d1}–${d2} ${m2}`;
+  return `${d1} ${m1}–${d2} ${m2}`;
+}
+
+function formatDateRange(startStr: string | null | undefined, endStr: string | null | undefined): string {
+  if (!startStr || !endStr) return "—";
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return "—";
+  return formatRangeShort(start, end);
+}
+
+type MetricKey = keyof SegmentoAggregated;
+
+function rankOf(rows: SegmentoAggregated[], key: MetricKey, lowerIsBetter = false): number | null {
+  if (!rows.length) return null;
+  const sorted = [...rows].sort((a, b) => {
+    const av = (a[key] as number | undefined) ?? (lowerIsBetter ? Infinity : -Infinity);
+    const bv = (b[key] as number | undefined) ?? (lowerIsBetter ? Infinity : -Infinity);
+    return lowerIsBetter ? av - bv : bv - av;
+  });
+  const idx = sorted.findIndex(r => r.key === "quironsalud");
+  return idx >= 0 ? idx + 1 : null;
+}
+
+function rankColor(rank: number | null, total: number): string {
+  if (!rank || total <= 0) return "text-muted-foreground bg-muted";
+  const t1 = Math.ceil(total / 3);
+  const t2 = Math.ceil((2 * total) / 3);
+  if (rank <= t1) return "text-emerald-400 bg-emerald-600/15 border-emerald-600/30";
+  if (rank <= t2) return "text-amber-400 bg-amber-600/15 border-amber-600/30";
+  return "text-red-400 bg-red-600/15 border-red-600/30";
+}
+
 /* ── Gauge ── */
 function SemiGauge({ value, max = 10 }: { value: number; max?: number }) {
   const pct = Math.min(value / max, 1);
@@ -117,6 +160,60 @@ function StatCard({ title, value, sub, icon, loading }: {
   );
 }
 
+/* ── Market position ── */
+function MarketPositionCard({ data, loading }: { data?: SegmentoAggregated[]; loading?: boolean }) {
+  const total = data?.length ?? 0;
+  const market = data?.find(s => s.key === "general");
+  const quiron = data?.find(s => s.key === "quironsalud");
+
+  const metrics: { key: MetricKey; label: string; reverse: boolean; fmt: (v: number) => string }[] = [
+    { key: "nota_media", label: "Nota", reverse: false, fmt: v => v.toFixed(1) },
+    { key: "afinidad", label: "Afinidad", reverse: false, fmt: v => v.toFixed(1) },
+    { key: "fiabilidad", label: "Fiabilidad", reverse: false, fmt: v => v.toFixed(1) },
+    { key: "impacto", label: "Impacto", reverse: false, fmt: v => v.toFixed(1) },
+    { key: "peligro_alto_pct", label: "% Peligro", reverse: true, fmt: v => `${v.toFixed(1)}%` },
+  ];
+
+  return (
+    <Card className="border-border/50">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">Posición en el mercado</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? <Skeleton className="h-32 w-full" /> : !data?.length || !quiron ? (
+          <p className="text-sm text-muted-foreground text-center py-6">Sin datos de benchmark</p>
+        ) : (
+          <div className="space-y-2">
+            <div className="grid grid-cols-12 gap-2 text-xs text-muted-foreground uppercase tracking-wider border-b border-border/30 pb-1">
+              <span className="col-span-3">Métrica</span>
+              <span className="col-span-3 text-right">Quirón</span>
+              <span className="col-span-3 text-right">Media mercado</span>
+              <span className="col-span-3 text-right">Puesto</span>
+            </div>
+            {metrics.map(m => {
+              const rank = rankOf(data, m.key, m.reverse);
+              const qv = (quiron[m.key] as number | undefined) ?? 0;
+              const mv = (market?.[m.key] as number | undefined) ?? 0;
+              return (
+                <div key={String(m.key)} className="grid grid-cols-12 gap-2 items-center text-sm">
+                  <span className="col-span-3 text-foreground">{m.label}</span>
+                  <span className="col-span-3 text-right font-semibold text-foreground">{m.fmt(qv)}</span>
+                  <span className="col-span-3 text-right text-muted-foreground">{m.fmt(mv)}</span>
+                  <div className="col-span-3 flex justify-end">
+                    <span className={`inline-flex items-center justify-center rounded px-2 py-0.5 text-xs font-medium border ${rankColor(rank, total)}`}>
+                      {rank ? `#${rank} de ${total}` : "—"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 /* ── Channels ── */
 const CHANNELS = [
   { key: "news", label: "Noticias", icon: Newspaper, color: "hsl(var(--primary))" },
@@ -141,16 +238,29 @@ const ResumenGlobal = () => {
   const navigate = useNavigate();
   const relato = useRelatoAcumulado();
   const contadores = useContadoresSemanales();
-  const _trend = useContadoresSemanalesTrend();
   const cascadasActivas = useCascadasActivasDetalle();
   const eventos = useUltimosEventos();
-  const weekly = useWeeklySnapshots();
+  const segmentos = useBenchmarkSegmentos();
+  const weekly = useEvolucionSemanal();
 
   const c = contadores.data as Record<string, any> | null;
   const nota = Number(relato.data?.nota_media_ponderada ?? 0);
+
+  const weeklyData = useMemo(() => {
+    if (!weekly.data?.length) return [];
+    return weekly.data.map(s => ({
+      semana: formatDateRange(s.fecha_inicio, s.fecha_fin),
+      n_menciones: s.n_menciones ?? 0,
+      n_alertas: s.n_alertas ?? 0,
+    }));
+  }, [weekly.data]);
+
   const weeklyVariation = weekly.data?.length
-    ? (weekly.data[weekly.data.length - 1] as any)?.variacion_vs_semana_anterior
+    ? weekly.data[weekly.data.length - 1].variacion_vs_semana_anterior
     : null;
+
+  const notaRank = useMemo(() => rankOf(segmentos.data ?? [], "nota_media", false), [segmentos.data]);
+  const marketNote = useMemo(() => segmentos.data?.find(s => s.key === "general")?.nota_media ?? null, [segmentos.data]);
 
   const chartConfig = {
     n_menciones: { label: "Menciones", color: "hsl(var(--primary))" },
@@ -185,6 +295,18 @@ const ResumenGlobal = () => {
           icon={<BarChart3 className="h-4 w-4" />}
           loading={relato.isLoading}
           value={relato.data ? <SemiGauge value={nota} /> : <p className="text-sm text-muted-foreground">Sin datos</p>}
+          sub={
+            segmentos.isLoading ? (
+              <Skeleton className="h-4 w-24 mx-auto mt-2" />
+            ) : notaRank && marketNote != null ? (
+              <p className="text-center text-xs mt-2">
+                <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 border ${rankColor(notaRank, segmentos.data?.length ?? 0)}`}>
+                  #{notaRank} de {segmentos.data?.length ?? 0}
+                </span>
+                <span className="text-muted-foreground ml-2">media mercado {Number(marketNote).toFixed(1)}</span>
+              </p>
+            ) : null
+          }
         />
         <StatCard
           title="Riesgo Agregado"
@@ -224,6 +346,8 @@ const ResumenGlobal = () => {
         />
       </div>
 
+      <MarketPositionCard data={segmentos.data} loading={segmentos.isLoading} />
+
       {/* Row 2 — Trend + Risks side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Trend chart — 3 cols */}
@@ -233,9 +357,9 @@ const ResumenGlobal = () => {
           </CardHeader>
           <CardContent>
             {weekly.isLoading ? <Skeleton className="h-48 w-full" /> :
-              (weekly.data ?? []).length > 0 ? (
+              weeklyData.length > 0 ? (
                 <ChartContainer config={chartConfig} className="h-48 w-full">
-                  <AreaChart data={weekly.data ?? []} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <AreaChart data={weeklyData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                     <defs>
                       <linearGradient id="fillMenciones" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
