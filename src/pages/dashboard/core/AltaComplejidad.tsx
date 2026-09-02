@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Award, ChevronDown, ChevronRight, TrendingUp } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -243,9 +243,8 @@ export default function AltaComplejidad() {
                   const isOpen = expanded === r.grupo_hospitalario;
                   const canales = canalesPorGrupo[r.grupo_hospitalario] ?? [];
                   return (
-                    <>
+                    <Fragment key={r.grupo_hospitalario}>
                       <TableRow
-                        key={r.grupo_hospitalario}
                         className="cursor-pointer"
                         onClick={() => setExpanded(isOpen ? null : r.grupo_hospitalario)}
                       >
@@ -277,7 +276,7 @@ export default function AltaComplejidad() {
                         </TableCell>
                       </TableRow>
                       {isOpen && (
-                        <TableRow key={`${r.grupo_hospitalario}-detalle`} className="hover:bg-transparent">
+                        <TableRow className="hover:bg-transparent">
                           <TableCell colSpan={6} className="bg-muted/30">
                             {canales.length === 0 ? (
                               <p className="text-xs text-muted-foreground py-2">
@@ -318,7 +317,7 @@ export default function AltaComplejidad() {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </TableBody>
