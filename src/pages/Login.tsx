@@ -30,13 +30,14 @@ const Login = () => {
 
     setLoading(true);
     try {
-      // 1) Comprobar allowlist
-      const { data: check, error: checkErr } = await supabase.functions.invoke(
-        "check-user-allowlist",
-        { body: { email: normalized } },
+      // 1) Comprobar allowlist en el proyecto de datos
+      const { data: rows, error: checkErr } = await externalSupabase.rpc(
+        "email_autorizado",
+        { p_email: normalized },
       );
       if (checkErr) throw checkErr;
-      if (!check?.allowed) {
+      const allowed = Array.isArray(rows) && rows.length > 0 && rows[0].allowed === true;
+      if (!allowed) {
         toast.error("Tu email no tiene acceso a este panel");
         setLoading(false);
         return;
