@@ -2,6 +2,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const SUPERADMIN_EMAIL = "datos@hablamosde.com";
 
+// Poner en false para volver a exigir login
+export const ACCESO_ABIERTO = true;
+
 export type AppRole = "lector" | "superadmin";
 
 export type Session = {
@@ -11,6 +14,7 @@ export type Session = {
 };
 
 export function getSession(): Session | null {
+  if (ACCESO_ABIERTO) return { email: "acceso-abierto", role: "lector" };
   const email = localStorage.getItem("mr_user_email");
   const role = localStorage.getItem("mr_user_role") as AppRole | null;
   const isBypass = localStorage.getItem("mr_is_superadmin") === "true";
