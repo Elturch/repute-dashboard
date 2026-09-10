@@ -14,6 +14,7 @@ export type Session = {
 };
 
 export function getSession(): Session | null {
+  if (ACCESO_ABIERTO) return { email: "acceso-abierto", role: "lector" };
   const email = localStorage.getItem("mr_user_email");
   const role = localStorage.getItem("mr_user_role") as AppRole | null;
   const isBypass = localStorage.getItem("mr_is_superadmin") === "true";
