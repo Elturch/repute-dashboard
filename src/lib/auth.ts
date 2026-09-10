@@ -2,6 +2,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const SUPERADMIN_EMAIL = "datos@hablamosde.com";
 
+// Poner en false para volver a exigir login
+export const ACCESO_ABIERTO = true;
+
 export type AppRole = "lector" | "superadmin";
 
 export type Session = {
