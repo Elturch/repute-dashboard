@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { externalSupabase } from "@/integrations/external-supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -29,13 +30,14 @@ const Login = () => {
 
     setLoading(true);
     try {
-      // 1) Comprobar allowlist
-      const { data: check, error: checkErr } = await supabase.functions.invoke(
-        "check-user-allowlist",
-        { body: { email: normalized } },
+      // 1) Comprobar allowlist en el proyecto de datos
+      const { data: rows, error: checkErr } = await externalSupabase.rpc(
+        "email_autorizado",
+        { p_email: normalized },
       );
       if (checkErr) throw checkErr;
-      if (!check?.allowed) {
+      const allowed = Array.isArray(rows) && rows.length > 0 && rows[0].allowed === true;
+      if (!allowed) {
         toast.error("Tu email no tiene acceso a este panel");
         setLoading(false);
         return;
@@ -70,16 +72,20 @@ const Login = () => {
       });
       if (error) throw error;
 
-      // Obtener rol vía edge function
-      const { data, error: roleErr } = await supabase.functions.invoke("post-login-role");
+      // Obtener rol desde el proyecto de datos
+      const { data: rows, error: roleErr } = await externalSupabase.rpc(
+        "email_autorizado",
+        { p_email: normalized },
+      );
       if (roleErr) throw roleErr;
-      if (!data?.role) {
+      const rol = Array.isArray(rows) && rows.length > 0 ? rows[0].rol : null;
+      if (!rol) {
         toast.error("Tu email no tiene acceso a este panel");
         await supabase.auth.signOut();
         setLoading(false);
         return;
       }
-      setSession({ email: normalized, role: data.role });
+      setSession({ email: normalized, role: rol });
       navigate("/dashboard");
     } catch (err: any) {
       toast.error("Código incorrecto o caducado");
