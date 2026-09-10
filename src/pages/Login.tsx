@@ -72,16 +72,20 @@ const Login = () => {
       });
       if (error) throw error;
 
-      // Obtener rol vía edge function
-      const { data, error: roleErr } = await supabase.functions.invoke("post-login-role");
+      // Obtener rol desde el proyecto de datos
+      const { data: rows, error: roleErr } = await externalSupabase.rpc(
+        "email_autorizado",
+        { p_email: normalized },
+      );
       if (roleErr) throw roleErr;
-      if (!data?.role) {
+      const rol = Array.isArray(rows) && rows.length > 0 ? rows[0].rol : null;
+      if (!rol) {
         toast.error("Tu email no tiene acceso a este panel");
         await supabase.auth.signOut();
         setLoading(false);
         return;
       }
-      setSession({ email: normalized, role: data.role });
+      setSession({ email: normalized, role: rol });
       navigate("/dashboard");
     } catch (err: any) {
       toast.error("Código incorrecto o caducado");
