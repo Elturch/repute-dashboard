@@ -6,13 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Shield, ArrowLeft } from "lucide-react";
-import { SUPERADMIN_EMAIL, setSession } from "@/lib/auth";
+import { SUPERADMIN_EMAIL, ACCESO_ABIERTO, setSession } from "@/lib/auth";
 
 const Login = () => {
   const [step, setStep] = useState<"email" | "link">("email");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (ACCESO_ABIERTO) navigate("/dashboard", { replace: true });
+  }, [navigate]);
 
   useEffect(() => {
     let subscriptionCancelled = false;
