@@ -1,27 +1,63 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { externalSupabase } from "@/integrations/external-supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
 import { Shield, ArrowLeft } from "lucide-react";
 import { SUPERADMIN_EMAIL, setSession } from "@/lib/auth";
 
 const Login = () => {
-  const [step, setStep] = useState<"email" | "code">("email");
+  const [step, setStep] = useState<"email" | "link">("email");
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const requestCode = async (e: React.FormEvent) => {
+  useEffect(() => {
+    let subscriptionCancelled = false;
+
+    const handleSession = async (session: any) => {
+      if (!session?.user?.email || subscriptionCancelled) return;
+      const normalized = session.user.email.trim().toLowerCase();
+      try {
+        const { data: rows, error: roleErr } = await externalSupabase.rpc(
+          "email_autorizado",
+          { p_email: normalized }
+        );
+        if (roleErr) throw roleErr;
+        const rol = Array.isArray(rows) && rows.length > 0 ? rows[0].rol : null;
+        if (!rol) {
+          toast.error("Tu email no tiene acceso a este panel");
+          await supabase.auth.signOut();
+          return;
+        }
+        setSession({ email: normalized, role: rol });
+        navigate("/dashboard");
+      } catch (err: any) {
+        toast.error("Error al validar la sesión: " + (err?.message ?? String(err)));
+      }
+    };
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) handleSession(data.session);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      handleSession(session);
+    });
+
+    return () => {
+      subscriptionCancelled = true;
+      listener?.subscription?.unsubscribe();
+    };
+  }, [navigate]);
+
+  const requestMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     const normalized = email.trim().toLowerCase();
     if (!normalized) return;
 
-    // Superadmin bypass: entrar directo, sin código
     if (normalized === SUPERADMIN_EMAIL) {
       setSession({ email: normalized, role: "superadmin", bypass: true });
       navigate("/dashboard");
@@ -30,10 +66,9 @@ const Login = () => {
 
     setLoading(true);
     try {
-      // 1) Comprobar allowlist en el proyecto de datos
       const { data: rows, error: checkErr } = await externalSupabase.rpc(
         "email_autorizado",
-        { p_email: normalized },
+        { p_email: normalized }
       );
       if (checkErr) throw checkErr;
       const allowed = Array.isArray(rows) && rows.length > 0 && rows[0].allowed === true;
@@ -43,52 +78,20 @@ const Login = () => {
         return;
       }
 
-      // 2) Pedir OTP por email (Supabase Auth envía código de 6 dígitos)
       const { error } = await supabase.auth.signInWithOtp({
         email: normalized,
-        options: { shouldCreateUser: true },
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: window.location.origin + "/login",
+        },
       });
       if (error) throw error;
 
-      toast.success("Te hemos enviado un código de 6 dígitos");
-      setStep("code");
+      toast.success("Te hemos enviado un enlace de acceso");
+      setStep("link");
     } catch (err: any) {
       toast.error("Error: " + (err?.message ?? String(err)));
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const verifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (code.length !== 6) return;
-    const normalized = email.trim().toLowerCase();
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        email: normalized,
-        token: code,
-        type: "email",
-      });
-      if (error) throw error;
-
-      // Obtener rol desde el proyecto de datos
-      const { data: rows, error: roleErr } = await externalSupabase.rpc(
-        "email_autorizado",
-        { p_email: normalized },
-      );
-      if (roleErr) throw roleErr;
-      const rol = Array.isArray(rows) && rows.length > 0 ? rows[0].rol : null;
-      if (!rol) {
-        toast.error("Tu email no tiene acceso a este panel");
-        await supabase.auth.signOut();
-        setLoading(false);
-        return;
-      }
-      setSession({ email: normalized, role: rol });
-      navigate("/dashboard");
-    } catch (err: any) {
-      toast.error("Código incorrecto o caducado");
       setLoading(false);
     }
   };
@@ -109,8 +112,7 @@ const Login = () => {
         </div>
 
         {step === "email" ? (
-          <form onSubmit={requestCode} className="space-y-4" autoComplete="off">
-            {/* honeypot para neutralizar el autorrelleno de contraseñas */}
+          <form onSubmit={requestMagicLink} className="space-y-4" autoComplete="off">
             <input type="text" name="fakeuser" autoComplete="username" tabIndex={-1} aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }} />
             <input type="password" name="fakepass" autoComplete="new-password" tabIndex={-1} aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }} />
             <Input
@@ -131,47 +133,30 @@ const Login = () => {
               data-1p-ignore
             />
             <Button type="submit" className="w-full h-12 text-base font-medium" disabled={loading}>
-              {loading ? "Enviando..." : "Enviar código"}
+              {loading ? "Enviando..." : "Enviar enlace de acceso"}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              Recibirás un código numérico de 6 dígitos por email
+              Recibirás un enlace mágico por email para entrar sin contraseña
             </p>
           </form>
         ) : (
-          <form onSubmit={verifyCode} className="space-y-4" autoComplete="off">
-            <p className="text-center text-sm text-muted-foreground">
-              Introduce el código enviado a <span className="font-medium text-foreground">{email}</span>
-            </p>
-            <div className="flex justify-center">
-              <InputOTP
-                maxLength={6}
-                value={code}
-                onChange={setCode}
-                autoComplete="one-time-code"
-                inputMode="numeric"
-                pattern="[0-9]*"
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
+          <div className="space-y-6 text-center">
+            <div className="space-y-2">
+              <p className="text-foreground text-base font-medium">Revisa tu correo</p>
+              <p className="text-muted-foreground text-sm">
+                Te hemos enviado un enlace de acceso a{" "}
+                <span className="font-medium text-foreground">{email}</span>.<br />
+                Ábrelo en este navegador para entrar.
+              </p>
             </div>
-            <Button type="submit" className="w-full h-12 text-base font-medium" disabled={loading || code.length !== 6}>
-              {loading ? "Validando..." : "Entrar"}
-            </Button>
             <button
               type="button"
-              onClick={() => { setStep("email"); setCode(""); }}
-              className="flex items-center gap-1 mx-auto text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => { setStep("email"); setEmail(""); }}
+              className="flex items-center gap-1 mx-auto text-sm text-muted-foreground hover:text-foreground"
             >
-              <ArrowLeft className="h-3 w-3" /> Cambiar email
+              <ArrowLeft className="h-4 w-4" /> Cambiar email
             </button>
-          </form>
+          </div>
         )}
       </div>
     </div>
