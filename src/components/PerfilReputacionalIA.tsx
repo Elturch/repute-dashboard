@@ -346,7 +346,7 @@ function Row({ m, t, h, r, isLast }: {
   const noData = hi == null;
 
   return (
-    <div className={`grid grid-cols-[1.4fr_1fr_1.6fr_1fr] gap-4 px-7 py-5 items-baseline ${!isLast ? 'border-b border-white/[0.04]' : ''} ${noData ? 'opacity-50' : ''}`}>
+    <div className={`grid grid-cols-[1.4fr_1fr_1.6fr_1fr] gap-4 px-7 py-5 items-baseline ${!isLast ? 'border-b border-border' : ''} ${noData ? 'opacity-50' : ''}`}>
       <span className="text-lg text-foreground font-medium">
         {m.label}
         <span className="ml-1.5 font-bold" style={{ color: m.positive ? COLOR_GOOD : COLOR_BAD }}>
