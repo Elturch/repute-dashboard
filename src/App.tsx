@@ -123,6 +123,8 @@ const App = () => (
             <Route path="catsalut/linkedin" element={<CatsalutLinkedIn />} />
             <Route path="catsalut/mybusiness" element={<CatsalutMyBusiness />} />
             <Route path="fjd" element={<FJDPage />} />
+            <Route path="alta-complejidad" element={<AltaComplejidad />} />
+
             <Route path="modo-tv" element={<ModoTV />} />
 
             <Route element={<RequireSuperadmin />}>
@@ -141,7 +143,6 @@ const App = () => (
               <Route path="evolucion" element={<EvolucionGlobal />} />
               <Route path="riesgo" element={<Riesgo />} />
               <Route path="explorador" element={<Explorador />} />
-              <Route path="alta-complejidad" element={<AltaComplejidad />} />
               <Route path="relato" element={<Relato />} />
               <Route path="reportes" element={<Reportes />} />
               <Route path="notificaciones" element={<Notificaciones />} />

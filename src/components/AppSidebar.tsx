@@ -67,7 +67,9 @@ const catsalutLinks: LinkItem[] = [
 
 const fjdLinks: LinkItem[] = [
   { title: "Fundación Jiménez Díaz", url: "/dashboard/fjd", icon: Star },
+  { title: "Alta complejidad", url: "/dashboard/alta-complejidad", icon: Award },
 ];
+
 
 const coreLinks: LinkItem[] = [
   { title: "Resumen global", url: "/dashboard", icon: Home, end: true },
@@ -76,7 +78,6 @@ const coreLinks: LinkItem[] = [
   { title: "Medios", url: "/dashboard/medios", icon: Building2 },
   { title: "Evolución", url: "/dashboard/evolucion", icon: TrendingUp },
   { title: "Riesgo y alertas", url: "/dashboard/riesgo", icon: ShieldAlert },
-  { title: "Alta Complejidad", url: "/dashboard/alta-complejidad", icon: Award },
   { title: "Explorador", url: "/dashboard/explorador", icon: Search },
   { title: "Relato IA", url: "/dashboard/relato", icon: FileText },
   { title: "Canales", url: "/dashboard/canales", icon: Radio },
