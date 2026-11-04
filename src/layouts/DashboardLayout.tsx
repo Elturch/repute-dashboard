@@ -11,12 +11,29 @@ import { OnboardingModal } from "@/components/OnboardingModal";
 import { AnalistaFlotante } from "@/components/AnalistaFlotante";
 import { externalSupabase } from "@/integrations/external-supabase/client";
 import { useTvMode } from "@/hooks/useTvMode";
-import { clearSession, getSession } from "@/lib/auth";
+import { clearSession, getSession, isSuperadmin } from "@/lib/auth";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const tv = useTvMode();
+  // Se lee antes de renderizar las rutas hijas (que podrían redirigir y perder el ?admin)
+  const adminParam = new URLSearchParams(window.location.search).get("admin");
+  if (adminParam === "qs-war-room") localStorage.setItem("mr_is_superadmin", "true");
+  else if (adminParam === "off") localStorage.removeItem("mr_is_superadmin");
+  const admin = isSuperadmin();
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const a = p.get("admin");
+    if (a === "qs-war-room") {
+      localStorage.setItem("mr_is_superadmin", "true");
+      window.location.replace(window.location.pathname);
+    } else if (a === "off") {
+      localStorage.removeItem("mr_is_superadmin");
+      window.location.replace(window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     if (!getSession()) navigate("/login", { replace: true });
@@ -96,11 +113,15 @@ const DashboardLayout = () => {
             </div>
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              <NotificationBell />
-              <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => navigate("/dashboard/reportes")}>
-                <Download className="h-3.5 w-3.5" />
-                Reportes
-              </Button>
+              {admin && (
+                <>
+                  <NotificationBell />
+                  <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => navigate("/dashboard/reportes")}>
+                    <Download className="h-3.5 w-3.5" />
+                    Reportes
+                  </Button>
+                </>
+              )}
               <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={tv.start}>
                 <Tv className="h-3.5 w-3.5" />
                 TV Auto
