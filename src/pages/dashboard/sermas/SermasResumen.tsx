@@ -82,7 +82,7 @@ export default function SermasResumen() {
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
             Sistema Madrileño de Salud · Total vs Gestión QS vs Sin QS · Últimos 30 días
           </p>
-          <h1 className="text-3xl font-bold tracking-tight">SERMAS — Resumen por canal</h1>
+          <h1 className="text-3xl font-bold tracking-tight">SERMAS — Overview</h1>
           <p className="text-sm text-muted-foreground mt-2 max-w-3xl">
             {stats && totalGlobal > 0 ? (
               <>

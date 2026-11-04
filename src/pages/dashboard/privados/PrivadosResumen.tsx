@@ -101,7 +101,7 @@ export default function PrivadosResumen() {
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
             Sanidad privada · Comparativa global · Últimos 30 días
           </p>
-          <h1 className="text-3xl font-bold tracking-tight">Resumen por canal</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
           <p className="text-sm text-muted-foreground mt-2 max-w-3xl">
             {stats && qsTotalGlobal > 0 && totalGlobal > 0 ? (
               <>Quirónsalud lidera en <span className="text-foreground font-medium">{qsLideraEn}</span> de <span className="text-foreground font-medium">{canalesActivos}</span> canales activos con <span className="text-foreground font-medium">{fmt(qsTotalGlobal)}</span> menciones agregadas (<span className="text-foreground font-medium">{fmtPct((qsTotalGlobal/totalGlobal)*100)}</span> del total privados).</>

@@ -17,7 +17,7 @@ function readInitial(): Theme {
     const v = localStorage.getItem(STORAGE_KEY);
     if (v === "light" || v === "dark") return v;
   } catch { /* noop */ }
-  return "dark";
+  return "light";
 }
 
 // Apply theme class synchronously at module load to avoid FOUC

@@ -33,7 +33,7 @@ type Bloque = {
 };
 
 const privadosLinks: LinkItem[] = [
-  { title: "Resumen 30d", url: "/dashboard/privados", icon: LayoutDashboard, end: true },
+  { title: "Overview", url: "/dashboard/privados", icon: LayoutDashboard, end: true },
   { title: "Medios", url: "/dashboard/privados/noticias", icon: Newspaper },
   { title: "Instagram", url: "/dashboard/privados/instagram", icon: SiInstagram },
   { title: "X (Twitter)", url: "/dashboard/privados/twitter", icon: FaXTwitter },
@@ -44,7 +44,7 @@ const privadosLinks: LinkItem[] = [
 ];
 
 const sermasLinks: LinkItem[] = [
-  { title: "Resumen 30d", url: "/dashboard/sermas", icon: LayoutDashboard, end: true },
+  { title: "Overview", url: "/dashboard/sermas", icon: LayoutDashboard, end: true },
   { title: "Medios", url: "/dashboard/sermas/medios", icon: Newspaper },
   { title: "Instagram", url: "/dashboard/sermas/instagram", icon: SiInstagram },
   { title: "X (Twitter)", url: "/dashboard/sermas/twitter", icon: FaXTwitter },
@@ -55,7 +55,7 @@ const sermasLinks: LinkItem[] = [
 ];
 
 const catsalutLinks: LinkItem[] = [
-  { title: "Resumen 30d", url: "/dashboard/catsalut", icon: LayoutDashboard, end: true },
+  { title: "Overview", url: "/dashboard/catsalut", icon: LayoutDashboard, end: true },
   { title: "Medios", url: "/dashboard/catsalut/medios", icon: Newspaper },
   { title: "Instagram", url: "/dashboard/catsalut/instagram", icon: SiInstagram },
   { title: "X (Twitter)", url: "/dashboard/catsalut/twitter", icon: FaXTwitter },
@@ -99,9 +99,8 @@ const sistemaLinks: LinkItem[] = [
 ];
 
 const bloques: Bloque[] = [
-  { id: "privados", titulo: "Comparativa privados", icon: BarChart3, prefix: "/dashboard/privados", defaultOpen: true, links: privadosLinks },
+  { id: "privados", titulo: "Grupos Hospitalarios", icon: BarChart3, prefix: "/dashboard/privados", defaultOpen: true, links: privadosLinks },
   { id: "sermas", titulo: "SERMAS", icon: Building2, prefix: "/dashboard/sermas", links: sermasLinks },
-  { id: "catsalut", titulo: "CATSALUT", icon: Building2, iconClassName: "text-violet-500", prefix: "/dashboard/catsalut", links: catsalutLinks },
   { id: "fjd", titulo: "Hospitales destacados", icon: Star, iconClassName: "text-amber-500", prefix: "/dashboard/fjd", links: fjdLinks },
   { id: "modotv", titulo: "Modo TV", icon: Tv, prefix: "/dashboard/modo-tv", links: [{ title: "Gestión de paneles", url: "/dashboard/modo-tv", icon: Tv }] },
 ];
