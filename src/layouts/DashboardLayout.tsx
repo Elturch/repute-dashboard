@@ -7,11 +7,11 @@ import { Download, Tv, X, LogOut, ChevronLeft, ChevronRight, Play, Pause } from 
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { PeriodProvider } from "@/contexts/PeriodContext";
+import { PeriodProvider, usePeriod } from "@/contexts/PeriodContext";
+import { fetchKpiCanal, kpiCanalKey } from "@/hooks/useKpiCanal";
 import { PeriodSelector } from "@/components/PeriodSelector";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { AnalistaFlotante } from "@/components/AnalistaFlotante";
-import { externalSupabase } from "@/integrations/external-supabase/client";
 import { useTvMode } from "@/hooks/useTvMode";
 import { clearSession, getSession, isSuperadmin } from "@/lib/auth";
 
