@@ -8,6 +8,7 @@ import { FaXTwitter, FaLinkedin } from 'react-icons/fa6';
 import { BiNews } from 'react-icons/bi';
 import type { IconType } from 'react-icons';
 import { type Canal } from '@/hooks/useCanalData';
+import { usePeriod } from '@/contexts/PeriodContext';
 import { useKpiCanalGlobal, filterByTitularidad, filterByCanal, aggregateKpi, type KpiRow } from '@/hooks/useKpiCanal';
 
 interface ChannelConfig {
@@ -73,6 +74,7 @@ function buildChannelStats(rowsCanal: KpiRow[]): ChannelStats {
 
 export default function PrivadosResumen() {
   const queryClient = useQueryClient();
+  const { desde, hasta } = usePeriod();
   const { data: kpiRows, isLoading, isFetching, dataUpdatedAt } = useKpiCanalGlobal();
 
   const stats = useMemo(() => {
@@ -99,7 +101,7 @@ export default function PrivadosResumen() {
       <header className="px-8 py-6 border-b border-border flex items-start justify-between gap-6">
         <div>
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
-            Sanidad privada · Comparativa global · Últimos 30 días
+            Sanidad privada · Comparativa global · Periodo seleccionado: {desde} → {hasta}
           </p>
           <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
           <p className="text-sm text-muted-foreground mt-2 max-w-3xl">
@@ -169,7 +171,7 @@ export default function PrivadosResumen() {
       </div>
 
       <footer className="px-8 py-6 border-t border-border text-[10px] uppercase tracking-widest text-muted-foreground flex justify-between">
-        <span>Fuente: Supabase · Vistas: v_canal_*</span>
+        <span>Fuente: base de datos · Función kpi_canal({desde} → {hasta})</span>
         <span>Filtrado: titularidad = Privado</span>
       </footer>
     </div>
