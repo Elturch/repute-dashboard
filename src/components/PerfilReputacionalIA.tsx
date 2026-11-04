@@ -181,7 +181,7 @@ export default function PerfilReputacionalIA({
                      dataKey="qs"
                      stroke={RADAR_QS}
                      fill={RADAR_QS}
-                     fillOpacity={0.55}
+                     fillOpacity={0.42}
                      strokeWidth={3.5} />
             </RadarChart>
           </ResponsiveContainer>
