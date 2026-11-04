@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { externalSupabase } from '@/integrations/external-supabase/client';
+import { usePeriod } from '@/contexts/PeriodContext';
 import type { Canal } from './useCanalData';
 import type { PerfilBucket } from '@/components/PerfilReputacionalIA';
 
@@ -43,21 +44,25 @@ const METRIC_KEYS = ['influencia','fiabilidad','afinidad','admiracion','impacto'
  * Hook global. Una sola query a la vista materializada (≈191 filas, 144 KB).
  * Cachea 30 min, refresca cada 10. Todo el dashboard tira de aquí para KPIs.
  */
+export async function fetchKpiCanal(desde: string, hasta: string): Promise<KpiRow[]> {
+  const { data, error } = await externalSupabase.rpc('kpi_canal', { p_desde: desde, p_hasta: hasta });
+  if (error) {
+    console.error('[kpi_canal]', error);
+    throw error;
+  }
+  return (data ?? []) as KpiRow[];
+}
+
+export function kpiCanalKey(desde: string, hasta: string) {
+  return ['kpi_canal_global', desde, hasta] as const;
+}
+
 export function useKpiCanalGlobal() {
+  const { desde, hasta } = usePeriod();
   return useQuery({
-    queryKey: ['kpi_canal_global'],
-    queryFn: async (): Promise<KpiRow[]> => {
-      const { data, error } = await externalSupabase
-        .from('v_kpi_canal_30d')
-        .select('*')
-        .limit(2000);
-      if (error) {
-        console.error('[useKpiCanalGlobal]', error);
-        throw error;
-      }
-      // Normaliza: bigint llega como number en supabase-js, numeric como number también.
-      return (data ?? []) as KpiRow[];
-    },
+    queryKey: kpiCanalKey(desde, hasta),
+    queryFn: () => fetchKpiCanal(desde, hasta),
+    placeholderData: (prev) => prev,
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,

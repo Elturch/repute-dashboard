@@ -7,11 +7,11 @@ import { Download, Tv, X, LogOut, ChevronLeft, ChevronRight, Play, Pause } from 
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { PeriodProvider } from "@/contexts/PeriodContext";
+import { PeriodProvider, usePeriod } from "@/contexts/PeriodContext";
+import { fetchKpiCanal, kpiCanalKey } from "@/hooks/useKpiCanal";
 import { PeriodSelector } from "@/components/PeriodSelector";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { AnalistaFlotante } from "@/components/AnalistaFlotante";
-import { externalSupabase } from "@/integrations/external-supabase/client";
 import { useTvMode } from "@/hooks/useTvMode";
 import { clearSession, getSession, isSuperadmin } from "@/lib/auth";
 
@@ -64,24 +64,9 @@ const DashboardLayout = () => {
     };
   }, [tv.active]);
 
-  useEffect(() => {
-    // Prefetch único de la vista materializada de KPIs (≈191 filas, 144 KB).
-    queryClient.prefetchQuery({
-      queryKey: ['kpi_canal_global'],
-      queryFn: async () => {
-        const { data, error } = await externalSupabase
-          .from('v_kpi_canal_30d')
-          .select('*')
-          .limit(2000);
-        if (error) throw error;
-        return data ?? [];
-      },
-      staleTime: 30 * 60 * 1000,
-    }).catch(() => { /* silencioso */ });
-  }, [queryClient]);
-
   return (
     <PeriodProvider>
+    <KpiPrefetch />
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         {!tv.active && <AppSidebar />}
@@ -154,3 +139,16 @@ const DashboardLayout = () => {
 };
 
 export default DashboardLayout;
+
+function KpiPrefetch() {
+  const queryClient = useQueryClient();
+  const { desde, hasta } = usePeriod();
+  useEffect(() => {
+    queryClient.prefetchQuery({
+      queryKey: kpiCanalKey(desde, hasta),
+      queryFn: () => fetchKpiCanal(desde, hasta),
+      staleTime: 30 * 60 * 1000,
+    }).catch(() => { /* silencioso */ });
+  }, [queryClient, desde, hasta]);
+  return null;
+}
