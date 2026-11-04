@@ -62,7 +62,7 @@ export default function RadarMetricasIA({ series, size = 320 }: Props) {
               dataKey={s.key}
               stroke={s.color}
               fill={s.color}
-              fillOpacity={s.highlight ? 0.35 : 0.12}
+              fillOpacity={s.highlight ? 0.35 : 0.1}
               strokeWidth={s.highlight ? 3 : 2.5}
               strokeOpacity={s.highlight ? 1 : 0.9}
             />
