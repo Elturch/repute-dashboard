@@ -149,6 +149,7 @@ const DashboardLayout = () => {
         </div>
       </div>
     </SidebarProvider>
+    </PeriodProvider>
   );
 };
 
