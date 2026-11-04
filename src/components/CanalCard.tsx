@@ -37,6 +37,10 @@ export interface CanalCardProps {
   highlightShort?: string;
   /** Texto para la media del conjunto. */
   conjuntoLabel?: string;
+  /** Segundo destacado opcional (p.ej. HUGV junto a HURJC). */
+  highlight2?: string;
+  highlight2Short?: string;
+  /** Texto bajo "Posición" (por defecto "de N"). */
   isLoading?: boolean;
 }
 
@@ -44,9 +48,9 @@ function fmt(n: number) { return (n ?? 0).toLocaleString('es-ES'); }
 
 export default function CanalCard({
   label, Icon, brandColor, rows, grupos, highlight = 'Quirónsalud', highlightShort = 'QS',
-  conjuntoLabel = 'Media Grupos Hospitalarios', isLoading,
+  conjuntoLabel = 'Media Grupos Hospitalarios', isLoading, highlight2, highlight2Short,
 }: CanalCardProps) {
-  const [comp, setComp] = useState('');
+  const destacados = [highlight, highlight2].filter(Boolean) as string[];
 
   const s = useMemo(() => {
     const set = new Set(grupos);
@@ -56,28 +60,23 @@ export default function CanalCard({
     const conjunto = aggregateKpi(validas);
     const qs = porGrupo.get(highlight) ?? aggregateKpi([]);
     const resto = aggregateKpi(validas.filter(r => r.grupo_hospitalario !== highlight));
+    const qs2 = highlight2 ? (porGrupo.get(highlight2) ?? aggregateKpi([])) : null;
+    const resto2 = highlight2 ? aggregateKpi(validas.filter(r => r.grupo_hospitalario !== highlight2)) : null;
     const total = conjunto.menciones;
     const max = Math.max(...Array.from(porGrupo.values()).map(a => a.menciones), 1);
     const filas = grupos
       .map(g => { const a = porGrupo.get(g)!; return { grupo: g, count: a.menciones, share: total ? a.menciones / total * 100 : 0, barPct: a.menciones / max * 100 }; })
       .sort((a, b) => b.count - a.count);
     const rank = filas.findIndex(f => f.grupo === highlight) + 1;
-    return { porGrupo, conjunto, qs, resto, total, filas, rank, maxDate: conjunto.fechaMax };
-  }, [rows, grupos, highlight]);
+    return { porGrupo, conjunto, qs, resto, qs2, resto2, total, filas, rank, maxDate: conjunto.fechaMax };
+  }, [rows, grupos, highlight, highlight2]);
 
   const isEmpty = !isLoading && s.total === 0;
-  const compAgg = comp ? s.porGrupo.get(comp) : null;
-  const ref = compAgg ?? s.conjunto;
-  const refLabel = comp || conjuntoLabel;
-  const lidera = contarLiderazgo(s.qs.promedios, s.resto.promedios);
-
-  const radarData = DIMS.map(d => {
-    const q = s.qs.promedios[d.key], r = ref.promedios[d.key];
-    const inv = (v: number | null | undefined) => v == null ? null : (d.positive ? v : 10 - v);
-    return { metric: d.label, qs: inv(q), ref: inv(r) };
-  });
   const pieData = s.filas.filter(f => f.count > 0);
-  const others = pieData.filter(f => f.grupo !== highlight);
+  const others = pieData.filter(f => !destacados.includes(f.grupo));
+  const riesgo = (a: AggregatedKpi) => a.menciones ? fmtPctRiesgo(pctRiesgoReal(a.peligroReal, a.menciones)) : '—';
+  const QS2_COLOR = 'hsl(160, 84%, 39%)';
+  const colorDe = (g: string) => g === highlight ? QS_COLOR : g === highlight2 ? QS2_COLOR : null;
 
   return (
     <section className="bg-card border border-border rounded-xl overflow-hidden flex flex-col" aria-label={`Canal ${label}`}>
@@ -91,12 +90,21 @@ export default function CanalCard({
       </header>
 
       {/* 4 indicadores */}
+      {!s.qs2 ? (
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border border-b border-border">
         <Ind label="Total menciones" value={fmt(s.total)} sub={`${highlightShort}: ${fmt(s.qs.menciones)}`} />
-        <Ind label={`Nota IA · ${highlightShort}`} value={fmtNotaIA(s.qs.notaMedia)} sub={`Grupos: ${fmtNotaIA(s.conjunto.notaMedia)}`} accent />
-        <Ind label={`Riesgo real · ${highlightShort}`} info value={s.qs.menciones ? fmtPctRiesgo(pctRiesgoReal(s.qs.peligroReal, s.qs.menciones)) : '—'} sub="medio-alto + alto + crítico" />
+        <Ind label={`Nota IA · ${highlightShort}`} value={fmtNotaIA(s.qs.notaMedia)} sub={`${conjuntoLabel}: ${fmtNotaIA(s.conjunto.notaMedia)}`} accent />
+        <Ind label={`Riesgo real · ${highlightShort}`} info value={riesgo(s.qs)} sub="medio-alto + alto + crítico" />
         <Ind label="Posición" value={s.total && s.qs.menciones ? `#${s.rank}` : '—'} sub={`de ${grupos.length}`} />
       </div>
+      ) : (
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border border-b border-border">
+        <Ind label="Total menciones" value={fmt(s.total)} sub={`${conjuntoLabel}: Nota IA ${fmtNotaIA(s.conjunto.notaMedia)}`} />
+        <Ind label={`Menciones · ${highlightShort}`} value={fmt(s.qs.menciones)} sub={`${highlight2Short}: ${fmt(s.qs2.menciones)}`} />
+        <Ind label={`Nota IA · ${highlightShort}`} value={fmtNotaIA(s.qs.notaMedia)} sub={`${highlight2Short}: ${fmtNotaIA(s.qs2.notaMedia)}`} accent />
+        <Ind label="Riesgo real" info value={`${highlightShort} ${riesgo(s.qs)}`} sub={`${highlight2Short} ${riesgo(s.qs2)}`} />
+      </div>
+      )}
 
       <div className="p-5 space-y-6 relative flex-1">
         {/* Tarta con competencia */}
@@ -107,8 +115,8 @@ export default function CanalCard({
               <PieChart>
                 <Pie data={pieData} dataKey="count" nameKey="grupo" innerRadius="45%" outerRadius="85%" paddingAngle={1} stroke="hsl(var(--card))" strokeWidth={2} isAnimationActive={false}>
                   {pieData.map(f => (
-                    <Cell key={f.grupo} fill={f.grupo === highlight ? QS_COLOR : COMP_COLOR}
-                      fillOpacity={f.grupo === highlight ? 1 : 0.35 + 0.55 * (1 - others.indexOf(f) / Math.max(others.length, 1))} />
+                    <Cell key={f.grupo} fill={colorDe(f.grupo) ?? COMP_COLOR}
+                      fillOpacity={colorDe(f.grupo) ? 1 : 0.35 + 0.55 * (1 - others.indexOf(f) / Math.max(others.length, 1))} />
                   ))}
                 </Pie>
                 <RTooltip formatter={(v: number, n: string) => [`${fmt(v)} (${s.total ? (v / s.total * 100).toFixed(1) : 0}%)`, n]}
@@ -121,13 +129,13 @@ export default function CanalCard({
         {/* Ranking 01..08 */}
         <div className="space-y-1.5">
           {s.filas.map((f, i) => {
-            const isQS = f.grupo === highlight;
+            const isQS = destacados.includes(f.grupo);
             return (
               <div key={f.grupo} className={`grid grid-cols-[1.5rem_minmax(0,9rem)_1fr_4rem_3.5rem] items-center gap-2 px-2 py-1.5 rounded ${isQS ? 'bg-primary/5 border border-primary/20' : ''}`}>
                 <span className="text-[10px] text-muted-foreground tabular-nums">{String(i + 1).padStart(2, '0')}</span>
                 <span className={`text-sm truncate ${isQS ? 'font-medium' : ''}`}>{f.grupo}</span>
                 <div className="h-2 bg-foreground/5 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${f.barPct}%`, background: isQS ? QS_COLOR : COMP_COLOR }} />
+                  <div className="h-full rounded-full" style={{ width: `${f.barPct}%`, background: colorDe(f.grupo) ?? COMP_COLOR }} />
                 </div>
                 <span className="text-sm font-semibold text-right tabular-nums">{fmt(f.count)}</span>
                 <span className="text-xs text-muted-foreground text-right tabular-nums">{f.share.toFixed(1)}%</span>
@@ -136,32 +144,12 @@ export default function CanalCard({
           })}
         </div>
 
-        {/* Radar QS vs conjunto / grupo */}
-        <div>
-          <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              Dimensiones IA · {highlightShort} lidera en <span className="text-foreground font-semibold">{lidera}</span> de 8
-            </p>
-            <select aria-label={`Comparar ${highlightShort} en ${label}`} value={comp} onChange={e => setComp(e.target.value)}
-              className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground max-w-[12rem]">
-              <option value="">{conjuntoLabel}</option>
-              {grupos.filter(g => g !== highlight && (s.porGrupo.get(g)?.menciones ?? 0) > 0).map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
-          </div>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={radarData} outerRadius="70%">
-                <PolarGrid stroke="hsl(var(--border))" />
-                <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-                <PolarRadiusAxis angle={90} domain={[0, 10]} tick={false} axisLine={false} />
-                <Radar name={refLabel} dataKey="ref" stroke={COMP_COLOR} fill={COMP_COLOR} fillOpacity={0.1} strokeWidth={2.5} strokeOpacity={0.9} isAnimationActive={false} />
-                <Radar name={highlight} dataKey="qs" stroke={QS_COLOR} fill={QS_COLOR} fillOpacity={0.3} strokeWidth={3} isAnimationActive={false} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="text-[10px] text-muted-foreground text-center">Rechazo, preocupación y descrédito invertidos: más extenso = mejor.</p>
-        </div>
+        <RadarComparador canal={label} nombre={highlight} short={highlightShort} color={QS_COLOR}
+          agg={s.qs} resto={s.resto} conjunto={s.conjunto} conjuntoLabel={conjuntoLabel} porGrupo={s.porGrupo} grupos={grupos} />
+        {s.qs2 && s.resto2 && highlight2 && (
+          <RadarComparador canal={label} nombre={highlight2} short={highlight2Short ?? highlight2} color={QS2_COLOR}
+            agg={s.qs2} resto={s.resto2} conjunto={s.conjunto} conjuntoLabel={conjuntoLabel} porGrupo={s.porGrupo} grupos={grupos} />
+        )}
 
         {isEmpty && (
           <div className="absolute inset-0 bg-card/85 backdrop-blur-[1px] flex items-center justify-center">
@@ -179,6 +167,52 @@ function Ind({ label, value, sub, accent, info }: { label: string; value: string
       <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">{label}{info && <RiesgoRealInfo />}</p>
       <p className={`text-xl font-bold tabular-nums mt-1 ${accent ? 'text-primary' : ''}`}>{value}</p>
       {sub && <p className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">{sub}</p>}
+    </div>
+  );
+}
+
+function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, conjuntoLabel, porGrupo, grupos }: {
+  canal: string; nombre: string; short: string; color: string;
+  agg: AggregatedKpi; resto: AggregatedKpi; conjunto: AggregatedKpi; conjuntoLabel: string;
+  porGrupo: Map<string, AggregatedKpi>; grupos: string[];
+}) {
+  const [comp, setComp] = useState('');
+  const ref = (comp && porGrupo.get(comp)) || conjunto;
+  const refLabel = comp || conjuntoLabel;
+  const lidera = contarLiderazgo(agg.promedios, resto.promedios);
+  const data = DIMS.map(d => {
+    const inv = (v: number | null | undefined) => v == null ? null : (d.positive ? v : 10 - v);
+    return { metric: d.label, qs: inv(agg.promedios[d.key]), ref: inv(ref.promedios[d.key]) };
+  });
+  return (
+    <div aria-label={`Radar ${short} en ${canal}`}>
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          Dimensiones IA · {short} lidera en <span className="text-foreground font-semibold">{agg.menciones ? lidera : 0}</span> de 8
+        </p>
+        <select aria-label={`Comparar ${short} en ${canal}`} value={comp} onChange={e => setComp(e.target.value)}
+          className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground max-w-[12rem]">
+          <option value="">{conjuntoLabel}</option>
+          {grupos.filter(g => g !== nombre && (porGrupo.get(g)?.menciones ?? 0) > 0).map(g => <option key={g} value={g}>{g}</option>)}
+        </select>
+      </div>
+      {agg.menciones === 0 ? (
+        <div className="h-40 flex items-center justify-center text-xs uppercase tracking-widest text-muted-foreground">Sin datos en el periodo</div>
+      ) : (
+      <div className="h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <RadarChart data={data} outerRadius="70%">
+            <PolarGrid stroke="hsl(var(--border))" />
+            <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
+            <PolarRadiusAxis angle={90} domain={[0, 10]} tick={false} axisLine={false} />
+            <Radar name={refLabel} dataKey="ref" stroke={COMP_COLOR} fill={COMP_COLOR} fillOpacity={0.1} strokeWidth={2.5} strokeOpacity={0.9} isAnimationActive={false} />
+            <Radar name={nombre} dataKey="qs" stroke={color} fill={color} fillOpacity={0.3} strokeWidth={3} isAnimationActive={false} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+      )}
+      <p className="text-[10px] text-muted-foreground text-center">Rechazo, preocupación y descrédito invertidos: más extenso = mejor.</p>
     </div>
   );
 }
