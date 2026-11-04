@@ -43,7 +43,15 @@ export function useTvMode() {
   useEffect(() => {
     if (active) localStorage.setItem(STORAGE_KEY, "1");
     else localStorage.removeItem(STORAGE_KEY);
+    // Sincroniza todas las instancias del hook (p. ej. página de gestión ↔ layout)
+    window.dispatchEvent(new CustomEvent("qs-tv-mode", { detail: active }));
   }, [active]);
+
+  useEffect(() => {
+    const onSync = (e: Event) => setActive((e as CustomEvent<boolean>).detail);
+    window.addEventListener("qs-tv-mode", onSync);
+    return () => window.removeEventListener("qs-tv-mode", onSync);
+  }, []);
 
   const idx = playlist.findIndex(p => p === location.pathname);
   const currentIndex = idx >= 0 ? idx : 0;
