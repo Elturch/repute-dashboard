@@ -27,17 +27,20 @@ export function useTvMode() {
   const [progress, setProgress] = useState(0);
   const [playlist, setPlaylist] = useState<string[]>(() => [...TV_PLAYLIST]);
 
-  useEffect(() => {
-    let cancel = false;
-    (async () => {
-      try {
-        const { data, error } = await externalSupabase
-          .from("tv_paneles").select("path,orden,activo").eq("activo", true).order("orden");
-        if (!cancel && !error && data && data.length) setPlaylist(data.map((r: any) => r.path));
-      } catch { /* default */ }
-    })();
-    return () => { cancel = true; };
+  const loadPlaylist = useCallback(async (): Promise<string[]> => {
+    try {
+      const { data, error } = await externalSupabase
+        .from("tv_paneles").select("path,orden,activo").eq("activo", true).order("orden");
+      if (!error && data && data.length) {
+        const paths = data.map((r: any) => r.path);
+        setPlaylist(paths);
+        return paths;
+      }
+    } catch { /* usa default */ }
+    return [...TV_PLAYLIST];
   }, []);
+
+  useEffect(() => { loadPlaylist(); }, [loadPlaylist]);
 
   useEffect(() => {
     if (active) localStorage.setItem(STORAGE_KEY, "1");
@@ -47,10 +50,13 @@ export function useTvMode() {
   const idx = playlist.findIndex(p => p === location.pathname);
   const currentIndex = idx >= 0 ? idx : 0;
 
-  const start = useCallback(() => {
-    setProgress(0); setPaused(false); setActive(true);
-    navigate(playlist[0] ?? TV_PLAYLIST[0], { replace: true });
-  }, [navigate, playlist]);
+  const start = useCallback(async () => {
+    setProgress(0);
+    setPaused(false);
+    const paths = await loadPlaylist();
+    setActive(true);
+    navigate(paths[0] ?? TV_PLAYLIST[0], { replace: true });
+  }, [navigate, loadPlaylist]);
 
   const stop = useCallback(() => setActive(false), []);
 
