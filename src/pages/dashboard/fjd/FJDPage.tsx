@@ -8,6 +8,7 @@ import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from "react-icons/si";
 import { FaXTwitter, FaLinkedin } from "react-icons/fa6";
 import { Newspaper } from "lucide-react";
 import { useFJDMenciones, type FJDMencion, type FJDCanal } from "@/hooks/useFJDMenciones";
+import { fmtNotaIA } from "@/lib/metricas";
 import PerfilReputacionalIA, { type PerfilBucket } from "@/components/PerfilReputacionalIA";
 import FjdVsSermasBlock from "@/components/FjdVsSermasBlock";
 import {
@@ -237,8 +238,8 @@ export default function FJDPage() {
           <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <KpiCard label="Menciones totales" value={stats.total.toLocaleString()} accent="amber" />
             <KpiCard
-              label="Nota IA media"
-              value={stats.notaIaMedia != null ? stats.notaIaMedia.toFixed(2) : "—"}
+              label="Nota IA"
+              value={fmtNotaIA(stats.notaIaMedia)}
               accent="emerald"
             />
             <KpiCard

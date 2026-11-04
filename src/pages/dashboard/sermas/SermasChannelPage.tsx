@@ -4,6 +4,8 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { IconType } from 'react-icons';
 import { AlertTriangle } from 'lucide-react';
+import RiesgoRealInfo from '@/components/RiesgoRealInfo';
+import { fmtNotaIA, fmtPctRiesgo, pctRiesgoReal } from '@/lib/metricas';
 import PerfilReputacionalIA, { type PerfilBucket } from '@/components/PerfilReputacionalIA';
 import MencionesRecientes, { type MencionesConfig } from '@/components/MencionesRecientes';
 import { type Canal } from '@/hooks/useCanalData';
@@ -122,6 +124,8 @@ interface ChannelStats {
   fjd: SegmentStats;
   maxDate: Date;
   pctRiesgoReal: number;
+  pctRiesgoQS: number;
+  comparables: PerfilBucket[];
   bucketTotal: PerfilBucket;
   bucketQS: PerfilBucket;
   bucketSinQS: PerfilBucket;
@@ -140,6 +144,8 @@ function buildChannelStats(rowsCanal: KpiRow[]): ChannelStats {
     fjd:   { menciones: 0, notaMedia: null },
     maxDate: new Date(),
     pctRiesgoReal: 0,
+    pctRiesgoQS: 0,
+    comparables: [],
     bucketTotal: { label: 'SERMAS Total', menciones: 0, promedios: {} },
     bucketQS:    { label: 'Gestión QS',   menciones: 0, promedios: {} },
     bucketSinQS: { label: 'Sin QS',       menciones: 0, promedios: {} },
@@ -164,7 +170,12 @@ function buildChannelStats(rowsCanal: KpiRow[]): ChannelStats {
     sinQs: { menciones: aggSinQs.menciones, notaMedia: aggSinQs.notaMedia },
     fjd:   { menciones: aggFjd.menciones,   notaMedia: aggFjd.notaMedia },
     maxDate: aggTotal.fechaMax ?? new Date(),
-    pctRiesgoReal: aggTotal.pctRiesgoReal,
+    pctRiesgoReal: pctRiesgoReal(aggTotal.peligroReal, aggTotal.menciones),
+    pctRiesgoQS: pctRiesgoReal(aggQS.peligroReal, aggQS.menciones),
+    comparables: Array.from(new Set(sinQsRows.map(r => r.grupo_hospitalario).filter((g): g is string => !!g)))
+      .sort((a, b) => a.localeCompare(b, 'es'))
+      .map(g => toPerfilBucket(g, aggregateKpi(sinQsRows.filter(r => r.grupo_hospitalario === g))))
+      .filter(b => b.menciones > 0),
     bucketTotal: toPerfilBucket('SERMAS Total', aggTotal),
     bucketQS:    toPerfilBucket('Gestión QS',   aggQS),
     bucketSinQS: toPerfilBucket('Sin QS',       aggSinQs),
@@ -259,9 +270,9 @@ export default function SermasChannelPage({ cfg }: { cfg: SermasChannelConfig })
 
       {stats && stats.total.menciones > 0 && (
         <div className="rounded-lg border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
-          <span className="font-semibold uppercase tracking-wider">Riesgo real</span>{' '}
-          <span className="ml-2 tabular-nums text-foreground font-bold text-sm">{fmtPct(stats.pctRiesgoReal)}</span>{' '}
-          <span className="ml-1">de las menciones (alto + crítico + medio-alto)</span>
+          <span className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wider">Riesgo real <RiesgoRealInfo /></span>{' '}
+          <span className="ml-2 tabular-nums text-foreground font-bold text-sm">{fmtPctRiesgo(stats.pctRiesgoReal)}</span>{' '}
+          <span className="ml-1">SERMAS total · Gestión QS: <span className="tabular-nums text-foreground font-semibold">{fmtPctRiesgo(stats.pctRiesgoQS)}</span> (medio-alto + alto + crítico)</span>
         </div>
       )}
 
@@ -280,6 +291,8 @@ export default function SermasChannelPage({ cfg }: { cfg: SermasChannelConfig })
           highlight={stats.bucketQS}
           resto={stats.bucketSinQS}
           highlightColor="#10b981"
+          comparables={stats.comparables}
+          conjuntoLabel="Conjunto SERMAS sin QS"
         />
       )}
 
@@ -331,7 +344,7 @@ function SegmentCard({
       <div className="mt-3 grid grid-cols-1 gap-2 text-[11px]">
         <div>
           <p className="uppercase tracking-wider text-muted-foreground">Nota IA</p>
-          <p className="mt-0.5 tabular-nums text-foreground">{stats ? fmtNum(stats.notaMedia) : '—'}</p>
+          <p className="mt-0.5 tabular-nums text-foreground">{stats ? fmtNotaIA(stats.notaMedia) : '—'}</p>
         </div>
       </div>
     </div>
