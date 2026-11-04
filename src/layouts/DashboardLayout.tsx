@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { OnboardingModal } from "@/components/OnboardingModal";
+import { AnalistaFlotante } from "@/components/AnalistaFlotante";
 import { externalSupabase } from "@/integrations/external-supabase/client";
 import { useTvMode } from "@/hooks/useTvMode";
 import { clearSession, getSession } from "@/lib/auth";
