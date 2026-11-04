@@ -27,7 +27,6 @@ export function useTvMode() {
   const [progress, setProgress] = useState(0);
   const [playlist, setPlaylist] = useState<string[]>(() => [...TV_PLAYLIST]);
 
-  // Playlist compartida desde la BD (activos, por orden). Si falla o está vacía, usa el default.
   useEffect(() => {
     let cancel = false;
     (async () => {
@@ -43,22 +42,13 @@ export function useTvMode() {
   useEffect(() => {
     if (active) localStorage.setItem(STORAGE_KEY, "1");
     else localStorage.removeItem(STORAGE_KEY);
-    // Sincroniza todas las instancias del hook (p. ej. página de gestión ↔ layout)
-    window.dispatchEvent(new CustomEvent("qs-tv-mode", { detail: active }));
   }, [active]);
-
-  useEffect(() => {
-    const onSync = (e: Event) => setActive((e as CustomEvent<boolean>).detail);
-    window.addEventListener("qs-tv-mode", onSync);
-    return () => window.removeEventListener("qs-tv-mode", onSync);
-  }, []);
 
   const idx = playlist.findIndex(p => p === location.pathname);
   const currentIndex = idx >= 0 ? idx : 0;
 
   const start = useCallback(() => {
     setProgress(0); setPaused(false); setActive(true);
-    window.dispatchEvent(new CustomEvent("qs-tv-mode", { detail: true }));
     navigate(playlist[0] ?? TV_PLAYLIST[0], { replace: true });
   }, [navigate, playlist]);
 
@@ -78,7 +68,6 @@ export function useTvMode() {
 
   const togglePause = useCallback(() => setPaused(p => !p), []);
 
-  // Auto-rotación (se detiene en pausa)
   useEffect(() => {
     if (!active || paused || playlist.length === 0) return;
     const startedAt = Date.now();
@@ -106,7 +95,6 @@ export function useTvMode() {
     return () => { document.body.classList.remove('tv-mode-active'); };
   }, [active]);
 
-  // Teclado: Esc sale, flechas navegan, espacio pausa
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!active) return;
