@@ -33,7 +33,7 @@ type Bloque = {
 };
 
 const privadosLinks: LinkItem[] = [
-  { title: "Resumen 30d", url: "/dashboard/privados", icon: LayoutDashboard, end: true },
+  { title: "Overview", url: "/dashboard/privados", icon: LayoutDashboard, end: true },
   { title: "Medios", url: "/dashboard/privados/noticias", icon: Newspaper },
   { title: "Instagram", url: "/dashboard/privados/instagram", icon: SiInstagram },
   { title: "X (Twitter)", url: "/dashboard/privados/twitter", icon: FaXTwitter },
@@ -44,7 +44,7 @@ const privadosLinks: LinkItem[] = [
 ];
 
 const sermasLinks: LinkItem[] = [
-  { title: "Resumen 30d", url: "/dashboard/sermas", icon: LayoutDashboard, end: true },
+  { title: "Overview", url: "/dashboard/sermas", icon: LayoutDashboard, end: true },
   { title: "Medios", url: "/dashboard/sermas/medios", icon: Newspaper },
   { title: "Instagram", url: "/dashboard/sermas/instagram", icon: SiInstagram },
   { title: "X (Twitter)", url: "/dashboard/sermas/twitter", icon: FaXTwitter },
@@ -55,7 +55,7 @@ const sermasLinks: LinkItem[] = [
 ];
 
 const catsalutLinks: LinkItem[] = [
-  { title: "Resumen 30d", url: "/dashboard/catsalut", icon: LayoutDashboard, end: true },
+  { title: "Overview", url: "/dashboard/catsalut", icon: LayoutDashboard, end: true },
   { title: "Medios", url: "/dashboard/catsalut/medios", icon: Newspaper },
   { title: "Instagram", url: "/dashboard/catsalut/instagram", icon: SiInstagram },
   { title: "X (Twitter)", url: "/dashboard/catsalut/twitter", icon: FaXTwitter },
