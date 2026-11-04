@@ -52,9 +52,9 @@ export default function RadarMetricasIA({ series, size = 320 }: Props) {
     <div style={{ width: '100%', height: size }}>
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart data={data} outerRadius="72%">
-          <PolarGrid stroke="#374151" />
-          <PolarAngleAxis dataKey="metric" tick={{ fill: '#9ca3af', fontSize: 10 }} />
-          <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fill: '#6b7280', fontSize: 9 }} stroke="#374151" />
+          <PolarGrid stroke="hsl(var(--border))" />
+          <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
+          <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} stroke="hsl(var(--border))" />
           {series.map(s => (
             <Radar
               key={s.key}
@@ -67,7 +67,9 @@ export default function RadarMetricasIA({ series, size = 320 }: Props) {
             />
           ))}
           <Tooltip
-            contentStyle={{ background: '#0b0f17', border: '1px solid #1f2937', fontSize: 11 }}
+            contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 11 }}
+            itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
+            labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
             formatter={(v: number) => (typeof v === 'number' ? v.toFixed(2) : v)}
           />
         </RadarChart>

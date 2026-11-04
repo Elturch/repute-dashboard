@@ -38,7 +38,7 @@ const CANAL_COLOR: Record<FJDCanal, string> = {
   tiktok: "#06b6d4",
   facebook: "#3b82f6",
   linkedin: "#0a66c2",
-  twitter: "#e5e7eb",
+  twitter: "#1d9bf0",
   mybusiness: "#22c55e",
 };
 

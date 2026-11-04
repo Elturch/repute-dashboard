@@ -154,12 +154,12 @@ export default function PerfilReputacionalIA({
         <div className="w-full" style={{ height: 540 }}>
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="68%">
-              <PolarGrid stroke="rgba(255,255,255,0.10)" />
+              <PolarGrid stroke="hsl(var(--border))" />
               <PolarAngleAxis
                 dataKey="metric"
                 tick={(props: any) => <ColoredAxisTick {...props} statusMap={statusMap} />}
               />
-              <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fill: '#4b5563', fontSize: 10 }} stroke="rgba(255,255,255,0.05)" />
+              <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} stroke="hsl(var(--border))" />
 
               <Radar name="Total"
                      dataKey="total"
@@ -283,7 +283,7 @@ function ColoredAxisTick(props: any) {
   return (
     <g>
       <text x={x} y={y} textAnchor={textAnchor}>
-        <tspan x={x} dy="0" fontSize="12" fontWeight="700" fill="#d1d5db" letterSpacing="0.5">
+        <tspan x={x} dy="0" fontSize="12" fontWeight="700" fill="hsl(var(--foreground))" letterSpacing="0.5">
           {payload.value.toUpperCase()}
           <tspan dx="4" fontSize="13" fontWeight="900" fill={arrowColor}>{arrow}</tspan>
         </tspan>
