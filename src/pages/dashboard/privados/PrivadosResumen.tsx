@@ -223,7 +223,7 @@ function ChannelSection({ cfg, stats, isLoading }: { cfg: ChannelConfig; stats?:
                   <div className="h-2 bg-foreground/5 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all"
-                      style={{ width: `${f.barPct}%`, background: isQS ? 'hsl(217, 91%, 60%)' : 'rgba(255,255,255,0.25)' }}
+                      style={{ width: `${f.barPct}%`, background: isQS ? 'hsl(217, 91%, 60%)' : 'hsl(var(--muted-foreground))' }}
                     />
                   </div>
                   <span className="text-sm font-semibold text-right tabular-nums">{fmt(f.count)}</span>

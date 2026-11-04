@@ -9,8 +9,8 @@ import { useBenchmarkSegmentos } from "@/hooks/useBenchmarkSegmentos";
 
 const QS_COLOR = "hsl(217, 91%, 60%)";
 const NEUTRAL_COLORS = [
-  "hsl(215, 15%, 50%)", "hsl(215, 10%, 42%)", "hsl(215, 10%, 55%)",
-  "hsl(215, 8%, 62%)", "hsl(215, 12%, 48%)",
+  "hsl(var(--muted-foreground))", "hsl(var(--muted-foreground))", "hsl(var(--muted-foreground))",
+  "hsl(var(--muted-foreground))", "hsl(var(--muted-foreground))",
 ];
 
 function getColor(g: GroupAggregated, idx: number) {
