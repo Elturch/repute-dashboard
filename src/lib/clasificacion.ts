@@ -52,7 +52,7 @@ export const NOMBRES_GRUPOS_PRIVADOS: GrupoPrivado[] = [
 /** Color de marca por grupo privado. Quirónsalud destacado, resto neutros con personalidad. */
 export const COLOR_POR_GRUPO_PRIVADO: Record<GrupoPrivado, string> = {
   'Quirónsalud':    'hsl(217, 91%, 60%)', // azul corporativo Quirónsalud
-  'HM Hospitales':  'hsl(0, 0%, 55%)',
+  'HM Hospitales':  'hsl(var(--muted-foreground))',
   'Sanitas':        'hsl(170, 50%, 50%)',
   'Vithas':         'hsl(40, 70%, 55%)',
   'Ribera Salud':   'hsl(280, 40%, 55%)',
