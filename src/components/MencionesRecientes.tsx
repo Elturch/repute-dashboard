@@ -22,7 +22,7 @@ export interface MencionesConfig {
   /** Si se indica, la lista sale de rpc('canal_items') filtrada por el periodo global. */
   canal?: Canal;
   /** Filtro de segmento para canal_items (mismo criterio que los KPIs de la página). */
-  segmento?: { titularidad?: string; gestionLike?: string };
+  segmento?: { titularidad?: string; gestionLike?: string; grupos?: string[] };
 }
 
 /** Columnas normalizadas que devuelve canal_items (iguales que las antiguas v_canal_*). */
@@ -75,6 +75,7 @@ async function fetchPage(cfg: MencionesConfig, pageParam: number, opts: FetchOpt
       .select('*');
     if (cfg.segmento?.titularidad) r = r.eq('titularidad', cfg.segmento.titularidad);
     if (cfg.segmento?.gestionLike) r = r.ilike('gestion_hospitalaria', cfg.segmento.gestionLike);
+    if (cfg.segmento?.grupos?.length) r = r.in('grupo_hospitalario', cfg.segmento.grupos);
     if (opts.riesgo) r = r.ilike('peligro', `%${opts.riesgo}%`);
     if (opts.medio)  r = r.ilike('fuente', `%${opts.medio}%`);
     r = r.order('fecha', { ascending: false }).order('id', { ascending: false })
