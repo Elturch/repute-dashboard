@@ -9,6 +9,8 @@ import {
   type GrupoPrivado,
 } from '@/lib/clasificacion';
 import { AlertTriangle } from 'lucide-react';
+import RiesgoRealInfo from '@/components/RiesgoRealInfo';
+import { fmtNotaIA, fmtPctRiesgo, pctRiesgoReal } from '@/lib/metricas';
 import PerfilReputacionalIA, { type PerfilBucket } from '@/components/PerfilReputacionalIA';
 import MencionesRecientes, { type MencionesConfig } from '@/components/MencionesRecientes';
 import { type Canal } from '@/hooks/useCanalData';
@@ -127,6 +129,9 @@ interface ChannelStats {
   qsShare: number;
   qsRank: number;
   pctRiesgoReal: number;
+  notaQS: number | null;
+  pctRiesgoQS: number;
+  comparables: PerfilBucket[];
   bucketTotal: PerfilBucket;
   bucketQS: PerfilBucket;
   bucketResto: PerfilBucket;
@@ -147,6 +152,9 @@ function buildChannelStats(rowsCanal: KpiRow[]): ChannelStats {
     qsShare: 0,
     qsRank: 0,
     pctRiesgoReal: 0,
+    notaQS: null,
+    pctRiesgoQS: 0,
+    comparables: [],
     bucketTotal: emptyBucket('Total privados'),
     bucketQS: emptyBucket('Quirónsalud'),
     bucketResto: emptyBucket('Privados sin QS'),
@@ -196,7 +204,12 @@ function buildChannelStats(rowsCanal: KpiRow[]): ChannelStats {
     qsCount: qsRow?.count ?? 0,
     qsShare: qsRow?.share ?? 0,
     qsRank,
-    pctRiesgoReal: aggTotal.pctRiesgoReal,
+    pctRiesgoReal: pctRiesgoReal(aggTotal.peligroReal, aggTotal.menciones),
+    notaQS: aggQS.notaMedia,
+    pctRiesgoQS: pctRiesgoReal(aggQS.peligroReal, aggQS.menciones),
+    comparables: NOMBRES_GRUPOS_PRIVADOS
+      .filter(g => g !== 'Quirónsalud' && (aggregadosPorGrupo.get(g)?.menciones ?? 0) > 0)
+      .map(g => toPerfilBucket(g, aggregadosPorGrupo.get(g)!)),
     bucketTotal: toPerfilBucket('Total privados', aggTotal),
     bucketQS:    toPerfilBucket('Quirónsalud',     aggQS),
     bucketResto: toPerfilBucket('Privados sin QS', aggResto),
@@ -278,11 +291,13 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Kpi label="Total menciones" value={stats ? fmt(stats.total) : '—'} sub="periodo seleccionado" />
         <Kpi label="Quirónsalud" value={stats ? fmt(stats.qsCount) : '—'} sub={stats ? `${fmtPct(stats.qsShare)} del total` : undefined} highlight />
         <Kpi label="Posición" value={stats?.qsRank ? `#${stats.qsRank}` : '—'} sub="de 8 grupos privados" />
-        <Kpi label="Riesgo real" value={stats ? fmtPct(stats.pctRiesgoReal) : '—'} sub="alto + crítico + medio-alto" />
+        <Kpi label="Nota IA · Quirónsalud" value={stats ? fmtNotaIA(stats.notaQS) : '—'} sub="escala 0–10" highlight />
+        <Kpi label="Nota IA · media Grupos Hospitalarios" value={stats ? fmtNotaIA(stats.notaMediaTotal) : '—'} sub="ponderada por menciones" />
+        <Kpi label="Riesgo real" info value={stats ? fmtPctRiesgo(stats.pctRiesgoReal) : '—'} sub={stats ? `Quirónsalud: ${fmtPctRiesgo(stats.pctRiesgoQS)} · medio-alto + alto + crítico` : undefined} />
       </div>
 
       {/* League table */}
@@ -346,6 +361,7 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
           highlight={stats.bucketQS}
           resto={stats.bucketResto}
           highlightColor={cfg.brandColor}
+          comparables={stats.comparables}
         />
       )}
 
@@ -370,10 +386,10 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
 
 /* ─────────────── subcomponentes ─────────────── */
 
-function Kpi({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
+function Kpi({ label, value, sub, highlight, info }: { label: string; value: string; sub?: string; highlight?: boolean; info?: boolean }) {
   return (
     <div className={`rounded-lg border p-4 ${highlight ? 'border-primary/40 bg-primary/5' : 'border-border bg-card'}`}>
-      <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">{label}{info && <RiesgoRealInfo />}</p>
       <p className={`mt-2 text-3xl font-bold ${highlight ? 'text-primary' : 'text-foreground'}`}>{value}</p>
       {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
     </div>
