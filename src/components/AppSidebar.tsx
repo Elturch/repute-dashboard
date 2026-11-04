@@ -102,6 +102,9 @@ const bloques: Bloque[] = [
   { id: "sermas", titulo: "SERMAS", icon: Building2, prefix: "/dashboard/sermas", links: sermasLinks },
   { id: "catsalut", titulo: "CATSALUT", icon: Building2, iconClassName: "text-violet-500", prefix: "/dashboard/catsalut", links: catsalutLinks },
   { id: "fjd", titulo: "Hospitales destacados", icon: Star, iconClassName: "text-amber-500", prefix: "/dashboard/fjd", links: fjdLinks },
+];
+
+const bloquesAdmin: Bloque[] = [
   { id: "core", titulo: "Core Quirón", icon: Home, links: coreLinks },
   { id: "especiales", titulo: "Especiales", icon: FileText, prefix: "/dashboard/especiales", links: especialesLinks },
 ];
