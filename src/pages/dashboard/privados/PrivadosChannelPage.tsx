@@ -279,7 +279,7 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
 
       {/* KPI row */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Kpi label="Total menciones" value={stats ? fmt(stats.total) : '—'} sub="últimos 30 días" />
+        <Kpi label="Total menciones" value={stats ? fmt(stats.total) : '—'} sub="periodo seleccionado" />
         <Kpi label="Quirónsalud" value={stats ? fmt(stats.qsCount) : '—'} sub={stats ? `${fmtPct(stats.qsShare)} del total` : undefined} highlight />
         <Kpi label="Posición" value={stats?.qsRank ? `#${stats.qsRank}` : '—'} sub="de 8 grupos privados" />
         <Kpi label="Riesgo real" value={stats ? fmtPct(stats.pctRiesgoReal) : '—'} sub="alto + crítico + medio-alto" />
@@ -351,7 +351,7 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
 
       {/* Menciones recientes (lazy-load) */}
       {stats && MENCIONES_BY_CHANNEL[cfg.key] && (
-        <MencionesRecientes cfg={MENCIONES_BY_CHANNEL[cfg.key] as MencionesConfig} contextLabel={cfg.label} />
+        <MencionesRecientes cfg={{ ...(MENCIONES_BY_CHANNEL[cfg.key] as MencionesConfig), canal: cfg.key as Canal, segmento: { titularidad: 'Privado' } }} contextLabel={cfg.label} />
       )}
 
       {/* Footer */}
@@ -361,7 +361,7 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
           <p className="mt-1 text-foreground">{rangoActual}</p>
         </div>
         <div>
-          <p>Fuente: Supabase · Vista materializada: v_kpi_canal_30d · Filtro: titularidad = Privado · canal = {cfg.key}</p>
+          <p>Fuente: base de datos · Funciones kpi_canal / canal_items (periodo seleccionado) · Filtro: titularidad = Privado · canal = {cfg.key}</p>
         </div>
       </div>
     </div>

@@ -284,7 +284,7 @@ export default function SermasChannelPage({ cfg }: { cfg: SermasChannelConfig })
       )}
 
       {stats && MENCIONES_BY_CHANNEL[cfg.canal] && (
-        <MencionesRecientes cfg={MENCIONES_BY_CHANNEL[cfg.canal] as MencionesConfig} contextLabel={cfg.short} />
+        <MencionesRecientes cfg={{ ...(MENCIONES_BY_CHANNEL[cfg.canal] as MencionesConfig), canal: CANAL_MAP[cfg.canal], segmento: { gestionLike: 'SERMAS%' } }} contextLabel={cfg.short} />
       )}
 
       <div className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-muted/30 p-4 text-xs text-muted-foreground md:grid-cols-2">
@@ -293,7 +293,7 @@ export default function SermasChannelPage({ cfg }: { cfg: SermasChannelConfig })
           <p className="mt-1 text-foreground">{rangoActual}</p>
         </div>
         <div>
-          <p>Fuente: Supabase · Vista materializada: v_kpi_canal_30d · Filtro: gestion_hospitalaria ILIKE 'SERMAS%' · canal = {CANAL_MAP[cfg.canal]}</p>
+          <p>Fuente: base de datos · Funciones kpi_canal / canal_items (periodo seleccionado) · Filtro: gestion_hospitalaria ILIKE 'SERMAS%' · canal = {CANAL_MAP[cfg.canal]}</p>
         </div>
       </div>
     </div>
