@@ -7,6 +7,8 @@ import { Download, Tv, X, LogOut, ChevronLeft, ChevronRight, Play, Pause } from 
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { PeriodProvider } from "@/contexts/PeriodContext";
+import { PeriodSelector } from "@/components/PeriodSelector";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { AnalistaFlotante } from "@/components/AnalistaFlotante";
 import { externalSupabase } from "@/integrations/external-supabase/client";
@@ -79,6 +81,7 @@ const DashboardLayout = () => {
   }, [queryClient]);
 
   return (
+    <PeriodProvider>
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         {!tv.active && <AppSidebar />}
@@ -117,6 +120,7 @@ const DashboardLayout = () => {
               </span>
             </div>
             <div className="flex items-center gap-2">
+              <PeriodSelector />
               <ThemeToggle />
               {admin && (
                 <>
