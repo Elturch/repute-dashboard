@@ -166,21 +166,23 @@ export default function PerfilReputacionalIA({
                      stroke={RADAR_TOTAL}
                      fill={RADAR_TOTAL}
                      fillOpacity={0.18}
-                     strokeWidth={1.5} />
+                     strokeWidth={3}
+                     strokeOpacity={0.9} />
 
               <Radar name="Sin QS"
                      dataKey="sinqs"
                      stroke={RADAR_SINQS}
                      fill={RADAR_SINQS}
                      fillOpacity={0.28}
-                     strokeWidth={2} />
+                     strokeWidth={2.5}
+                     strokeOpacity={0.9} />
 
               <Radar name={highlightLabel}
                      dataKey="qs"
                      stroke={RADAR_QS}
                      fill={RADAR_QS}
-                     fillOpacity={0.55}
-                     strokeWidth={3} />
+                     fillOpacity={0.42}
+                     strokeWidth={3.5} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
