@@ -17,6 +17,10 @@ const DashboardLayout = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const tv = useTvMode();
+  // Se lee antes de renderizar las rutas hijas (que podrían redirigir y perder el ?admin)
+  const adminParam = new URLSearchParams(window.location.search).get("admin");
+  if (adminParam === "qs-war-room") localStorage.setItem("mr_is_superadmin", "true");
+  else if (adminParam === "off") localStorage.removeItem("mr_is_superadmin");
   const admin = isSuperadmin();
 
   useEffect(() => {
