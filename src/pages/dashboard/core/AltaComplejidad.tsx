@@ -57,6 +57,16 @@ export default function AltaComplejidad() {
   const { data, isLoading } = useAcHospital();
   const { data: evo, isLoading: loadingEvo } = useAcEvolucion();
   const [expanded, setExpanded] = useState<string | null>(null);
+  const { data: temasData } = useAcTemas();
+
+  const temasPorGrupo = useMemo(() => {
+    const map: Record<string, AcTemaRow[]> = {};
+    for (const t of temasData ?? []) {
+      (map[t.grupo_hospitalario] ??= []).push(t);
+    }
+    for (const k of Object.keys(map)) map[k].sort((a, b) => num(b.menciones) - num(a.menciones));
+    return map;
+  }, [temasData]);
 
   const rows = data ?? [];
 
@@ -243,6 +253,7 @@ export default function AltaComplejidad() {
                 {totales.map((r, i) => {
                   const isOpen = expanded === r.grupo_hospitalario;
                   const canales = canalesPorGrupo[r.grupo_hospitalario] ?? [];
+                  const temas = (temasPorGrupo[r.grupo_hospitalario] ?? []).slice(0, 6);
                   return (
                     <Fragment key={r.grupo_hospitalario}>
                       <TableRow
@@ -279,42 +290,77 @@ export default function AltaComplejidad() {
                       {isOpen && (
                         <TableRow className="hover:bg-transparent">
                           <TableCell colSpan={6} className="bg-muted/30">
-                            {canales.length === 0 ? (
-                              <p className="text-xs text-muted-foreground py-2">
-                                Sin desglose por canal disponible.
-                              </p>
-                            ) : (
-                              <div className="py-1">
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead className="text-xs">Canal</TableHead>
-                                      <TableHead className="text-xs text-right">Menciones</TableHead>
-                                      <TableHead className="text-xs text-right">Nota</TableHead>
-                                      <TableHead className="text-xs text-right">% peligro</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {canales.map(c => (
-                                      <TableRow key={`${r.grupo_hospitalario}-${c.canal}`}>
-                                        <TableCell className="text-sm text-foreground">
-                                          {canalLabel(c.canal as string)}
-                                        </TableCell>
-                                        <TableCell className="text-right font-mono text-sm">
-                                          {num(c.menciones).toLocaleString("es-ES")}
-                                        </TableCell>
-                                        <TableCell className={`text-right font-mono text-sm ${notaColor(num(c.nota_media))}`}>
-                                          {num(c.nota_media).toFixed(2)}
-                                        </TableCell>
-                                        <TableCell className="text-right font-mono text-sm">
-                                          {num(c.peligro_alto_pct).toFixed(1)}%
-                                        </TableCell>
+                            <div className="grid gap-4 md:grid-cols-2 py-1">
+                              <div>
+                                {canales.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground py-2">
+                                    Sin desglose por canal disponible.
+                                  </p>
+                                ) : (
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead className="text-xs">Canal</TableHead>
+                                        <TableHead className="text-xs text-right">Menciones</TableHead>
+                                        <TableHead className="text-xs text-right">Nota</TableHead>
+                                        <TableHead className="text-xs text-right">% peligro</TableHead>
                                       </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {canales.map(c => (
+                                        <TableRow key={`${r.grupo_hospitalario}-${c.canal}`}>
+                                          <TableCell className="text-sm text-foreground">
+                                            {canalLabel(c.canal as string)}
+                                          </TableCell>
+                                          <TableCell className="text-right font-mono text-sm">
+                                            {num(c.menciones).toLocaleString("es-ES")}
+                                          </TableCell>
+                                          <TableCell className={`text-right font-mono text-sm ${notaColor(num(c.nota_media))}`}>
+                                            {num(c.nota_media).toFixed(2)}
+                                          </TableCell>
+                                          <TableCell className="text-right font-mono text-sm">
+                                            {num(c.peligro_alto_pct).toFixed(1)}%
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                )}
                               </div>
-                            )}
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mb-2">
+                                  De qué se habla · temas (30 días)
+                                </p>
+                                {temas.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground py-2">
+                                    Sin temas disponibles.
+                                  </p>
+                                ) : (
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead className="text-xs">Tema</TableHead>
+                                        <TableHead className="text-xs text-right">Menciones</TableHead>
+                                        <TableHead className="text-xs text-right">Nota</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {temas.map(t => (
+                                        <TableRow key={`${r.grupo_hospitalario}-${t.tema}`}>
+                                          <TableCell className="text-sm text-foreground">{t.tema}</TableCell>
+                                          <TableCell className="text-right font-mono text-sm">
+                                            {num(t.menciones).toLocaleString("es-ES")}
+                                          </TableCell>
+                                          <TableCell className={`text-right font-mono text-sm ${notaColor(num(t.nota))}`}>
+                                            {num(t.nota).toFixed(2)}
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                )}
+                              </div>
+                            </div>
                           </TableCell>
                         </TableRow>
                       )}
