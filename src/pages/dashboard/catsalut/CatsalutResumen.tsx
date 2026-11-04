@@ -79,7 +79,7 @@ export default function CatsalutResumen() {
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
             Servicio Catalán de la Salud · Total vs Concierto QS vs Sin QS · Últimos 30 días
           </p>
-          <h1 className="text-3xl font-bold tracking-tight">CATSALUT — Resumen por canal</h1>
+          <h1 className="text-3xl font-bold tracking-tight">CATSALUT — Overview</h1>
           <p className="text-sm text-muted-foreground mt-2 max-w-3xl">
             {stats && totalGlobal > 0 ? (
               <>

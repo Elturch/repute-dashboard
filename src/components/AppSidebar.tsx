@@ -99,9 +99,8 @@ const sistemaLinks: LinkItem[] = [
 ];
 
 const bloques: Bloque[] = [
-  { id: "privados", titulo: "Comparativa privados", icon: BarChart3, prefix: "/dashboard/privados", defaultOpen: true, links: privadosLinks },
+  { id: "privados", titulo: "Grupos Hospitalarios", icon: BarChart3, prefix: "/dashboard/privados", defaultOpen: true, links: privadosLinks },
   { id: "sermas", titulo: "SERMAS", icon: Building2, prefix: "/dashboard/sermas", links: sermasLinks },
-  { id: "catsalut", titulo: "CATSALUT", icon: Building2, iconClassName: "text-violet-500", prefix: "/dashboard/catsalut", links: catsalutLinks },
   { id: "fjd", titulo: "Hospitales destacados", icon: Star, iconClassName: "text-amber-500", prefix: "/dashboard/fjd", links: fjdLinks },
   { id: "modotv", titulo: "Modo TV", icon: Tv, prefix: "/dashboard/modo-tv", links: [{ title: "Gestión de paneles", url: "/dashboard/modo-tv", icon: Tv }] },
 ];
