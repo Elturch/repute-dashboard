@@ -114,6 +114,7 @@ const DashboardLayout = () => {
             <Outlet />
           </main>
           {!tv.active && <OnboardingModal />}
+          {!tv.active && <AnalistaFlotante />}
         </div>
       </div>
     </SidebarProvider>
