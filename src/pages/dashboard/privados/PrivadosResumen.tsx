@@ -9,6 +9,7 @@ import { BiNews } from 'react-icons/bi';
 import type { IconType } from 'react-icons';
 import { type Canal } from '@/hooks/useCanalData';
 import { usePeriod } from '@/contexts/PeriodContext';
+import CanalCard from '@/components/CanalCard';
 import { useKpiCanalGlobal, filterByTitularidad, filterByCanal, aggregateKpi, type KpiRow } from '@/hooks/useKpiCanal';
 
 interface ChannelConfig {
@@ -82,6 +83,14 @@ export default function PrivadosResumen() {
     const privados = filterByTitularidad(kpiRows, 'Privado');
     const out = {} as Record<Canal, ChannelStats>;
     CHANNELS.forEach(c => { out[c.key] = buildChannelStats(filterByCanal(privados, c.key)); });
+    return out;
+  }, [kpiRows]);
+
+  const rowsPorCanal = useMemo(() => {
+    const out = {} as Record<Canal, KpiRow[]>;
+    if (!kpiRows) return out;
+    const privados = filterByTitularidad(kpiRows, 'Privado');
+    CHANNELS.forEach(c => { out[c.key] = filterByCanal(privados, c.key); });
     return out;
   }, [kpiRows]);
 
@@ -164,9 +173,17 @@ export default function PrivadosResumen() {
         })}
       </section>
 
-      <div className="px-8 py-8 space-y-10">
+      <div className="px-4 md:px-8 py-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {CHANNELS.map(cfg => (
-          <ChannelSection key={cfg.key} cfg={cfg} stats={stats?.[cfg.key]} isLoading={isLoading} />
+          <CanalCard
+            key={cfg.key}
+            label={cfg.label}
+            Icon={cfg.Icon}
+            brandColor={cfg.brandColor}
+            rows={rowsPorCanal[cfg.key] ?? []}
+            grupos={NOMBRES_GRUPOS_PRIVADOS}
+            isLoading={isLoading}
+          />
         ))}
       </div>
 
@@ -175,74 +192,5 @@ export default function PrivadosResumen() {
         <span>Filtrado: titularidad = Privado</span>
       </footer>
     </div>
-  );
-}
-
-function ChannelSection({ cfg, stats, isLoading }: { cfg: ChannelConfig; stats?: ChannelStats; isLoading: boolean }) {
-  const { Icon } = cfg;
-  const isEmpty = !!stats && stats.total === 0;
-  const qsRow = stats?.filas.find(f => f.grupo === 'Quirónsalud');
-  const qsRank = stats ? stats.filas.findIndex(f => f.grupo === 'Quirónsalud') + 1 : 0;
-
-  return (
-    <section className="bg-card border border-border rounded-xl overflow-hidden">
-      <header className="px-6 py-4 border-b border-border flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-foreground/5 flex items-center justify-center">
-            <Icon style={{ color: cfg.brandColor }} className="h-4 w-4" />
-          </div>
-          <h2 className="text-lg font-semibold">{cfg.label}</h2>
-          {stats?.maxDate && (
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">hasta {fmtFecha(stats.maxDate)}</span>
-          )}
-          {isLoading && <span className="text-[10px] text-muted-foreground">Cargando...</span>}
-        </div>
-        <div className="flex items-center gap-6">
-          <div className="text-right">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</p>
-            <p className="text-xl font-bold tabular-nums">{stats ? fmt(stats.total) : '—'}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">QS</p>
-            <p className="text-xl font-bold tabular-nums" style={{ color: 'hsl(217, 91%, 60%)' }}>{qsRow ? fmt(qsRow.count) : '—'}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Posición</p>
-            <p className="text-xl font-bold tabular-nums">{stats && stats.total > 0 ? `#${qsRank}` : '—'}</p>
-          </div>
-        </div>
-      </header>
-
-      <div className="p-6 relative">
-        <div className="space-y-2">
-          {(stats?.filas ?? NOMBRES_GRUPOS_PRIVADOS.map(g => ({ grupo: g, count: 0, share: 0, barPct: 0 })))
-            .map((f, i) => {
-              const isQS = f.grupo === 'Quirónsalud';
-              return (
-                <div key={f.grupo} className={`grid grid-cols-[2rem_10rem_1fr_5rem_4rem] items-center gap-3 px-2 py-2 rounded ${isQS ? 'bg-blue-500/5 border border-blue-500/20' : ''}`}>
-                  <span className="text-[10px] text-muted-foreground tabular-nums">{String(i+1).padStart(2,'0')}</span>
-                  <span className={`text-sm ${isQS ? 'text-foreground font-medium' : 'text-foreground'}`}>{f.grupo}</span>
-                  <div className="h-2 bg-foreground/5 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{ width: `${f.barPct}%`, background: isQS ? 'hsl(217, 91%, 60%)' : 'hsl(var(--muted-foreground))' }}
-                    />
-                  </div>
-                  <span className="text-sm font-semibold text-right tabular-nums">{fmt(f.count)}</span>
-                  <span className="text-xs text-muted-foreground text-right tabular-nums">{fmtPct(f.share)}</span>
-                </div>
-              );
-            })}
-        </div>
-
-        {isEmpty && (
-          <div className="absolute inset-0 bg-card/85 backdrop-blur-[1px] flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">Scraper en mantenimiento</p>
-            </div>
-          </div>
-        )}
-      </div>
-    </section>
   );
 }
