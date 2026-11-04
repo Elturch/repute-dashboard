@@ -60,6 +60,7 @@ import CatsalutMyBusiness from "./pages/dashboard/catsalut/CatsalutMyBusiness";
 
 // FJD (hospital destacado)
 import FJDPage from "./pages/dashboard/fjd/FJDPage";
+import ModoTV from "./pages/dashboard/ModoTV";
 import AltaComplejidad from "./pages/dashboard/core/AltaComplejidad";
 
 // Especiales
@@ -122,6 +123,7 @@ const App = () => (
             <Route path="catsalut/linkedin" element={<CatsalutLinkedIn />} />
             <Route path="catsalut/mybusiness" element={<CatsalutMyBusiness />} />
             <Route path="fjd" element={<FJDPage />} />
+            <Route path="modo-tv" element={<ModoTV />} />
 
             <Route element={<RequireSuperadmin />}>
               {/* Core Quirón */}

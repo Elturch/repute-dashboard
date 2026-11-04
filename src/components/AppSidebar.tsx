@@ -1,7 +1,7 @@
 import {
   Home, BarChart3, Network, Radio, Building2, TrendingUp, ShieldAlert, Search,
   FileText, Download, BookOpen, Settings, Users, ShieldCheck, Server,
-  ChevronRight, Newspaper, LayoutDashboard, Star, Award,
+  ChevronRight, Newspaper, LayoutDashboard, Star, Award, Tv,
 } from "lucide-react";
 import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from "react-icons/si";
 import { FaXTwitter, FaLinkedin } from "react-icons/fa6";
@@ -102,6 +102,7 @@ const bloques: Bloque[] = [
   { id: "sermas", titulo: "SERMAS", icon: Building2, prefix: "/dashboard/sermas", links: sermasLinks },
   { id: "catsalut", titulo: "CATSALUT", icon: Building2, iconClassName: "text-violet-500", prefix: "/dashboard/catsalut", links: catsalutLinks },
   { id: "fjd", titulo: "Hospitales destacados", icon: Star, iconClassName: "text-amber-500", prefix: "/dashboard/fjd", links: fjdLinks },
+  { id: "modotv", titulo: "Modo TV", icon: Tv, prefix: "/dashboard/modo-tv", links: [{ title: "Gestión de paneles", url: "/dashboard/modo-tv", icon: Tv }] },
 ];
 
 const bloquesAdmin: Bloque[] = [

@@ -1,12 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { externalSupabase } from "@/integrations/external-supabase/client";
 
-/**
- * Modo TV: rota entre páginas reales del dashboard cada SLIDE_MS.
- * No reinventa paneles: reusa Privados Resumen, canales Privados, SERMAS,
- * CATSALUT y FJD. Las menciones recientes se ocultan vía .tv-mode-active en CSS.
- */
 export const TV_PLAYLIST = [
   "/dashboard/privados",
   "/dashboard/privados/noticias",
@@ -26,89 +22,107 @@ export function useTvMode() {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
-  const [active, setActive] = useState<boolean>(() => {
-    return typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY) === "1";
-  });
+  const [active, setActive] = useState<boolean>(() => typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY) === "1");
+  const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [playlist, setPlaylist] = useState<string[]>(() => [...TV_PLAYLIST]);
+
+  // Playlist compartida desde la BD (activos, por orden). Si falla o está vacía, usa el default.
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const { data, error } = await externalSupabase
+          .from("tv_paneles").select("path,orden,activo").eq("activo", true).order("orden");
+        if (!cancel && !error && data && data.length) setPlaylist(data.map((r: any) => r.path));
+      } catch { /* default */ }
+    })();
+    return () => { cancel = true; };
+  }, []);
 
   useEffect(() => {
     if (active) localStorage.setItem(STORAGE_KEY, "1");
     else localStorage.removeItem(STORAGE_KEY);
+    // Sincroniza todas las instancias del hook (p. ej. página de gestión ↔ layout)
+    window.dispatchEvent(new CustomEvent("qs-tv-mode", { detail: active }));
   }, [active]);
 
-  // Índice del panel actual derivado de la URL
-  const idx = TV_PLAYLIST.findIndex(p => p === location.pathname);
+  useEffect(() => {
+    const onSync = (e: Event) => setActive((e as CustomEvent<boolean>).detail);
+    window.addEventListener("qs-tv-mode", onSync);
+    return () => window.removeEventListener("qs-tv-mode", onSync);
+  }, []);
+
+  const idx = playlist.findIndex(p => p === location.pathname);
   const currentIndex = idx >= 0 ? idx : 0;
 
-  // Auto-rotación: avanza navegando a la siguiente ruta
+  const start = useCallback(() => {
+    setProgress(0); setPaused(false); setActive(true);
+    window.dispatchEvent(new CustomEvent("qs-tv-mode", { detail: true }));
+    navigate(playlist[0] ?? TV_PLAYLIST[0], { replace: true });
+  }, [navigate, playlist]);
+
+  const stop = useCallback(() => setActive(false), []);
+
+  const next = useCallback(() => {
+    if (!playlist.length) return;
+    const n = (currentIndex + 1) % playlist.length;
+    navigate(playlist[n], { replace: true }); setProgress(0);
+  }, [currentIndex, navigate, playlist]);
+
+  const prev = useCallback(() => {
+    if (!playlist.length) return;
+    const p = (currentIndex - 1 + playlist.length) % playlist.length;
+    navigate(playlist[p], { replace: true }); setProgress(0);
+  }, [currentIndex, navigate, playlist]);
+
+  const togglePause = useCallback(() => setPaused(p => !p), []);
+
+  // Auto-rotación (se detiene en pausa)
   useEffect(() => {
-    if (!active) return;
+    if (!active || paused || playlist.length === 0) return;
     const startedAt = Date.now();
     const interval = setInterval(() => {
       const elapsed = Date.now() - startedAt;
-      const pct = Math.min(100, (elapsed / SLIDE_MS) * 100);
-      setProgress(pct);
+      setProgress(Math.min(100, (elapsed / SLIDE_MS) * 100));
       if (elapsed >= SLIDE_MS) {
-        const next = (currentIndex + 1) % TV_PLAYLIST.length;
-        navigate(TV_PLAYLIST[next], { replace: true });
+        const n = (currentIndex + 1) % playlist.length;
+        navigate(playlist[n], { replace: true });
         setProgress(0);
       }
     }, 100);
     return () => clearInterval(interval);
-  }, [active, currentIndex, navigate]);
+  }, [active, paused, currentIndex, navigate, playlist]);
 
-  // Refrescar datos al cambiar de panel
   useEffect(() => {
     if (!active) return;
     queryClient.invalidateQueries({ queryKey: ['kpi_canal_global'] });
     queryClient.invalidateQueries({ queryKey: ['kpi-canal-global'] });
   }, [active, currentIndex, queryClient]);
 
-  // Body class para estilos TV (oculta menciones, ajusta grids portrait)
   useEffect(() => {
     if (active) document.body.classList.add('tv-mode-active');
     else document.body.classList.remove('tv-mode-active');
     return () => { document.body.classList.remove('tv-mode-active'); };
   }, [active]);
 
-  // ESC sale
+  // Teclado: Esc sale, flechas navegan, espacio pausa
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && active) {
-        setActive(false);
-      }
+      if (!active) return;
+      if (e.key === "Escape") setActive(false);
+      else if (e.key === "ArrowRight") next();
+      else if (e.key === "ArrowLeft") prev();
+      else if (e.key === " ") { e.preventDefault(); togglePause(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [active]);
-
-  const start = useCallback(() => {
-    setProgress(0);
-    setActive(true);
-    navigate(TV_PLAYLIST[0], { replace: true });
-  }, [navigate]);
-
-  const stop = useCallback(() => {
-    setActive(false);
-  }, []);
-
-  const next = useCallback(() => {
-    const n = (currentIndex + 1) % TV_PLAYLIST.length;
-    navigate(TV_PLAYLIST[n], { replace: true });
-    setProgress(0);
-  }, [currentIndex, navigate]);
-
-  const prev = useCallback(() => {
-    const p = (currentIndex - 1 + TV_PLAYLIST.length) % TV_PLAYLIST.length;
-    navigate(TV_PLAYLIST[p], { replace: true });
-    setProgress(0);
-  }, [currentIndex, navigate]);
+  }, [active, next, prev, togglePause]);
 
   return {
-    active, currentIndex, progress,
-    currentPath: TV_PLAYLIST[currentIndex],
-    total: TV_PLAYLIST.length,
-    start, stop, next, prev,
+    active, paused, currentIndex, progress,
+    currentPath: playlist[currentIndex], total: playlist.length,
+    start, stop, next, prev, togglePause,
   };
 }
 
@@ -117,19 +131,11 @@ export function useHideCursor(active: boolean) {
   useEffect(() => {
     if (!active) { setHidden(false); return; }
     let t: ReturnType<typeof setTimeout>;
-    const show = () => {
-      setHidden(false);
-      clearTimeout(t);
-      t = setTimeout(() => setHidden(true), 3000);
-    };
+    const show = () => { setHidden(false); clearTimeout(t); t = setTimeout(() => setHidden(true), 3000); };
     show();
     window.addEventListener("mousemove", show);
-    return () => {
-      window.removeEventListener("mousemove", show);
-      clearTimeout(t);
-    };
+    return () => { window.removeEventListener("mousemove", show); clearTimeout(t); };
   }, [active]);
-
   useEffect(() => {
     document.body.style.cursor = hidden ? "none" : "";
     return () => { document.body.style.cursor = ""; };

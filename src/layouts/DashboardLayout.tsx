@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Outlet, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Download, Tv, X, LogOut } from "lucide-react";
+import { Download, Tv, X, LogOut, ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -88,6 +88,11 @@ const DashboardLayout = () => {
               <div className="h-10 flex items-center justify-between px-6 bg-[hsl(222,47%,8%)]/95 backdrop-blur border-b border-border">
                 <span className="text-xs font-bold tracking-widest text-primary">QUIRÓNSALUD 4.0 · TV</span>
                 <span className="text-xs font-mono text-muted-foreground">{tv.currentIndex + 1} / {tv.total}</span>
+                <div className="flex items-center gap-1">
+                  <button onClick={tv.prev} aria-label="Panel anterior" className="p-1 text-muted-foreground hover:text-foreground transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+                  <button onClick={tv.togglePause} aria-label={tv.paused ? "Reanudar" : "Pausar"} className="p-1 text-muted-foreground hover:text-foreground transition-colors">{tv.paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}</button>
+                  <button onClick={tv.next} aria-label="Panel siguiente" className="p-1 text-muted-foreground hover:text-foreground transition-colors"><ChevronRight className="w-4 h-4" /></button>
+                </div>
                 <button
                   onClick={tv.stop}
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
