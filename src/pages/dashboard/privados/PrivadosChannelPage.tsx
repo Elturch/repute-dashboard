@@ -245,7 +245,7 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
                   Actualizando
                 </span>
               ) : (
-                <span className="text-[#6b7280]">
+                <span className="text-muted-foreground">
                   Auto-refresh 10 min · última: {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '—'}
                 </span>
               )}
@@ -253,7 +253,7 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
             <button
               type="button"
               onClick={() => queryClient.invalidateQueries({ queryKey: ['kpi_canal_global'] })}
-              className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-foreground"
+              className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
             >
               🔄 Recargar
             </button>

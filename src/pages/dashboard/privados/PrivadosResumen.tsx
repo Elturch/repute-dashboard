@@ -95,16 +95,16 @@ export default function PrivadosResumen() {
   const canalesActivos = stats ? CHANNELS.filter(cfg => stats[cfg.key].total > 0).length : 0;
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white">
-      <header className="px-8 py-6 border-b border-white/5 flex items-start justify-between gap-6">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="px-8 py-6 border-b border-border flex items-start justify-between gap-6">
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-[#6b7280] mb-2">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
             Sanidad privada · Comparativa global · Últimos 30 días
           </p>
           <h1 className="text-3xl font-bold tracking-tight">Resumen por canal</h1>
-          <p className="text-sm text-[#9ca3af] mt-2 max-w-3xl">
+          <p className="text-sm text-muted-foreground mt-2 max-w-3xl">
             {stats && qsTotalGlobal > 0 && totalGlobal > 0 ? (
-              <>Quirónsalud lidera en <span className="text-white font-medium">{qsLideraEn}</span> de <span className="text-white font-medium">{canalesActivos}</span> canales activos con <span className="text-white font-medium">{fmt(qsTotalGlobal)}</span> menciones agregadas (<span className="text-white font-medium">{fmtPct((qsTotalGlobal/totalGlobal)*100)}</span> del total privados).</>
+              <>Quirónsalud lidera en <span className="text-foreground font-medium">{qsLideraEn}</span> de <span className="text-foreground font-medium">{canalesActivos}</span> canales activos con <span className="text-foreground font-medium">{fmt(qsTotalGlobal)}</span> menciones agregadas (<span className="text-foreground font-medium">{fmtPct((qsTotalGlobal/totalGlobal)*100)}</span> del total privados).</>
             ) : 'Cargando comparativa...'}
           </p>
         </div>
@@ -116,21 +116,21 @@ export default function PrivadosResumen() {
                 Actualizando
               </span>
             ) : (
-              <span className="text-[#6b7280]">
+              <span className="text-muted-foreground">
                 Auto-refresh 10 min · última: {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '—'}
               </span>
             )}
           </div>
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ['kpi_canal_global'] })}
-            className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-white"
+            className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
           >
             🔄 Recargar
           </button>
         </div>
       </header>
 
-      <section className="px-8 py-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 border-b border-white/5">
+      <section className="px-8 py-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 border-b border-border">
         {CHANNELS.map((cfg) => {
           const c = stats?.[cfg.key];
           const qs = c?.filas.find(f => f.grupo === 'Quirónsalud');
@@ -138,23 +138,23 @@ export default function PrivadosResumen() {
           const isEmpty = !!c && c.total === 0;
           const { Icon } = cfg;
           return (
-            <div key={cfg.key} className="bg-[#0f1420] border border-white/5 rounded-lg p-3">
-              <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-[#9ca3af]">
+            <div key={cfg.key} className="bg-card border border-border rounded-lg p-3">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
                 <Icon style={{ color: cfg.brandColor }} className="h-3.5 w-3.5" />
                 {cfg.label}
               </div>
               {isLoading ? (
-                <div className="h-7 w-16 bg-white/5 rounded mt-2 animate-pulse" />
+                <div className="h-7 w-16 bg-foreground/5 rounded mt-2 animate-pulse" />
               ) : (
                 <p className="text-2xl font-bold mt-1 tabular-nums">{fmt(c?.total ?? 0)}</p>
               )}
               {isEmpty ? (
-                <p className="text-[10px] text-[#6b7280] mt-1">Sin datos</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Sin datos</p>
               ) : (
-                <div className="text-[10px] text-[#9ca3af] mt-1 flex items-center gap-1">
-                  <span className="text-white tabular-nums">{qs ? fmt(qs.count) : '—'}</span>
+                <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                  <span className="text-foreground tabular-nums">{qs ? fmt(qs.count) : '—'}</span>
                   <span>QS</span>
-                  <span className="ml-auto text-[#6b7280]">{c && c.total > 0 ? `#${qsRank}` : ''}</span>
+                  <span className="ml-auto text-muted-foreground">{c && c.total > 0 ? `#${qsRank}` : ''}</span>
                 </div>
               )}
             </div>
@@ -168,7 +168,7 @@ export default function PrivadosResumen() {
         ))}
       </div>
 
-      <footer className="px-8 py-6 border-t border-white/5 text-[10px] uppercase tracking-widest text-[#6b7280] flex justify-between">
+      <footer className="px-8 py-6 border-t border-border text-[10px] uppercase tracking-widest text-muted-foreground flex justify-between">
         <span>Fuente: Supabase · Vistas: v_canal_*</span>
         <span>Filtrado: titularidad = Privado</span>
       </footer>
@@ -183,29 +183,29 @@ function ChannelSection({ cfg, stats, isLoading }: { cfg: ChannelConfig; stats?:
   const qsRank = stats ? stats.filas.findIndex(f => f.grupo === 'Quirónsalud') + 1 : 0;
 
   return (
-    <section className="bg-[#0f1420] border border-white/5 rounded-xl overflow-hidden">
-      <header className="px-6 py-4 border-b border-white/5 flex items-center justify-between gap-4 flex-wrap">
+    <section className="bg-card border border-border rounded-xl overflow-hidden">
+      <header className="px-6 py-4 border-b border-border flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-white/5 flex items-center justify-center">
+          <div className="h-9 w-9 rounded-lg bg-foreground/5 flex items-center justify-center">
             <Icon style={{ color: cfg.brandColor }} className="h-4 w-4" />
           </div>
           <h2 className="text-lg font-semibold">{cfg.label}</h2>
           {stats?.maxDate && (
-            <span className="text-[10px] uppercase tracking-wider text-[#6b7280]">hasta {fmtFecha(stats.maxDate)}</span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">hasta {fmtFecha(stats.maxDate)}</span>
           )}
-          {isLoading && <span className="text-[10px] text-[#6b7280]">Cargando...</span>}
+          {isLoading && <span className="text-[10px] text-muted-foreground">Cargando...</span>}
         </div>
         <div className="flex items-center gap-6">
           <div className="text-right">
-            <p className="text-[10px] uppercase tracking-wider text-[#6b7280]">Total</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</p>
             <p className="text-xl font-bold tabular-nums">{stats ? fmt(stats.total) : '—'}</p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] uppercase tracking-wider text-[#6b7280]">QS</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">QS</p>
             <p className="text-xl font-bold tabular-nums" style={{ color: 'hsl(217, 91%, 60%)' }}>{qsRow ? fmt(qsRow.count) : '—'}</p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] uppercase tracking-wider text-[#6b7280]">Posición</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Posición</p>
             <p className="text-xl font-bold tabular-nums">{stats && stats.total > 0 ? `#${qsRank}` : '—'}</p>
           </div>
         </div>
@@ -218,25 +218,25 @@ function ChannelSection({ cfg, stats, isLoading }: { cfg: ChannelConfig; stats?:
               const isQS = f.grupo === 'Quirónsalud';
               return (
                 <div key={f.grupo} className={`grid grid-cols-[2rem_10rem_1fr_5rem_4rem] items-center gap-3 px-2 py-2 rounded ${isQS ? 'bg-blue-500/5 border border-blue-500/20' : ''}`}>
-                  <span className="text-[10px] text-[#6b7280] tabular-nums">{String(i+1).padStart(2,'0')}</span>
-                  <span className={`text-sm ${isQS ? 'text-white font-medium' : 'text-[#d1d5db]'}`}>{f.grupo}</span>
-                  <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <span className="text-[10px] text-muted-foreground tabular-nums">{String(i+1).padStart(2,'0')}</span>
+                  <span className={`text-sm ${isQS ? 'text-foreground font-medium' : 'text-foreground'}`}>{f.grupo}</span>
+                  <div className="h-2 bg-foreground/5 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all"
                       style={{ width: `${f.barPct}%`, background: isQS ? 'hsl(217, 91%, 60%)' : 'rgba(255,255,255,0.25)' }}
                     />
                   </div>
                   <span className="text-sm font-semibold text-right tabular-nums">{fmt(f.count)}</span>
-                  <span className="text-xs text-[#9ca3af] text-right tabular-nums">{fmtPct(f.share)}</span>
+                  <span className="text-xs text-muted-foreground text-right tabular-nums">{fmtPct(f.share)}</span>
                 </div>
               );
             })}
         </div>
 
         {isEmpty && (
-          <div className="absolute inset-0 bg-[#0f1420]/85 backdrop-blur-[1px] flex items-center justify-center">
+          <div className="absolute inset-0 bg-card/85 backdrop-blur-[1px] flex items-center justify-center">
             <div className="text-center">
-              <p className="text-xs uppercase tracking-widest text-[#6b7280]">Scraper en mantenimiento</p>
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">Scraper en mantenimiento</p>
             </div>
           </div>
         )}

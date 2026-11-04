@@ -102,7 +102,7 @@ export default function MencionesRecientes({ cfg, contextLabel }: { cfg: Mencion
           <button
             type="button"
             onClick={() => { setRiesgo(''); setMedioInput(''); setMedio(''); }}
-            className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#9ca3af] hover:text-white transition-colors"
+            className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="w-3 h-3" />
             Limpiar filtros
@@ -113,17 +113,17 @@ export default function MencionesRecientes({ cfg, contextLabel }: { cfg: Mencion
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative">
-          <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#6b7280] pointer-events-none" />
+          <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <select
             value={riesgo}
             onChange={(e) => setRiesgo(e.target.value)}
-            className="appearance-none bg-white/[0.03] border border-white/10 rounded-md pl-9 pr-9 py-2.5 text-sm text-[#e5e7eb] focus:outline-none focus:border-[#3b82f6]/50 cursor-pointer min-w-[180px]"
+            className="appearance-none bg-foreground/[0.03] border border-border rounded-md pl-9 pr-9 py-2.5 text-sm text-foreground focus:outline-none focus:border-[#3b82f6]/50 cursor-pointer min-w-[180px]"
           >
             {RIESGO_OPCIONES.map(o => (
-              <option key={o.value} value={o.value} className="bg-[#0a0a0a] text-[#e5e7eb]">{o.label}</option>
+              <option key={o.value} value={o.value} className="bg-card text-foreground">{o.label}</option>
             ))}
           </select>
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7280] pointer-events-none text-xs">▾</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs">▾</span>
         </div>
 
         <div className="relative flex-1 min-w-[240px]">
@@ -132,13 +132,13 @@ export default function MencionesRecientes({ cfg, contextLabel }: { cfg: Mencion
             value={medioInput}
             onChange={(e) => setMedioInput(e.target.value)}
             placeholder="Filtrar por fuente (medio, usuario…)"
-            className="w-full bg-white/[0.03] border border-white/10 rounded-md px-3.5 py-2.5 text-sm text-[#e5e7eb] placeholder-[#6b7280] focus:outline-none focus:border-[#3b82f6]/50"
+            className="w-full bg-foreground/[0.03] border border-border rounded-md px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#3b82f6]/50"
           />
           {medioInput && (
             <button
               type="button"
               onClick={() => { setMedioInput(''); setMedio(''); }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6b7280] hover:text-white"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               <X className="w-4 h-4" />
             </button>
@@ -182,7 +182,7 @@ export default function MencionesRecientes({ cfg, contextLabel }: { cfg: Mencion
             type="button"
             onClick={() => fetchNextPage()}
             disabled={isFetching}
-            className="px-6 py-2.5 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-colors text-sm uppercase tracking-wider text-[#d1d5db] disabled:opacity-40"
+            className="px-6 py-2.5 rounded-lg border border-border bg-foreground/[0.03] hover:bg-foreground/[0.06] transition-colors text-sm uppercase tracking-wider text-foreground disabled:opacity-40"
           >
             {isFetching ? 'Cargando…' : 'Cargar más'}
           </button>
@@ -204,7 +204,7 @@ function MencionCard({ m, cfg }: { m: Record<string, unknown>; cfg: MencionesCon
   const peligroC = peligroColor(peligro);
 
   return (
-    <li className="flex gap-4 rounded-lg border border-border bg-card p-4 hover:bg-white/[0.02] transition-colors">
+    <li className="flex gap-4 rounded-lg border border-border bg-card p-4 hover:bg-foreground/[0.02] transition-colors">
       {/* Imagen */}
       {cfg.campoImagen && (
         <div className="flex-shrink-0 w-32 h-24 rounded-md overflow-hidden bg-muted flex items-center justify-center">
