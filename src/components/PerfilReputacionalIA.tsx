@@ -1,6 +1,7 @@
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { Wrench, HelpCircle, ChevronDown } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { contarLiderazgo } from '@/lib/metricas';
 
 export interface PerfilBucket {
   label: string;
@@ -49,7 +50,7 @@ function statusFor(metric: MetricaDef, hi: number | null, re: number | null): { 
   if (hi == null || re == null) return { icon: '—', tone: 'flat', label: 'Sin datos', color: COLOR_FLAT };
   const raw = hi - re;
   const adjusted = metric.positive ? raw : -raw;
-  const threshold = 0.3;
+  const threshold = 0;
   if (adjusted > threshold)  return { icon: '★', tone: 'up',   label: 'Lidera',     color: COLOR_GOOD };
   if (adjusted < -threshold) return { icon: '⚠', tone: 'down', label: 'Por debajo', color: COLOR_BAD };
   return { icon: '●', tone: 'flat', label: 'En línea', color: COLOR_FLAT };
@@ -62,6 +63,10 @@ interface Props {
   highlight: PerfilBucket;
   resto: PerfilBucket;
   highlightColor?: string;
+  /** Grupos/hospitales concretos con los que comparar en el radar (selector). */
+  comparables?: PerfilBucket[];
+  /** Etiqueta de la opción por defecto del selector. */
+  conjuntoLabel?: string;
 }
 
 export default function PerfilReputacionalIA({
@@ -69,18 +74,18 @@ export default function PerfilReputacionalIA({
   highlightLabel = 'Quirónsalud',
   total, highlight, resto,
   highlightColor = '#3b82f6',
+  comparables = [],
+  conjuntoLabel = 'Conjunto (media de grupos)',
 }: Props) {
+  const [compLabel, setCompLabel] = useState<string>('');
+  const comp = comparables.find(c => c.label === compLabel) ?? null;
   const summary = useMemo(() => {
-    let lidera = 0, atencion = 0;
+    let atencion = 0;
     for (const m of ALL_METRICAS) {
-      const hi = highlight.promedios[m.key];
-      const re = resto.promedios[m.key];
-      if (hi == null || re == null) continue;
-      const s = statusFor(m, hi, re);
-      if (s.tone === 'up') lidera++;
-      else if (s.tone === 'down') atencion++;
+      const s = statusFor(m, highlight.promedios[m.key] ?? null, resto.promedios[m.key] ?? null);
+      if (s.tone === 'down') atencion++;
     }
-    return { lidera, atencion, total: ALL_METRICAS.length };
+    return { lidera: contarLiderazgo(highlight.promedios, resto.promedios), atencion, total: ALL_METRICAS.length };
   }, [highlight, resto]);
 
   const statusMap = useMemo(() => {
@@ -114,7 +119,7 @@ export default function PerfilReputacionalIA({
   const radarData = ALL_METRICAS.map(m => {
     const totalRaw = total.promedios[m.key];
     const qsRaw    = highlight.promedios[m.key];
-    const sinqsRaw = resto.promedios[m.key];
+    const sinqsRaw = (comp ?? resto).promedios[m.key];
     return {
       metric: m.label,
       total: totalRaw == null ? null : (m.positive ? totalRaw : 10 - totalRaw),
@@ -146,10 +151,24 @@ export default function PerfilReputacionalIA({
       </div>
 
       <div className="bg-foreground/[0.02] border border-border rounded-xl p-6 mb-6">
+        {comparables.length > 0 && (
+          <div className="flex items-center justify-end gap-2 mb-3 text-xs">
+            <label htmlFor="perfil-comparar" className="uppercase tracking-wider text-muted-foreground">Comparar {highlightLabel} con</label>
+            <select
+              id="perfil-comparar"
+              value={compLabel}
+              onChange={e => setCompLabel(e.target.value)}
+              className="rounded-md border border-border bg-card px-2.5 py-1.5 text-sm text-foreground"
+            >
+              <option value="">{conjuntoLabel}</option>
+              {comparables.map(c => <option key={c.label} value={c.label}>{c.label}</option>)}
+            </select>
+          </div>
+        )}
         <div className="flex items-center justify-center gap-10 mb-4 flex-wrap">
           <LegendItem color={RADAR_TOTAL} label="GRUPOS HOSPITALARIOS (TOTAL)" />
           <LegendItem color={RADAR_QS} label={highlightLabel.toUpperCase()} bold />
-          <LegendItem color={RADAR_SINQS} label={`SIN ${highlightLabel === 'Quirónsalud' ? 'QS' : highlightLabel.toUpperCase()}`} />
+          <LegendItem color={RADAR_SINQS} label={comp ? comp.label.toUpperCase() : `SIN ${highlightLabel === 'Quirónsalud' ? 'QS' : highlightLabel.toUpperCase()}`} />
         </div>
         <div className="w-full" style={{ height: 540 }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -169,7 +188,7 @@ export default function PerfilReputacionalIA({
                      strokeWidth={3}
                      strokeOpacity={0.9} />
 
-              <Radar name="Sin QS"
+              <Radar name={comp ? comp.label : 'Sin QS'}
                      dataKey="sinqs"
                      stroke={RADAR_SINQS}
                      fill={RADAR_SINQS}
