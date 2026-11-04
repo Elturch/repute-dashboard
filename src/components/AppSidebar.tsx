@@ -229,11 +229,16 @@ export function AppSidebar() {
         ))}
 
         {isSuperadmin && (
-          <BloqueGroup
-            bloque={{ id: "sistema", titulo: "Sistema", icon: Settings, links: sistemaLinks }}
-            collapsed={collapsed}
-            pathname={pathname}
-          />
+          <>
+            {bloquesAdmin.map(b => (
+              <BloqueGroup key={b.id} bloque={b} collapsed={collapsed} pathname={pathname} />
+            ))}
+            <BloqueGroup
+              bloque={{ id: "sistema", titulo: "Sistema", icon: Settings, links: sistemaLinks }}
+              collapsed={collapsed}
+              pathname={pathname}
+            />
+          </>
         )}
       </SidebarContent>
     </Sidebar>
