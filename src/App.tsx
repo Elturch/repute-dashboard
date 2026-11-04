@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Login from "./pages/Login";
 import DashboardLayout from "./layouts/DashboardLayout";
+import RequireSuperadmin from "./components/RequireSuperadmin";
+import DashboardHome from "./components/DashboardHome";
 
 // Core Quirón
 import ResumenGlobal from "./pages/dashboard/core/ResumenGlobal";
@@ -94,18 +96,7 @@ const App = () => (
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<DashboardLayout />}>
-            {/* Core Quirón */}
-            <Route index element={<ResumenGlobal />} />
-            <Route path="benchmarking" element={<Benchmarking />} />
-            <Route path="ecosistema" element={<Ecosistema />} />
-            <Route path="canales" element={<Canales />} />
-            <Route path="canales/noticias" element={<NoticiasChannel />} />
-            <Route path="canales/facebook" element={<FacebookChannel />} />
-            <Route path="canales/instagram" element={<InstagramChannel />} />
-            <Route path="canales/tiktok" element={<TikTokChannel />} />
-            <Route path="canales/twitter" element={<TwitterChannel />} />
-            <Route path="canales/linkedin" element={<LinkedInChannel />} />
-            <Route path="canales/mybusiness" element={<MyBusinessChannel />} />
+            <Route index element={<DashboardHome />} />
             <Route path="privados" element={<PrivadosResumen />} />
             <Route path="privados/noticias" element={<PrivadosNoticias />} />
             <Route path="privados/instagram" element={<PrivadosInstagram />} />
@@ -130,44 +121,59 @@ const App = () => (
             <Route path="catsalut/facebook" element={<CatsalutFacebook />} />
             <Route path="catsalut/linkedin" element={<CatsalutLinkedIn />} />
             <Route path="catsalut/mybusiness" element={<CatsalutMyBusiness />} />
-            <Route path="medios" element={<MediosGlobal />} />
-            <Route path="evolucion" element={<EvolucionGlobal />} />
-            <Route path="riesgo" element={<Riesgo />} />
-            <Route path="explorador" element={<Explorador />} />
             <Route path="fjd" element={<FJDPage />} />
-            <Route path="alta-complejidad" element={<AltaComplejidad />} />
-            <Route path="relato" element={<Relato />} />
-            <Route path="reportes" element={<Reportes />} />
-            <Route path="notificaciones" element={<Notificaciones />} />
-            <Route path="docs" element={<Docs />} />
 
-            {/* Especiales */}
-            <Route path="especiales" element={<EspecialesIndex />} />
-            <Route path="especiales/ayuso" element={<AyusoResumen />} />
-            <Route path="especiales/ayuso/eventos" element={<Eventos />} />
-            <Route path="especiales/ayuso/metricas" element={<Metricas />} />
-            <Route path="especiales/ayuso/medios" element={<MediosAyuso />} />
-            <Route path="especiales/ayuso/cascadas" element={<Cascadas />} />
-            <Route path="especiales/ayuso/social" element={<Social />} />
-            <Route path="especiales/ayuso/hitos" element={<Hitos />} />
-            <Route path="especiales/ayuso/evolucion" element={<EvolucionAyuso />} />
+            <Route element={<RequireSuperadmin />}>
+              {/* Core Quirón */}
+              <Route path="benchmarking" element={<Benchmarking />} />
+              <Route path="ecosistema" element={<Ecosistema />} />
+              <Route path="canales" element={<Canales />} />
+              <Route path="canales/noticias" element={<NoticiasChannel />} />
+              <Route path="canales/facebook" element={<FacebookChannel />} />
+              <Route path="canales/instagram" element={<InstagramChannel />} />
+              <Route path="canales/tiktok" element={<TikTokChannel />} />
+              <Route path="canales/twitter" element={<TwitterChannel />} />
+              <Route path="canales/linkedin" element={<LinkedInChannel />} />
+              <Route path="canales/mybusiness" element={<MyBusinessChannel />} />
+              <Route path="medios" element={<MediosGlobal />} />
+              <Route path="evolucion" element={<EvolucionGlobal />} />
+              <Route path="riesgo" element={<Riesgo />} />
+              <Route path="explorador" element={<Explorador />} />
+              <Route path="alta-complejidad" element={<AltaComplejidad />} />
+              <Route path="relato" element={<Relato />} />
+              <Route path="reportes" element={<Reportes />} />
+              <Route path="notificaciones" element={<Notificaciones />} />
+              <Route path="docs" element={<Docs />} />
 
-            {/* Legacy redirects */}
-            <Route path="eventos" element={<Navigate to="/dashboard/especiales/ayuso/eventos" replace />} />
-            <Route path="metricas" element={<Navigate to="/dashboard/especiales/ayuso/metricas" replace />} />
-            <Route path="cascadas" element={<Navigate to="/dashboard/especiales/ayuso/cascadas" replace />} />
-            <Route path="social" element={<Navigate to="/dashboard/especiales/ayuso/social" replace />} />
-            <Route path="hitos" element={<Navigate to="/dashboard/especiales/ayuso/hitos" replace />} />
+              {/* Especiales */}
+              <Route path="especiales" element={<EspecialesIndex />} />
+              <Route path="especiales/ayuso" element={<AyusoResumen />} />
+              <Route path="especiales/ayuso/eventos" element={<Eventos />} />
+              <Route path="especiales/ayuso/metricas" element={<Metricas />} />
+              <Route path="especiales/ayuso/medios" element={<MediosAyuso />} />
+              <Route path="especiales/ayuso/cascadas" element={<Cascadas />} />
+              <Route path="especiales/ayuso/social" element={<Social />} />
+              <Route path="especiales/ayuso/hitos" element={<Hitos />} />
+              <Route path="especiales/ayuso/evolucion" element={<EvolucionAyuso />} />
 
-            {/* Sistema */}
-            <Route path="sistema/admin" element={<Admin />} />
-            <Route path="sistema/usuarios" element={<Usuarios />} />
-            <Route path="sistema/configuracion" element={<Configuracion />} />
-            <Route path="sistema/integridad" element={<Integridad />} />
-            <Route path="sistema/estado" element={<Estado />} />
+              {/* Legacy redirects */}
+              <Route path="eventos" element={<Navigate to="/dashboard/especiales/ayuso/eventos" replace />} />
+              <Route path="metricas" element={<Navigate to="/dashboard/especiales/ayuso/metricas" replace />} />
+              <Route path="cascadas" element={<Navigate to="/dashboard/especiales/ayuso/cascadas" replace />} />
+              <Route path="social" element={<Navigate to="/dashboard/especiales/ayuso/social" replace />} />
+              <Route path="hitos" element={<Navigate to="/dashboard/especiales/ayuso/hitos" replace />} />
 
-            {/* Legacy redirect */}
-            <Route path="admin" element={<Navigate to="/dashboard/sistema/admin" replace />} />
+              {/* Sistema */}
+              <Route path="sistema/admin" element={<Admin />} />
+              <Route path="sistema/usuarios" element={<Usuarios />} />
+              <Route path="sistema/configuracion" element={<Configuracion />} />
+              <Route path="sistema/integridad" element={<Integridad />} />
+              <Route path="sistema/estado" element={<Estado />} />
+
+              {/* Legacy redirect */}
+              <Route path="admin" element={<Navigate to="/dashboard/sistema/admin" replace />} />
+
+            </Route>
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

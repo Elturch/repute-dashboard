@@ -14,7 +14,12 @@ export type Session = {
 };
 
 export function getSession(): Session | null {
-  if (ACCESO_ABIERTO) return { email: "acceso-abierto", role: "lector" };
+  if (ACCESO_ABIERTO) {
+    const bypass = localStorage.getItem("mr_is_superadmin") === "true";
+    return bypass
+      ? { email: SUPERADMIN_EMAIL, role: "superadmin", bypass: true }
+      : { email: "acceso-abierto", role: "lector" };
+  }
   const email = localStorage.getItem("mr_user_email");
   const role = localStorage.getItem("mr_user_role") as AppRole | null;
   const isBypass = localStorage.getItem("mr_is_superadmin") === "true";
