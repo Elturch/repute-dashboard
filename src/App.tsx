@@ -39,7 +39,8 @@ import PrivadosLinkedIn from "./pages/dashboard/privados/PrivadosLinkedIn";
 import PrivadosMyBusiness from "./pages/dashboard/privados/PrivadosMyBusiness";
 
 // SERMAS
-import SermasResumen from "./pages/dashboard/sermas/SermasResumen";
+import SermasNivelOverview from "./pages/dashboard/sermas/niveles/SermasNivelOverview";
+import SermasDetallePage from "./pages/dashboard/sermas/niveles/SermasDetallePage";
 import SermasMedios from "./pages/dashboard/sermas/SermasMedios";
 import SermasInstagram from "./pages/dashboard/sermas/SermasInstagram";
 import SermasTwitter from "./pages/dashboard/sermas/SermasTwitter";
@@ -106,7 +107,9 @@ const App = () => (
             <Route path="privados/facebook" element={<PrivadosFacebook />} />
             <Route path="privados/linkedin" element={<PrivadosLinkedIn />} />
             <Route path="privados/mybusiness" element={<PrivadosMyBusiness />} />
-            <Route path="sermas" element={<SermasResumen />} />
+            <Route path="sermas" element={<Navigate to="/dashboard/sermas/alta" replace />} />
+            <Route path="sermas/:nivel" element={<SermasNivelOverview />} />
+            <Route path="sermas/:nivel/:slug" element={<SermasDetallePage />} />
             <Route path="sermas/medios" element={<SermasMedios />} />
             <Route path="sermas/instagram" element={<SermasInstagram />} />
             <Route path="sermas/twitter" element={<SermasTwitter />} />

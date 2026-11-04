@@ -43,15 +43,10 @@ const privadosLinks: LinkItem[] = [
   { title: "Reseñas Google", url: "/dashboard/privados/mybusiness", icon: SiGoogle },
 ];
 
-const sermasLinks: LinkItem[] = [
-  { title: "Overview", url: "/dashboard/sermas", icon: LayoutDashboard, end: true },
-  { title: "Medios", url: "/dashboard/sermas/medios", icon: Newspaper },
-  { title: "Instagram", url: "/dashboard/sermas/instagram", icon: SiInstagram },
-  { title: "X (Twitter)", url: "/dashboard/sermas/twitter", icon: FaXTwitter },
-  { title: "TikTok", url: "/dashboard/sermas/tiktok", icon: SiTiktok },
-  { title: "Facebook", url: "/dashboard/sermas/facebook", icon: SiFacebook },
-  { title: "LinkedIn", url: "/dashboard/sermas/linkedin", icon: FaLinkedin },
-  { title: "Reseñas Google", url: "/dashboard/sermas/mybusiness", icon: SiGoogle },
+const sermasNivel = (id: string, conjunto: string, hospitales: [string, string][]): LinkItem[] => [
+  { title: "Overview", url: `/dashboard/sermas/${id}`, icon: LayoutDashboard, end: true },
+  { title: conjunto, url: `/dashboard/sermas/${id}/conjunto`, icon: Building2 },
+  ...hospitales.map(([t, slug]) => ({ title: t, url: `/dashboard/sermas/${id}/${slug}`, icon: Star })),
 ];
 
 const catsalutLinks: LinkItem[] = [
@@ -100,7 +95,9 @@ const sistemaLinks: LinkItem[] = [
 
 const bloques: Bloque[] = [
   { id: "privados", titulo: "Grupos Hospitalarios", icon: BarChart3, prefix: "/dashboard/privados", defaultOpen: true, links: privadosLinks },
-  { id: "sermas", titulo: "SERMAS", icon: Building2, prefix: "/dashboard/sermas", links: sermasLinks },
+  { id: "sermas_alta", titulo: "SERMAS · Hospitales alta complejidad", icon: Building2, prefix: "/dashboard/sermas/alta", links: sermasNivel("alta", "Alta complejidad", [["Fundación Jiménez Díaz", "fjd"]]) },
+  { id: "sermas_media", titulo: "SERMAS · Hospitales media complejidad", icon: Building2, prefix: "/dashboard/sermas/media", links: sermasNivel("media", "Media complejidad", [["HURJC", "hurjc"], ["HUGV", "hugv"]]) },
+  { id: "sermas_baja", titulo: "SERMAS · Hospitales baja complejidad", icon: Building2, prefix: "/dashboard/sermas/baja", links: sermasNivel("baja", "Baja complejidad", [["HUIE", "huie"]]) },
   { id: "fjd", titulo: "Hospitales destacados", icon: Star, iconClassName: "text-amber-500", prefix: "/dashboard/fjd", links: fjdLinks },
   { id: "modotv", titulo: "Modo TV", icon: Tv, prefix: "/dashboard/modo-tv", links: [{ title: "Gestión de paneles", url: "/dashboard/modo-tv", icon: Tv }] },
 ];
