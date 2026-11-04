@@ -145,7 +145,8 @@ const Benchmarking = () => {
                   {groups.map((g, i) => (
                     <Radar key={g.key} name={g.label} dataKey={g.key}
                       stroke={getColor(g, i)} fill={getColor(g, i)}
-                      fillOpacity={g.primary ? 0.25 : 0.05} strokeWidth={g.primary ? 2.5 : 1} />
+                      fillOpacity={g.primary ? 0.25 : 0.06} strokeWidth={g.primary ? 3 : 2.5}
+                      strokeOpacity={g.primary ? 1 : 0.9} />
                   ))}
                   <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--foreground))" }} />
                   <Legend wrapperStyle={{ color: "hsl(var(--muted-foreground))", fontSize: 12 }} />

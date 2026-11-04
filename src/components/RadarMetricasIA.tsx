@@ -63,7 +63,8 @@ export default function RadarMetricasIA({ series, size = 320 }: Props) {
               stroke={s.color}
               fill={s.color}
               fillOpacity={s.highlight ? 0.35 : 0.12}
-              strokeWidth={s.highlight ? 2 : 1.5}
+              strokeWidth={s.highlight ? 3 : 2.5}
+              strokeOpacity={s.highlight ? 1 : 0.9}
             />
           ))}
           <Tooltip
