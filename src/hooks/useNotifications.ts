@@ -111,7 +111,7 @@ export function useNotifications() {
   // Realtime subscription attempt
   useEffect(() => {
     const channel = externalSupabase
-      .channel("alert_cascades_realtime")
+      .channel(`alert_cascades_realtime-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes" as any,
         { event: "INSERT", schema: "public", table: "alert_cascades" },
