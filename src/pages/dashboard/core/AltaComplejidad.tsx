@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { useAcHospital, type AcHospitalRow } from "@/hooks/useAcHospital";
 import { useAcEvolucion } from "@/hooks/useAcEvolucion";
+import { useAcTemas, type AcTemaRow } from "@/hooks/useAcTemas";
 
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
