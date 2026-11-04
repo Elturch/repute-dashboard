@@ -58,6 +58,7 @@ export function useTvMode() {
 
   const start = useCallback(() => {
     setProgress(0); setPaused(false); setActive(true);
+    window.dispatchEvent(new CustomEvent("qs-tv-mode", { detail: true }));
     navigate(playlist[0] ?? TV_PLAYLIST[0], { replace: true });
   }, [navigate, playlist]);
 
