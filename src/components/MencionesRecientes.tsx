@@ -4,6 +4,8 @@ import { externalSupabase } from '@/integrations/external-supabase/client';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ExternalLink, ImageOff, Filter, X } from 'lucide-react';
+import { usePeriod } from '@/contexts/PeriodContext';
+import type { Canal } from '@/hooks/useCanalData';
 
 export interface MencionesConfig {
   tabla: string;
@@ -17,6 +19,25 @@ export interface MencionesConfig {
   campoPresenciaMarca?: string;
   /** Filtros adicionales con .eq */
   filtros?: { campo: string; valor: string }[];
+  /** Si se indica, la lista sale de rpc('canal_items') filtrada por el periodo global. */
+  canal?: Canal;
+  /** Filtro de segmento para canal_items (mismo criterio que los KPIs de la página). */
+  segmento?: { titularidad?: string; gestionLike?: string };
+}
+
+/** Columnas normalizadas que devuelve canal_items (iguales que las antiguas v_canal_*). */
+function normalizarCfg(cfg: MencionesConfig): MencionesConfig {
+  if (!cfg.canal) return cfg;
+  return {
+    ...cfg,
+    campoFecha: 'fecha',
+    campoTitulo: cfg.campoTitulo ? 'titulo' : undefined,
+    campoSnippet: 'texto',
+    campoImagen: cfg.campoImagen ? 'imagen' : undefined,
+    campoMedio: 'fuente',
+    campoUrl: 'url',
+    campoPeligro: 'peligro',
+  };
 }
 
 const PAGE_SIZE = 20;
@@ -45,9 +66,26 @@ function peligroColor(p: string | null | undefined): string {
   return '#9ca3af';
 }
 
-interface FetchOpts { riesgo: string; medio: string }
+interface FetchOpts { riesgo: string; medio: string; desde: string; hasta: string }
 
 async function fetchPage(cfg: MencionesConfig, pageParam: number, opts: FetchOpts) {
+  if (cfg.canal) {
+    let r = externalSupabase
+      .rpc('canal_items', { p_canal: cfg.canal, p_desde: opts.desde, p_hasta: opts.hasta })
+      .select('*');
+    if (cfg.segmento?.titularidad) r = r.eq('titularidad', cfg.segmento.titularidad);
+    if (cfg.segmento?.gestionLike) r = r.ilike('gestion_hospitalaria', cfg.segmento.gestionLike);
+    if (opts.riesgo) r = r.ilike('peligro', `%${opts.riesgo}%`);
+    if (opts.medio)  r = r.ilike('fuente', `%${opts.medio}%`);
+    r = r.order('fecha', { ascending: false }).order('id', { ascending: false })
+      .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
+    const { data, error } = await r;
+    if (error) {
+      console.error('[MencionesRecientes] canal_items', cfg.canal, error);
+      throw error;
+    }
+    return (data ?? []) as Record<string, any>[];
+  }
   let q = externalSupabase
     .from(cfg.tabla)
     .select('*')
@@ -67,7 +105,9 @@ async function fetchPage(cfg: MencionesConfig, pageParam: number, opts: FetchOpt
   return (data ?? []) as Record<string, any>[];
 }
 
-export default function MencionesRecientes({ cfg, contextLabel }: { cfg: MencionesConfig; contextLabel?: string }) {
+export default function MencionesRecientes({ cfg: cfgIn, contextLabel }: { cfg: MencionesConfig; contextLabel?: string }) {
+  const cfg = normalizarCfg(cfgIn);
+  const { desde, hasta } = usePeriod();
   const [riesgo, setRiesgo] = useState('');
   const [medioInput, setMedioInput] = useState('');
   const [medio, setMedio] = useState('');
@@ -79,9 +119,9 @@ export default function MencionesRecientes({ cfg, contextLabel }: { cfg: Mencion
   }, [medioInput]);
 
   const { data, fetchNextPage, hasNextPage, isFetching, isLoading, error } = useInfiniteQuery({
-    queryKey: ['menciones', cfg.tabla, JSON.stringify(cfg.filtros ?? []), riesgo, medio],
+    queryKey: ['menciones', cfg.canal ?? cfg.tabla, JSON.stringify(cfg.segmento ?? cfg.filtros ?? []), riesgo, medio, desde, hasta],
     initialPageParam: 0,
-    queryFn: ({ pageParam }) => fetchPage(cfg, pageParam as number, { riesgo, medio }),
+    queryFn: ({ pageParam }) => fetchPage(cfg, pageParam as number, { riesgo, medio, desde, hasta }),
     getNextPageParam: (lastPage, allPages) => lastPage.length === PAGE_SIZE ? allPages.length : undefined,
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,

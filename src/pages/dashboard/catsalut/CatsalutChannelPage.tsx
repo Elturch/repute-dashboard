@@ -272,7 +272,7 @@ export default function CatsalutChannelPage({ cfg }: { cfg: CatsalutChannelConfi
       )}
 
       {stats && MENCIONES_BY_CHANNEL[cfg.canal] && (
-        <MencionesRecientes cfg={MENCIONES_BY_CHANNEL[cfg.canal] as MencionesConfig} contextLabel={cfg.short} />
+        <MencionesRecientes cfg={{ ...(MENCIONES_BY_CHANNEL[cfg.canal] as MencionesConfig), canal: CANAL_MAP[cfg.canal], segmento: { gestionLike: 'CATSALUT%' } }} contextLabel={cfg.short} />
       )}
 
       {stats && stats.total.menciones > 0 && kpiRows && (
@@ -285,7 +285,7 @@ export default function CatsalutChannelPage({ cfg }: { cfg: CatsalutChannelConfi
           <p className="mt-1 text-foreground">{rangoActual}</p>
         </div>
         <div>
-          <p>Fuente: Supabase · Vista materializada: v_kpi_canal_30d · Filtro: gestion_hospitalaria ILIKE 'CATSALUT%' · canal = {CANAL_MAP[cfg.canal]}</p>
+          <p>Fuente: base de datos · Funciones kpi_canal / canal_items (periodo seleccionado) · Filtro: gestion_hospitalaria ILIKE 'CATSALUT%' · canal = {CANAL_MAP[cfg.canal]}</p>
         </div>
       </div>
     </div>

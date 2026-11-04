@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { externalSupabase } from '@/integrations/external-supabase/client';
+import { usePeriod } from '@/contexts/PeriodContext';
 
 export type Canal = 'medios' | 'instagram' | 'tiktok' | 'facebook' | 'linkedin' | 'twitter' | 'mybusiness';
 
@@ -61,13 +62,14 @@ export const ALL_CANALES: Canal[] = ['medios','instagram','tiktok','facebook','l
  * así que cualquier agregación client-side sobre canales grandes (TikTok, Twitter...)
  * mentiría. Para totales y métricas usa `useKpiCanalGlobal()` (vista materializada).
  *
- * Las vistas YA traen el filtro de 30d incorporado, así que NO añadimos gte de fecha.
+ * Lee rpc('canal_items') filtrada por el periodo global (PeriodContext).
  */
 export function useCanalData(canal: Canal, segmento: SegmentoFiltro = {}, limit = 50) {
+  const { desde, hasta } = usePeriod();
   return useQuery({
-    queryKey: ['canal', canal, segmento, limit],
+    queryKey: ['canal', canal, segmento, limit, desde, hasta],
     queryFn: async (): Promise<VCanalRow[]> => {
-      let q = externalSupabase.from(VIEW_BY_CANAL[canal]).select('*');
+      let q = externalSupabase.rpc('canal_items', { p_canal: canal, p_desde: desde, p_hasta: hasta }).select('*');
 
       if (segmento.titularidad) {
         if (Array.isArray(segmento.titularidad)) {

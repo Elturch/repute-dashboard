@@ -80,7 +80,7 @@ export default function SermasResumen() {
       <header className="px-8 py-6 border-b border-border flex items-start justify-between gap-6 flex-wrap">
         <div>
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
-            Sistema Madrileño de Salud · Total vs Gestión QS vs Sin QS · Últimos 30 días
+            Sistema Madrileño de Salud · Total vs Gestión QS vs Sin QS · Periodo seleccionado
           </p>
           <h1 className="text-3xl font-bold tracking-tight">SERMAS — Overview</h1>
           <p className="text-sm text-muted-foreground mt-2 max-w-3xl">
@@ -154,7 +154,7 @@ export default function SermasResumen() {
       </div>
 
       <footer className="px-8 py-6 border-t border-border text-[10px] uppercase tracking-widest text-muted-foreground flex justify-between flex-wrap gap-2">
-        <span>Fuente: Supabase · Vistas: v_canal_*</span>
+        <span>Fuente: base de datos · Función kpi_canal (periodo seleccionado)</span>
         <span>Filtrado: gestion_hospitalaria ILIKE 'SERMAS%'</span>
       </footer>
     </div>
