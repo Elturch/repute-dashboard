@@ -73,20 +73,20 @@ export default function CatsalutResumen() {
   const canalesActivos = stats ? CHANNELS.filter(cfg => stats[cfg.key].total > 0).length : 0;
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white">
-      <header className="px-8 py-6 border-b border-white/5 flex items-start justify-between gap-6 flex-wrap">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="px-8 py-6 border-b border-border flex items-start justify-between gap-6 flex-wrap">
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-[#6b7280] mb-2">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
             Servicio Catalán de la Salud · Total vs Concierto QS vs Sin QS · Últimos 30 días
           </p>
           <h1 className="text-3xl font-bold tracking-tight">CATSALUT — Resumen por canal</h1>
-          <p className="text-sm text-[#9ca3af] mt-2 max-w-3xl">
+          <p className="text-sm text-muted-foreground mt-2 max-w-3xl">
             {stats && totalGlobal > 0 ? (
               <>
                 Quirónsalud opera en concierto con <span className="text-emerald-400 font-medium">{fmt(qsGlobal)}</span> de las{' '}
-                <span className="text-white font-medium">{fmt(totalGlobal)}</span> menciones CATSALUT
+                <span className="text-foreground font-medium">{fmt(totalGlobal)}</span> menciones CATSALUT
                 {' '}(<span className="text-emerald-400 font-medium">{fmtPct((qsGlobal/totalGlobal)*100)}</span>) en{' '}
-                <span className="text-white font-medium">{canalesActivos}</span> canales activos.
+                <span className="text-foreground font-medium">{canalesActivos}</span> canales activos.
               </>
             ) : 'Cargando comparativa CATSALUT...'}
           </p>
@@ -99,40 +99,40 @@ export default function CatsalutResumen() {
                 Actualizando
               </span>
             ) : (
-              <span className="text-[#6b7280]">
+              <span className="text-muted-foreground">
                 Auto-refresh 10 min · última: {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '—'}
               </span>
             )}
           </div>
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ['kpi_canal_global'] })}
-            className="text-[10px] uppercase tracking-wider text-[#6b7280] hover:text-white"
+            className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
           >
             🔄 Recargar
           </button>
         </div>
       </header>
 
-      <section className="px-8 py-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 border-b border-white/5">
+      <section className="px-8 py-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 border-b border-border">
         {CHANNELS.map((cfg) => {
           const c = stats?.[cfg.key];
           const isEmpty = !!c && c.total === 0;
           const { Icon } = cfg;
           return (
-            <div key={cfg.key} className="bg-[#0f1420] border border-white/5 rounded-lg p-3">
-              <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-[#9ca3af]">
+            <div key={cfg.key} className="bg-card border border-border rounded-lg p-3">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
                 <Icon style={{ color: cfg.brandColor }} className="h-3.5 w-3.5" />
                 {cfg.label}
               </div>
               {isLoading ? (
-                <div className="h-7 w-16 bg-white/5 rounded mt-2 animate-pulse" />
+                <div className="h-7 w-16 bg-foreground/5 rounded mt-2 animate-pulse" />
               ) : (
                 <p className="text-2xl font-bold mt-1 tabular-nums">{fmt(c?.total ?? 0)}</p>
               )}
               {isEmpty ? (
-                <p className="text-[10px] text-[#6b7280] mt-1">Sin datos</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Sin datos</p>
               ) : (
-                <div className="text-[10px] text-[#9ca3af] mt-1 flex items-center gap-1">
+                <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
                   <span className="text-emerald-400 tabular-nums font-medium">{fmt(c?.qs ?? 0)}</span>
                   <span>QS</span>
                 </div>
@@ -148,7 +148,7 @@ export default function CatsalutResumen() {
         ))}
       </div>
 
-      <footer className="px-8 py-6 border-t border-white/5 text-[10px] uppercase tracking-widest text-[#6b7280] flex justify-between flex-wrap gap-2">
+      <footer className="px-8 py-6 border-t border-border text-[10px] uppercase tracking-widest text-muted-foreground flex justify-between flex-wrap gap-2">
         <span>Fuente: Supabase · Vistas: v_canal_*</span>
         <span>Filtrado: gestion_hospitalaria ILIKE 'CATSALUT%'</span>
       </footer>
@@ -161,17 +161,17 @@ function ChannelSection({ cfg, stats, isLoading }: { cfg: ChannelConfig; stats?:
   const isEmpty = !!stats && stats.total === 0;
 
   return (
-    <section className="bg-[#0f1420] border border-white/5 rounded-xl overflow-hidden">
-      <header className="px-6 py-4 border-b border-white/5 flex items-center justify-between gap-4 flex-wrap">
+    <section className="bg-card border border-border rounded-xl overflow-hidden">
+      <header className="px-6 py-4 border-b border-border flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-white/5 flex items-center justify-center">
+          <div className="h-9 w-9 rounded-lg bg-foreground/5 flex items-center justify-center">
             <Icon style={{ color: cfg.brandColor }} className="h-4 w-4" />
           </div>
           <h2 className="text-lg font-semibold">{cfg.label}</h2>
           {stats?.maxDate && (
-            <span className="text-[10px] uppercase tracking-wider text-[#6b7280]">hasta {fmtFecha(stats.maxDate)}</span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">hasta {fmtFecha(stats.maxDate)}</span>
           )}
-          {isLoading && <span className="text-[10px] text-[#6b7280]">Cargando...</span>}
+          {isLoading && <span className="text-[10px] text-muted-foreground">Cargando...</span>}
         </div>
       </header>
 
@@ -181,9 +181,9 @@ function ChannelSection({ cfg, stats, isLoading }: { cfg: ChannelConfig; stats?:
         <SegBox label="Sin QS"         value={stats?.sinQs} tone="blue"    loading={isLoading} share={stats && stats.total > 0 ? (stats.sinQs / stats.total) * 100 : undefined} />
 
         {isEmpty && (
-          <div className="absolute inset-0 bg-[#0f1420]/85 backdrop-blur-[1px] flex items-center justify-center">
+          <div className="absolute inset-0 bg-card/85 backdrop-blur-[1px] flex items-center justify-center">
             <div className="text-center">
-              <p className="text-xs uppercase tracking-widest text-[#6b7280]">Sin datos</p>
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">Sin datos</p>
             </div>
           </div>
         )}
@@ -193,7 +193,7 @@ function ChannelSection({ cfg, stats, isLoading }: { cfg: ChannelConfig; stats?:
 }
 
 const TONE_CLASSES: Record<string, { border: string; bg: string; text: string }> = {
-  neutral: { border: 'border-white/10',          bg: 'bg-white/[0.02]',           text: 'text-white' },
+  neutral: { border: 'border-border',          bg: 'bg-foreground/[0.02]',           text: 'text-foreground' },
   emerald: { border: 'border-emerald-500/30',    bg: 'bg-emerald-500/[0.06]',     text: 'text-emerald-400' },
   blue:    { border: 'border-blue-500/30',       bg: 'bg-blue-500/[0.06]',        text: 'text-blue-400' },
 };
@@ -208,14 +208,14 @@ function SegBox({ label, value, tone, loading, share }: {
   const c = TONE_CLASSES[tone];
   return (
     <div className={`rounded-lg border ${c.border} ${c.bg} p-3`}>
-      <p className="text-[10px] uppercase tracking-wider text-[#9ca3af] font-semibold">{label}</p>
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
       {loading ? (
-        <div className="h-7 w-16 bg-white/5 rounded mt-2 animate-pulse" />
+        <div className="h-7 w-16 bg-foreground/5 rounded mt-2 animate-pulse" />
       ) : (
         <p className={`text-2xl font-bold mt-1 tabular-nums ${c.text}`}>{fmt(value ?? 0)}</p>
       )}
       {share != null && (
-        <p className="text-[10px] text-[#9ca3af] mt-1 tabular-nums">{fmtPct(share)} del total</p>
+        <p className="text-[10px] text-muted-foreground mt-1 tabular-nums">{fmtPct(share)} del total</p>
       )}
     </div>
   );

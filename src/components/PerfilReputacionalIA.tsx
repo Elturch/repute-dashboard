@@ -100,10 +100,10 @@ export default function PerfilReputacionalIA({
   if (allNull) {
     return (
       <section className="mt-10">
-        <p className="text-[10px] uppercase tracking-[0.25em] text-[#4b5563] mb-3 font-medium">
+        <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-3 font-medium">
           Perfil reputacional IA{contextLabel ? ` · ${contextLabel}` : ''}
         </p>
-        <div className="bg-white/[0.02] border border-white/5 rounded-lg p-8 flex items-center gap-3 text-[#f59e0b] text-sm">
+        <div className="bg-foreground/[0.02] border border-border rounded-lg p-8 flex items-center gap-3 text-[#f59e0b] text-sm">
           <Wrench className="w-4 h-4" />
           Métricas IA no disponibles para este canal.
         </div>
@@ -126,26 +126,26 @@ export default function PerfilReputacionalIA({
 
   return (
     <section className="mt-12">
-      <p className="text-[11px] uppercase tracking-[0.25em] text-[#4b5563] mb-4 font-medium">
+      <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground mb-4 font-medium">
         Perfil reputacional IA{contextLabel ? ` · ${contextLabel}` : ''}
       </p>
 
       <div className="px-7 py-6 mb-6 rounded-xl border border-[#10b981]/20 bg-[#10b981]/[0.05]">
-        <p className="text-[32px] font-semibold leading-tight text-white">
+        <p className="text-[32px] font-semibold leading-tight text-foreground">
           <span style={{ color: RADAR_QS }}>{highlightLabel} lidera</span> en{' '}
           <span className="tabular-nums" style={{ color: RADAR_QS }}>{summary.lidera}</span> de{' '}
           <span className="tabular-nums">{summary.total}</span> dimensiones
           {summary.atencion > 0 && (
             <>
-              <span className="text-white/50">  ·  </span>
+              <span className="text-muted-foreground">  ·  </span>
               <span className="text-[#ef4444] tabular-nums">{summary.atencion}</span>
-              <span className="text-white/85"> por debajo del sector</span>
+              <span className="text-foreground/85"> por debajo del sector</span>
             </>
           )}.
         </p>
       </div>
 
-      <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6 mb-6">
+      <div className="bg-foreground/[0.02] border border-border rounded-xl p-6 mb-6">
         <div className="flex items-center justify-center gap-10 mb-4 flex-wrap">
           <LegendItem color={RADAR_TOTAL} label="GRUPOS HOSPITALARIOS (TOTAL)" />
           <LegendItem color={RADAR_QS} label={highlightLabel.toUpperCase()} bold />
@@ -184,14 +184,14 @@ export default function PerfilReputacionalIA({
             </RadarChart>
           </ResponsiveContainer>
         </div>
-        <div className="text-[12px] text-[#9ca3af] text-center mt-3 leading-relaxed space-y-1.5">
+        <div className="text-[12px] text-muted-foreground text-center mt-3 leading-relaxed space-y-1.5">
           <p>
-            <span className="text-[#22c55e] font-bold">↑</span> junto a la métrica = <span className="text-white font-semibold">más alto es mejor</span>
-            <span className="mx-3 text-white/30">·</span>
-            <span className="text-[#ef4444] font-bold">↓</span> = <span className="text-white font-semibold">más bajo es mejor</span>
+            <span className="text-[#22c55e] font-bold">↑</span> junto a la métrica = <span className="text-foreground font-semibold">más alto es mejor</span>
+            <span className="mx-3 text-muted-foreground">·</span>
+            <span className="text-[#ef4444] font-bold">↓</span> = <span className="text-foreground font-semibold">más bajo es mejor</span>
           </p>
           <p>
-            Métricas negativas invertidas en el radar para que <span className="font-bold text-white">"más extenso = mejor"</span> siempre. Valores reales junto a cada eje.<br/>
+            Métricas negativas invertidas en el radar para que <span className="font-bold text-foreground">"más extenso = mejor"</span> siempre. Valores reales junto a cada eje.<br/>
             Color del eje: <span className="text-[#22c55e] font-bold">verde</span> si {highlightLabel} lidera, <span className="text-[#ef4444] font-bold">rojo</span> si está por debajo.
           </p>
         </div>
@@ -207,42 +207,42 @@ export default function PerfilReputacionalIA({
         highlightLabel={highlightLabel}
       />
 
-      <div className="mt-4 bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+      <div className="mt-4 bg-foreground/[0.02] border border-border rounded-xl overflow-hidden">
         <button
           type="button"
           onClick={() => setGlosarioOpen(o => !o)}
-          className="w-full px-7 py-3.5 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors"
+          className="w-full px-7 py-3.5 flex items-center justify-between text-left hover:bg-foreground/[0.02] transition-colors"
         >
-          <span className="flex items-center gap-2 text-[12px] uppercase tracking-[0.2em] font-bold text-[#e5e7eb]">
-            <HelpCircle className="w-4 h-4 text-[#9ca3af]" />
+          <span className="flex items-center gap-2 text-[12px] uppercase tracking-[0.2em] font-bold text-foreground">
+            <HelpCircle className="w-4 h-4 text-muted-foreground" />
             ¿Qué significa cada término?
           </span>
-          <ChevronDown className={`w-4 h-4 text-[#9ca3af] transition-transform ${glosarioOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${glosarioOpen ? 'rotate-180' : ''}`} />
         </button>
         {glosarioOpen && (
-          <div className="px-7 pb-6 pt-2 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4 border-t border-white/5">
+          <div className="px-7 pb-6 pt-2 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4 border-t border-border">
             <div>
               <p className="text-[11px] uppercase tracking-[0.2em] font-bold mb-3" style={{ color: COLOR_GOOD }}>
-                Positivas <span className="text-[#6b7280] font-normal normal-case tracking-normal">— más alto = mejor ↑</span>
+                Positivas <span className="text-muted-foreground font-normal normal-case tracking-normal">— más alto = mejor ↑</span>
               </p>
               <dl className="space-y-2.5 text-sm">
                 {POSITIVAS.map(m => (
                   <div key={m.key}>
-                    <dt className="font-semibold text-white inline">{m.label}: </dt>
-                    <dd className="inline text-[#9ca3af]">{GLOSARIO[m.key]}</dd>
+                    <dt className="font-semibold text-foreground inline">{m.label}: </dt>
+                    <dd className="inline text-muted-foreground">{GLOSARIO[m.key]}</dd>
                   </div>
                 ))}
               </dl>
             </div>
             <div>
               <p className="text-[11px] uppercase tracking-[0.2em] font-bold mb-3" style={{ color: COLOR_BAD }}>
-                Negativas <span className="text-[#6b7280] font-normal normal-case tracking-normal">— más bajo = mejor ↓</span>
+                Negativas <span className="text-muted-foreground font-normal normal-case tracking-normal">— más bajo = mejor ↓</span>
               </p>
               <dl className="space-y-2.5 text-sm">
                 {NEGATIVAS.map(m => (
                   <div key={m.key}>
-                    <dt className="font-semibold text-white inline">{m.label}: </dt>
-                    <dd className="inline text-[#9ca3af]">{GLOSARIO[m.key]}</dd>
+                    <dt className="font-semibold text-foreground inline">{m.label}: </dt>
+                    <dd className="inline text-muted-foreground">{GLOSARIO[m.key]}</dd>
                   </div>
                 ))}
               </dl>
@@ -251,9 +251,9 @@ export default function PerfilReputacionalIA({
         )}
       </div>
 
-      <div className="mt-6 pt-4 border-t border-white/5 flex items-center gap-8 text-sm text-[#9ca3af] flex-wrap">
+      <div className="mt-6 pt-4 border-t border-border flex items-center gap-8 text-sm text-muted-foreground flex-wrap">
         <span className="flex items-center gap-1.5"><span className="text-[#22c55e] font-bold text-base">★</span> {highlightLabel} lidera</span>
-        <span className="flex items-center gap-1.5"><span className="text-[#9ca3af] font-bold text-base">●</span> En línea con el sector</span>
+        <span className="flex items-center gap-1.5"><span className="text-muted-foreground font-bold text-base">●</span> En línea con el sector</span>
         <span className="flex items-center gap-1.5"><span className="text-[#ef4444] font-bold text-base">⚠</span> Por debajo del sector</span>
       </div>
     </section>
@@ -267,7 +267,7 @@ function LegendItem({ color, label, bold }: { color: string; label: string; bold
         className={`rounded-md ${bold ? 'w-7 h-7' : 'w-6 h-6'}`}
         style={{ backgroundColor: color, opacity: bold ? 0.7 : 0.5, border: `2px solid ${color}` }}
       />
-      <span className={`uppercase tracking-wider ${bold ? 'text-[12px] font-bold text-white' : 'text-[11px] font-semibold text-[#d1d5db]'}`}>
+      <span className={`uppercase tracking-wider ${bold ? 'text-[12px] font-bold text-foreground' : 'text-[11px] font-semibold text-foreground'}`}>
         {label}
       </span>
     </div>
@@ -308,9 +308,9 @@ function NumericTable({
   highlightColor: string; highlightLabel: string;
 }) {
   return (
-    <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
-      <div className="grid grid-cols-[1.4fr_1fr_1.6fr_1fr] gap-4 px-7 py-3.5 border-b border-white/10 text-[11px] uppercase tracking-[0.2em]">
-        <span className="text-[#9ca3af]">Métrica</span>
+    <div className="bg-foreground/[0.02] border border-border rounded-xl overflow-hidden">
+      <div className="grid grid-cols-[1.4fr_1fr_1.6fr_1fr] gap-4 px-7 py-3.5 border-b border-border text-[11px] uppercase tracking-[0.2em]">
+        <span className="text-muted-foreground">Métrica</span>
         <span className="text-right" style={{ color: RADAR_TOTAL }}>Total</span>
         <span className="text-right font-bold" style={{ color: RADAR_QS }}>{highlightLabel}</span>
         <span className="text-right" style={{ color: RADAR_SINQS }}>Sin {highlightLabel === 'Quirónsalud' ? 'QS' : highlightLabel}</span>
@@ -327,10 +327,10 @@ function NumericTable({
 
 function SectionHeader({ label, sub, color }: { label: string; sub: string; color: string }) {
   return (
-    <div className="px-7 py-3 bg-white/[0.025] border-y border-white/5 flex items-baseline gap-3">
+    <div className="px-7 py-3 bg-foreground/[0.025] border-y border-border flex items-baseline gap-3">
       <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-      <span className="text-[11px] uppercase tracking-[0.25em] font-bold text-[#e5e7eb]">{label}</span>
-      <span className="text-[11px] text-[#6b7280] uppercase tracking-wider">— {sub}</span>
+      <span className="text-[11px] uppercase tracking-[0.25em] font-bold text-foreground">{label}</span>
+      <span className="text-[11px] text-muted-foreground uppercase tracking-wider">— {sub}</span>
     </div>
   );
 }
@@ -347,7 +347,7 @@ function Row({ m, t, h, r, isLast }: {
 
   return (
     <div className={`grid grid-cols-[1.4fr_1fr_1.6fr_1fr] gap-4 px-7 py-5 items-baseline ${!isLast ? 'border-b border-white/[0.04]' : ''} ${noData ? 'opacity-50' : ''}`}>
-      <span className="text-lg text-[#e5e7eb] font-medium">
+      <span className="text-lg text-foreground font-medium">
         {m.label}
         <span className="ml-1.5 font-bold" style={{ color: m.positive ? COLOR_GOOD : COLOR_BAD }}>
           {m.positive ? '↑' : '↓'}
@@ -356,7 +356,7 @@ function Row({ m, t, h, r, isLast }: {
       </span>
       <span className="text-right tabular-nums text-3xl font-semibold" style={{ color: tot != null ? '#fcd34d' : '#6b7280' }}>{fmtNum(tot)}</span>
       <span className="text-right tabular-nums flex items-baseline justify-end gap-3">
-        <span className="text-5xl font-bold text-white">{fmtNum(hi)}</span>
+        <span className="text-5xl font-bold text-foreground">{fmtNum(hi)}</span>
         {!noData && <span className="text-2xl" style={{ color: status.color }}>{status.icon}</span>}
         {diff != null && Math.abs(diff) >= 0.05 && (
           <span className="text-base tabular-nums font-bold" style={{ color: status.color }}>

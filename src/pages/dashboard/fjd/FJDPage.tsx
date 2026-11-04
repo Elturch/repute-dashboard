@@ -64,7 +64,7 @@ function peligroBadgeColor(p: string | null): string {
     case "ALTO": return "bg-orange-500/15 text-orange-400 border-orange-500/30";
     case "MEDIO": return "bg-yellow-500/15 text-yellow-400 border-yellow-500/30";
     case "BAJO": return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
-    default: return "bg-white/5 text-white/40 border-white/10";
+    default: return "bg-foreground/5 text-muted-foreground border-border";
   }
 }
 
@@ -207,7 +207,7 @@ export default function FJDPage() {
   }, [menciones, filtroCanal, filtroRiesgo, busqueda]);
 
   return (
-    <div className="p-6 space-y-8 text-white">
+    <div className="p-6 space-y-8 text-foreground">
       {/* Header */}
       <header className="space-y-2">
         <div className="flex items-center gap-3">
@@ -221,7 +221,7 @@ export default function FJDPage() {
 
       {/* Loading / error */}
       {isLoading && (
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-6 text-sm text-white/60">
+        <div className="rounded-lg border border-border bg-foreground/[0.02] p-6 text-sm text-muted-foreground">
           Cargando menciones de FJD…
         </div>
       )}
@@ -258,9 +258,9 @@ export default function FJDPage() {
           </section>
 
           {/* Distribución por canal */}
-          <section className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+          <section className="rounded-xl border border-border bg-foreground/[0.02] p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm uppercase tracking-[0.2em] text-white/60 font-medium">
+              <h2 className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium">
                 Distribución por canal · 30 días
               </h2>
             </div>
@@ -291,12 +291,12 @@ export default function FJDPage() {
           </section>
 
           {/* Comportamiento por canal */}
-          <section className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+          <section className="rounded-xl border border-border bg-foreground/[0.02] p-5">
             <div className="mb-4">
-              <h2 className="text-sm uppercase tracking-[0.2em] text-white/60 font-medium">
+              <h2 className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium">
                 Comportamiento por canal · 30 días
               </h2>
-              <p className="text-xs text-white/40 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Cómo se percibe FJD en cada canal. <span className="text-emerald-400">↑ positivas: más alto es mejor</span> · <span className="text-red-400">↓ negativas: más bajo es mejor</span>
               </p>
             </div>
@@ -308,8 +308,8 @@ export default function FJDPage() {
           </section>
 
           {/* Evolución */}
-          <section className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
-            <h2 className="text-sm uppercase tracking-[0.2em] text-white/60 font-medium mb-4">
+          <section className="rounded-xl border border-border bg-foreground/[0.02] p-5">
+            <h2 className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium mb-4">
               Evolución temporal · 30 días
             </h2>
             <div style={{ height: 320 }}>
@@ -349,16 +349,16 @@ export default function FJDPage() {
           />
 
           {/* Top menciones */}
-          <section className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+          <section className="rounded-xl border border-border bg-foreground/[0.02] p-5">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-              <h2 className="text-sm uppercase tracking-[0.2em] text-white/60 font-medium">
+              <h2 className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium">
                 Menciones recientes
               </h2>
               <div className="flex flex-wrap gap-2">
                 <select
                   value={filtroCanal}
                   onChange={(e) => setFiltroCanal(e.target.value as "all" | FJDCanal)}
-                  className="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white"
+                  className="bg-foreground/5 border border-border rounded px-2 py-1 text-xs text-foreground"
                 >
                   <option value="all">Todos los canales</option>
                   {CANAL_ORDER.map(c => (
@@ -368,7 +368,7 @@ export default function FJDPage() {
                 <select
                   value={filtroRiesgo}
                   onChange={(e) => setFiltroRiesgo(e.target.value as "all" | PeligroLevel)}
-                  className="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white"
+                  className="bg-foreground/5 border border-border rounded px-2 py-1 text-xs text-foreground"
                 >
                   <option value="all">Todos los riesgos</option>
                   {PELIGRO_LEVELS.map(p => <option key={p} value={p}>{p}</option>)}
@@ -377,14 +377,14 @@ export default function FJDPage() {
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   placeholder="Buscar…"
-                  className="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder:text-white/30"
+                  className="bg-foreground/5 border border-border rounded px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground"
                 />
               </div>
             </div>
 
             <div className="space-y-3 max-h-[720px] overflow-y-auto pr-2">
               {filteredMenciones.length === 0 && (
-                <div className="text-sm text-white/40 py-8 text-center">
+                <div className="text-sm text-muted-foreground py-8 text-center">
                   No hay menciones con esos filtros.
                 </div>
               )}
@@ -417,7 +417,7 @@ function KpiCard({
   };
   return (
     <div className={`rounded-xl border ${accentMap[accent]} p-5`}>
-      <p className="text-[10px] uppercase tracking-[0.2em] text-white/60 mb-2">{label}</p>
+      <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">{label}</p>
       <p className="text-3xl font-semibold tabular-nums">{value}</p>
     </div>
   );
@@ -430,19 +430,19 @@ function MencionCard({ m }: { m: FJDMencion }) {
       href={m.url ?? "#"}
       target="_blank"
       rel="noopener noreferrer"
-      className="block rounded-lg border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition p-4"
+      className="block rounded-lg border border-border bg-foreground/[0.02] hover:bg-foreground/[0.05] transition p-4"
     >
       <div className="flex gap-4">
         {showImage && (
           <img
             src={m.imagen!}
             alt=""
-            className="w-24 h-24 object-cover rounded border border-white/10 flex-shrink-0"
+            className="w-24 h-24 object-cover rounded border border-border flex-shrink-0"
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
           />
         )}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1.5 text-xs text-white/50">
+          <div className="flex items-center gap-2 mb-1.5 text-xs text-muted-foreground">
             <CanalIcon canal={m.canal} className="h-3.5 w-3.5" />
             <span>{CANAL_LABEL[m.canal]}</span>
             {m.fuente && <><span>·</span><span className="truncate">{m.fuente}</span></>}
@@ -455,15 +455,15 @@ function MencionCard({ m }: { m: FJDMencion }) {
             )}
           </div>
           {m.titulo && (
-            <h3 className="text-sm font-semibold text-white/90 mb-1 line-clamp-2">{m.titulo}</h3>
+            <h3 className="text-sm font-semibold text-foreground/90 mb-1 line-clamp-2">{m.titulo}</h3>
           )}
           {m.texto && (
-            <p className="text-xs text-white/60 line-clamp-2">
+            <p className="text-xs text-muted-foreground line-clamp-2">
               {m.texto.length > 200 ? m.texto.slice(0, 200) + "…" : m.texto}
             </p>
           )}
           {m.url && (
-            <div className="mt-2 flex items-center gap-1 text-[10px] text-white/40">
+            <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground">
               <ExternalLink className="h-3 w-3" /> Abrir
             </div>
           )}
@@ -491,7 +491,7 @@ type CanalBehavior = {
 };
 
 function notaColorClass(n: number | null): string {
-  if (n == null) return "text-white/40";
+  if (n == null) return "text-muted-foreground";
   if (n >= 7) return "text-red-400";
   if (n >= 5) return "text-orange-400";
   if (n >= 3) return "text-yellow-400";
@@ -505,13 +505,13 @@ function MetricBar({
   const barColor = positive ? "bg-emerald-500" : "bg-red-500";
   return (
     <div className="flex items-center gap-2 text-[11px]">
-      <span className="w-20 text-white/60 truncate">{label}</span>
-      <div className="flex-1 h-1.5 rounded bg-white/5 overflow-hidden">
+      <span className="w-20 text-muted-foreground truncate">{label}</span>
+      <div className="flex-1 h-1.5 rounded bg-foreground/5 overflow-hidden">
         {value != null && (
           <div className={`h-full ${barColor}`} style={{ width: `${pct}%` }} />
         )}
       </div>
-      <span className="w-8 text-right font-mono tabular-nums text-white/80">
+      <span className="w-8 text-right font-mono tabular-nums text-foreground/80">
         {value != null ? value.toFixed(1) : "—"}
       </span>
     </div>
@@ -521,38 +521,38 @@ function MetricBar({
 function CanalCard({ ch }: { ch: CanalBehavior }) {
   if (ch.count === 0) {
     return (
-      <div className="rounded-lg border border-white/10 bg-white/[0.01] p-4 opacity-60">
+      <div className="rounded-lg border border-border bg-foreground/[0.01] p-4 opacity-60">
         <div className="flex items-center gap-2 mb-2">
           <CanalIcon canal={ch.canal} className="h-4 w-4" />
-          <span className="text-sm font-medium text-white/70">{ch.label}</span>
+          <span className="text-sm font-medium text-foreground/70">{ch.label}</span>
         </div>
-        <p className="text-xs text-white/40">Sin menciones en 30 días</p>
+        <p className="text-xs text-muted-foreground">Sin menciones en 30 días</p>
       </div>
     );
   }
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4 space-y-3">
+    <div className="rounded-lg border border-border bg-foreground/[0.03] p-4 space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span style={{ color: ch.color }}><CanalIcon canal={ch.canal} className="h-4 w-4" /></span>
-          <span className="text-sm font-semibold text-white">{ch.label}</span>
+          <span className="text-sm font-semibold text-foreground">{ch.label}</span>
         </div>
-        <span className="text-xs font-mono tabular-nums text-white/60">
+        <span className="text-xs font-mono tabular-nums text-muted-foreground">
           {ch.count.toLocaleString()}
         </span>
       </div>
 
       {/* Resumen */}
-      <div className="grid grid-cols-2 gap-2 text-xs border-y border-white/5 py-2">
+      <div className="grid grid-cols-2 gap-2 text-xs border-y border-border py-2">
         <div>
-          <p className="text-[10px] uppercase tracking-wider text-white/40">Nota IA</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Nota IA</p>
           <p className={`font-mono font-semibold ${notaColorClass(ch.nota)}`}>
             {ch.nota != null ? `${ch.nota.toFixed(2)} / 10` : "—"}
           </p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-wider text-white/40">Riesgo alto+crít</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Riesgo alto+crít</p>
           <p className={`font-mono font-semibold ${ch.pctAlto >= 15 ? "text-red-400" : ch.pctAlto >= 5 ? "text-orange-400" : "text-emerald-400"}`}>
             {ch.pctAlto.toFixed(1)}%
           </p>
@@ -582,7 +582,7 @@ function CanalCard({ ch }: { ch: CanalBehavior }) {
 
       {/* Rating específico MyBusiness */}
       {ch.canal === "mybusiness" && ch.rating != null && (
-        <div className="pt-2 border-t border-white/5 text-xs text-amber-400">
+        <div className="pt-2 border-t border-border text-xs text-amber-400">
           ★ {ch.rating.toFixed(2)} · {ch.count} reseñas
         </div>
       )}
