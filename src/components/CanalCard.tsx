@@ -204,7 +204,7 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
           <RadarChart data={data} outerRadius="70%">
             <PolarGrid stroke="hsl(var(--border))" />
             <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-            <PolarRadiusAxis angle={90} domain={[0, 10]} tick={false} axisLine={false} />
+            <PolarRadiusAxis angle={90} domain={[3, 9]} tickCount={7} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} />
             <Radar name={refLabel} dataKey="ref" stroke={COMP_COLOR} fill={COMP_COLOR} fillOpacity={0.1} strokeWidth={2.5} strokeOpacity={0.9} isAnimationActive={false} />
             <Radar name={nombre} dataKey="qs" stroke={color} fill={color} fillOpacity={0.3} strokeWidth={3} isAnimationActive={false} />
             <Legend wrapperStyle={{ fontSize: 11 }} />

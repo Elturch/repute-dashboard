@@ -250,7 +250,7 @@ const Metricas = () => {
                   <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
                     <PolarGrid stroke="hsl(var(--border))" />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                    <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
+                    <PolarRadiusAxis angle={90} domain={[3, 9]} tickCount={7} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                     <Radar name="Valor" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} strokeWidth={2} />
                   </RadarChart>
                 </ResponsiveContainer>

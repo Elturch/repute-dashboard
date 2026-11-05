@@ -54,7 +54,7 @@ export default function RadarMetricasIA({ series, size = 320 }: Props) {
         <RadarChart data={data} outerRadius="72%">
           <PolarGrid stroke="hsl(var(--border))" />
           <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-          <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} stroke="hsl(var(--border))" />
+          <PolarRadiusAxis angle={90} domain={[3, 9]} tickCount={7} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} stroke="hsl(var(--border))" />
           {series.map(s => (
             <Radar
               key={s.key}

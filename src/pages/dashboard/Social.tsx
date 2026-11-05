@@ -386,7 +386,7 @@ function SignalDetailSheet({ signal, onClose }: { signal: SocialSignal | null; o
                   <RadarChart data={metricas} cx="50%" cy="50%" outerRadius="70%">
                     <PolarGrid stroke="hsl(var(--border))" />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                    <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
+                    <PolarRadiusAxis angle={90} domain={[3, 9]} tickCount={7} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                     <Radar name="Valor" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.25} strokeWidth={2} />
                   </RadarChart>
                 </ResponsiveContainer>
