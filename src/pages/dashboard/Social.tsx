@@ -1,3 +1,4 @@
+import { radarDomain } from '@/lib/metricas';
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { externalSupabase } from "@/integrations/external-supabase/client";
@@ -343,6 +344,8 @@ function SignalDetailSheet({ signal, onClose }: { signal: SocialSignal | null; o
     { subject: "Influencia", value: signal.m_influencia ?? 0 },
   ];
   const hasMetrics = metricas.some((m) => m.value > 0);
+  const domain = radarDomain(metricas.map(d => d.value));
+  const ticks = Array.from({ length: domain[1] - domain[0] + 1 }, (_, i) => domain[0] + i);
 
   return (
     <Sheet open={!!signal} onOpenChange={(open) => !open && onClose()}>
@@ -386,7 +389,7 @@ function SignalDetailSheet({ signal, onClose }: { signal: SocialSignal | null; o
                   <RadarChart data={metricas} cx="50%" cy="50%" outerRadius="80%">
                     <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                    <PolarRadiusAxis angle={90} domain={[3, 9]} tickCount={7} tickFormatter={(v: number) => v.toFixed(1)} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
+                    <PolarRadiusAxis angle={90} domain={domain} tickCount={ticks.length} ticks={ticks} tickFormatter={(v: number) => String(v)} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                     <Radar name="Valor" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.25} strokeWidth={2} />
                   </RadarChart>
                 </ResponsiveContainer>

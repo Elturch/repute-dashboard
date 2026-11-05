@@ -1,3 +1,4 @@
+import { radarDomain } from '@/lib/metricas';
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { externalSupabase } from "@/integrations/external-supabase/client";
@@ -166,6 +167,9 @@ const Metricas = () => {
     fullMark: 10,
   }));
 
+  const domain = radarDomain(radarData.map(d => d.value));
+  const ticks = Array.from({ length: domain[1] - domain[0] + 1 }, (_, i) => domain[0] + i);
+
   // Daily evolution
   const dailyData = useMemo(() => {
     const byDay: Record<string, { count: number; preocupacion: number; rechazo: number; descredito: number; nota: number }> = {};
@@ -250,7 +254,7 @@ const Metricas = () => {
                   <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="80%">
                     <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                    <PolarRadiusAxis angle={90} domain={[3, 9]} tickCount={7} tickFormatter={(v: number) => v.toFixed(1)} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
+                    <PolarRadiusAxis angle={90} domain={domain} tickCount={ticks.length} ticks={ticks} tickFormatter={(v: number) => String(v)} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                     <Radar name="Valor" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} strokeWidth={2} />
                   </RadarChart>
                 </ResponsiveContainer>
