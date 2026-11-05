@@ -1,7 +1,25 @@
 import { describe, it, expect } from 'vitest';
-import { pctRiesgoReal, contarLiderazgo, notaIAPonderada, fmtNotaIA } from './metricas';
+import { pctRiesgoReal, contarLiderazgo, notaIAPonderada, fmtNotaIA, radarDomain } from './metricas';
 
 describe('métricas unificadas', () => {
+  it('radar redondea el mínimo hacia abajo y el máximo hacia arriba', () => {
+    expect(radarDomain([4.8, 6.6, 6.7, 8.9])).toEqual([4, 9]);
+    expect(radarDomain([5.2, 8.1])).toEqual([5, 9]);
+  });
+
+  it('radar nunca baja de 3 ni supera 10', () => {
+    expect(radarDomain([1.2, 10.3])).toEqual([3, 10]);
+  });
+
+  it('radar garantiza amplitud mínima de 2 incluso cerca del techo', () => {
+    expect(radarDomain([6.6, 6.7])).toEqual([6, 8]);
+    expect(radarDomain([9.8, 9.9])).toEqual([8, 10]);
+  });
+
+  it('radar ignora datos ausentes y no finitos', () => {
+    expect(radarDomain([null, undefined, NaN, Infinity, 5.2, 8.9])).toEqual([5, 9]);
+    expect(radarDomain([])).toEqual([3, 9]);
+  });
   it('riesgo real es porcentaje sobre menciones del mismo grupo', () => {
     expect(pctRiesgoReal(99, 100)).toBe(99);
     expect(pctRiesgoReal(2, 272)).toBeCloseTo(0.735, 2);

@@ -1,3 +1,4 @@
+import { radarDomain } from '@/lib/metricas';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -95,6 +96,7 @@ const Benchmarking = () => {
     return entry;
   });
 
+  const domain = radarDomain(radarData.flatMap(row => groups.map(g => Number(row[g.key]))));
   return (
     <div className="space-y-6">
       <div>
@@ -141,7 +143,7 @@ const Benchmarking = () => {
                 <RadarChart data={radarData} outerRadius="80%">
                   <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
                   <PolarAngleAxis dataKey="metric" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                  <PolarRadiusAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} domain={[3, 9]} tickCount={7} tickFormatter={(v: number) => v.toFixed(1)} />
+                  <PolarRadiusAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} domain={domain} tickCount={domain[1] - domain[0] + 1} tickFormatter={(v: number) => String(v)} />
                   {[...groups].sort((a, b) => Number(!!a.primary) - Number(!!b.primary)).map((g, i) => (
                     <Radar key={g.key} name={g.label} dataKey={g.key}
                       stroke={getColor(g, i)} fill={getColor(g, i)}

@@ -35,6 +35,16 @@ export const DIMENSIONES_POSITIVAS = ['afinidad', 'fiabilidad', 'admiracion', 'i
 export const DIMENSIONES_NEGATIVAS = ['preocupacion', 'rechazo', 'descredito'] as const;
 export const DIMENSIONES = [...DIMENSIONES_POSITIVAS, ...DIMENSIONES_NEGATIVAS] as const;
 
+/** Escala real por radar: límites enteros 3–10 y amplitud mínima de 2. */
+export function radarDomain(values: readonly (number | null | undefined)[]): [number, number] {
+  const valid = values.filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+  if (valid.length === 0) return [3, 9];
+  // Si el mínimo está cerca de 10, bajar el suelo permite mantener amplitud 2 sin superar 10.
+  const min = Math.min(8, Math.max(3, Math.floor(Math.min(...valid))));
+  const max = Math.max(min + 2, Math.min(10, Math.ceil(Math.max(...valid))));
+  return [min, max];
+}
+
 /**
  * Nº de dimensiones (de 8) en que QS es mejor que la referencia (media de los demás):
  * positivas → valor más alto; negativas → valor más bajo.

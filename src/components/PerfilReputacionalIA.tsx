@@ -1,7 +1,7 @@
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { Wrench, HelpCircle, ChevronDown } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { contarLiderazgo } from '@/lib/metricas';
+import { contarLiderazgo, radarDomain } from '@/lib/metricas';
 
 export interface PerfilBucket {
   label: string;
@@ -129,6 +129,7 @@ export default function PerfilReputacionalIA({
     };
   });
 
+  const domain = radarDomain(radarData.flatMap(d => [d.total, d.qs, d.sinqs]));
   return (
     <section className="mt-12">
       <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground mb-4 font-medium">
@@ -178,7 +179,7 @@ export default function PerfilReputacionalIA({
                 dataKey="metric"
                 tick={(props: any) => <ColoredAxisTick {...props} statusMap={statusMap} />}
               />
-              <PolarRadiusAxis angle={90} domain={[3, 9]} tickCount={7} tickFormatter={(v: number) => v.toFixed(1)} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} stroke="hsl(var(--border))" />
+              <PolarRadiusAxis angle={90} domain={domain} tickCount={domain[1] - domain[0] + 1} tickFormatter={(v: number) => String(v)} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} stroke="hsl(var(--border))" />
 
               <Radar name="Total"
                      dataKey="total"

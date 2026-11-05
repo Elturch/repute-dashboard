@@ -7,7 +7,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend,
 } from 'recharts';
 import { aggregateKpi, type KpiRow, type AggregatedKpi } from '@/hooks/useKpiCanal';
-import { fmtNotaIA, fmtPctRiesgo, pctRiesgoReal, contarLiderazgo } from '@/lib/metricas';
+import { fmtNotaIA, fmtPctRiesgo, pctRiesgoReal, contarLiderazgo, radarDomain } from '@/lib/metricas';
 import RiesgoRealInfo from '@/components/RiesgoRealInfo';
 
 const QS_COLOR = 'hsl(217, 91%, 60%)';
@@ -185,6 +185,7 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
     const qsR = inv(agg.promedios[d.key]); const refR = inv(ref.promedios[d.key]);
     return { metric: d.label, qs: qsR, ref: refR, qsReal: agg.promedios[d.key] ?? null, refReal: ref.promedios[d.key] ?? null };
   });
+  const domain = radarDomain(data.flatMap(d => [d.qs, d.ref]));
   return (
     <div aria-label={`Radar ${short} en ${canal}`}>
       <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
@@ -205,7 +206,7 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
           <RadarChart data={data} outerRadius="80%">
             <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
             <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-            <PolarRadiusAxis angle={90} domain={[3, 9]} tickCount={7} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} />
+            <PolarRadiusAxis angle={90} domain={domain} tickCount={domain[1] - domain[0] + 1} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} />
             <RTooltip
               contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, color: 'hsl(var(--foreground))', fontSize: 12 }}
               formatter={(_v: number, n: string, item: { dataKey?: string; payload?: { qsReal: number | null; refReal: number | null } }) => {
