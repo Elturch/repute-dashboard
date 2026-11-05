@@ -143,7 +143,7 @@ export default function PerfilReputacionalIA({
           comparables={comparables}
           normalizarCon={[total]}
           resto={resto.promedios}
-          ambito="las entidades comparadas" />
+          />
       </div>
 
       <NumericTable

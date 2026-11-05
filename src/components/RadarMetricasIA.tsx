@@ -44,6 +44,6 @@ export default function RadarMetricasIA({ series }: Props) {
   const otros = series.filter(s => s !== prot).map(s => ({ label: s.label, promedios: s.values }));
   return (
     <RadarDimensiones entidad={{ label: prot.label, promedios: prot.values }}
-      referencia={otros[0]} comparables={otros.slice(1)} ambito="las entidades comparadas" />
+      referencia={otros[0]} comparables={otros.slice(1)} />
   );
 }

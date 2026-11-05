@@ -130,7 +130,7 @@ const Benchmarking = () => {
           <Card className="border-border/50">
             <CardContent className="pt-6">
               {qs && (
-                <RadarDimensiones short="QS" contexto="Benchmarking" ambito="los grupos comparados"
+                <RadarDimensiones short="QS" contexto="Benchmarking"
                   entidad={toEnt(qs)} referencia={mediaOtros} comparables={otros.map(toEnt)} resto={mediaOtros.promedios} />
               )}
             </CardContent>
