@@ -182,14 +182,8 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
   const lidera = contarLiderazgo(agg.promedios, resto.promedios);
   const data = DIMS.map(d => {
     const inv = (v: number | null | undefined) => v == null ? null : (d.positive ? v : 10 - v);
-    // Escalado por eje a la horquilla real de los comparados en este canal
-    const vals: number[] = [];
-    porGrupo.forEach(g => { if (g.menciones > 0) { const x = inv(g.promedios[d.key]); if (x != null) vals.push(x); } });
     const qsR = inv(agg.promedios[d.key]); const refR = inv(ref.promedios[d.key]);
-    [qsR, refR].forEach(x => { if (x != null) vals.push(x); });
-    const min = vals.length ? Math.min(...vals) : 0; const max = vals.length ? Math.max(...vals) : 10;
-    const norm = (x: number | null) => x == null ? null : (max === min ? 50 : (x - min) / (max - min) * 100);
-    return { metric: d.label, qs: norm(qsR), ref: norm(refR), qsReal: agg.promedios[d.key] ?? null, refReal: ref.promedios[d.key] ?? null };
+    return { metric: d.label, qs: qsR, ref: refR, qsReal: agg.promedios[d.key] ?? null, refReal: ref.promedios[d.key] ?? null };
   });
   return (
     <div aria-label={`Radar ${short} en ${canal}`}>
@@ -211,7 +205,7 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
           <RadarChart data={data} outerRadius="80%">
             <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
             <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-            <PolarRadiusAxis angle={90} domain={[0, 100]} tickCount={14} tick={false} axisLine={false} />
+            <PolarRadiusAxis angle={90} domain={[3, 9]} tickCount={7} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} />
             <RTooltip
               contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, color: 'hsl(var(--foreground))', fontSize: 12 }}
               formatter={(_v: number, n: string, item: { dataKey?: string; payload?: { qsReal: number | null; refReal: number | null } }) => {
@@ -226,7 +220,6 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
       </div>
       )}
       <p className="text-[10px] text-muted-foreground text-center">Rechazo, preocupación y descrédito invertidos: más extenso = mejor.</p>
-      <p className="text-[10px] text-muted-foreground text-center mt-0.5">Cada dimensión se escala a la horquilla real de los hospitales comparados para apreciar diferencias de décimas; pasa el ratón para ver la nota real (0–10).</p>
     </div>
   );
 }
