@@ -5,7 +5,7 @@
 const RAD = Math.PI / 180;
 
 export function makePieLabel(data: { value: number }[], opts: { maxLabels?: number; minPct?: number; maxChars?: number } = {}) {
-  const { maxLabels = 5, minPct = 3, maxChars = 18 } = opts;
+  const { maxLabels = 6, minPct = 3, maxChars = 18 } = opts;
   const total = data.reduce((t, d) => t + (Number(d.value) || 0), 0);
   const allowed = new Set(
     data.map((d, i) => ({ i, v: Number(d.value) || 0 }))
