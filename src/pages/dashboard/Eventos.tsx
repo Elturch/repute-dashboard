@@ -1,4 +1,4 @@
-import { radarDomain, radarTicks, radarTickLabel } from '@/lib/metricas';
+import RadarDimensiones from '@/components/RadarDimensiones';
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { externalSupabase } from "@/integrations/external-supabase/client";
@@ -19,7 +19,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
+  ResponsiveContainer,
 } from "recharts";
 import {
   Search, X, CalendarIcon, Bell, ExternalLink, ChevronLeft, ChevronRight,
@@ -320,7 +320,6 @@ function EventoDetailSheet({ evento, onClose }: { evento: Evento | null; onClose
   ];
   const hasMetrics = metricas.some((m) => m.value != null);
   const radarData = metricas.map((m) => ({ subject: m.metric, value: m.value ?? 0, fullMark: 10 }));
-  const domain = radarDomain(radarData.map(d => d.value));
 
   return (
     <Sheet open={!!evento} onOpenChange={(open) => !open && onClose()}>
@@ -354,14 +353,7 @@ function EventoDetailSheet({ evento, onClose }: { evento: Evento | null; onClose
             <div>
               <p className="text-xs text-muted-foreground mb-2">Métricas Emocionales</p>
               <div className="relative">
-                <ResponsiveContainer width="100%" height={384}>
-                  <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="80%">
-                    <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                    <PolarRadiusAxis angle={90} domain={domain} ticks={radarTicks(domain) as any} tickFormatter={radarTickLabel} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
-                    <Radar name="Valor" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.25} strokeWidth={2} />
-                  </RadarChart>
-                </ResponsiveContainer>
+                <RadarDimensiones heightClass="h-96" entidad={{ label: 'Valor', promedios: { influencia: evento.m_influencia, fiabilidad: evento.m_fiabilidad, afinidad: evento.m_afinidad, admiracion: evento.m_admiracion, impacto: evento.m_impacto, rechazo: evento.m_rechazo, preocupacion: evento.m_preocupacion, descredito: evento.m_descredito } }} />
                 {evento.m_nota_ponderada != null && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="text-center">

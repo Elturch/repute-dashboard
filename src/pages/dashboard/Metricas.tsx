@@ -1,4 +1,4 @@
-import { radarDomain, radarTicks, radarTickLabel } from '@/lib/metricas';
+import RadarDimensiones from '@/components/RadarDimensiones';
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { externalSupabase } from "@/integrations/external-supabase/client";
@@ -10,7 +10,6 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { ExternalLink, TrendingUp, TrendingDown } from "lucide-react";
@@ -167,7 +166,6 @@ const Metricas = () => {
     fullMark: 10,
   }));
 
-  const domain = radarDomain(radarData.map(d => d.value));
 
   // Daily evolution
   const dailyData = useMemo(() => {
@@ -249,14 +247,7 @@ const Metricas = () => {
             </CardHeader>
             <CardContent className="flex justify-center">
               <div className="w-full max-w-[500px]">
-                <ResponsiveContainer width="100%" height={480}>
-                  <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="80%">
-                    <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                    <PolarRadiusAxis angle={90} domain={domain} ticks={radarTicks(domain) as any} tickFormatter={radarTickLabel} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
-                    <Radar name="Valor" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} strokeWidth={2} />
-                  </RadarChart>
-                </ResponsiveContainer>
+                <RadarDimensiones heightClass="h-96" entidad={{ label: 'Media del periodo', promedios: Object.fromEntries(metricAverages.map(m => [m.key.replace('m_', ''), m.value])) }} />
               </div>
             </CardContent>
           </Card>
