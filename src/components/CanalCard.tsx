@@ -182,7 +182,14 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
   const lidera = contarLiderazgo(agg.promedios, resto.promedios);
   const data = DIMS.map(d => {
     const inv = (v: number | null | undefined) => v == null ? null : (d.positive ? v : 10 - v);
-    return { metric: d.label, qs: inv(agg.promedios[d.key]), ref: inv(ref.promedios[d.key]) };
+    // Escalado por eje a la horquilla real de los comparados en este canal
+    const vals: number[] = [];
+    porGrupo.forEach(g => { if (g.menciones > 0) { const x = inv(g.promedios[d.key]); if (x != null) vals.push(x); } });
+    const qsR = inv(agg.promedios[d.key]); const refR = inv(ref.promedios[d.key]);
+    [qsR, refR].forEach(x => { if (x != null) vals.push(x); });
+    const min = vals.length ? Math.min(...vals) : 0; const max = vals.length ? Math.max(...vals) : 10;
+    const norm = (x: number | null) => x == null ? null : (max === min ? 50 : (x - min) / (max - min) * 100);
+    return { metric: d.label, qs: norm(qsR), ref: norm(refR), qsReal: agg.promedios[d.key] ?? null, refReal: ref.promedios[d.key] ?? null };
   });
   return (
     <div aria-label={`Radar ${short} en ${canal}`}>
@@ -199,12 +206,18 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
       {agg.menciones === 0 ? (
         <div className="h-40 flex items-center justify-center text-xs uppercase tracking-widest text-muted-foreground">Sin datos en el periodo</div>
       ) : (
-      <div className="h-72">
+      <div className="h-96">
         <ResponsiveContainer width="100%" height="100%">
-          <RadarChart data={data} outerRadius="70%">
-            <PolarGrid stroke="hsl(var(--border))" />
+          <RadarChart data={data} outerRadius="80%">
+            <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
             <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-            <PolarRadiusAxis angle={90} domain={[3, 9]} tickCount={7} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} />
+            <PolarRadiusAxis angle={90} domain={[0, 100]} tickCount={14} tick={false} axisLine={false} />
+            <RTooltip
+              contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, color: 'hsl(var(--foreground))', fontSize: 12 }}
+              formatter={(_v: number, n: string, item: { dataKey?: string; payload?: { qsReal: number | null; refReal: number | null } }) => {
+                const real = item.dataKey === 'qs' ? item.payload?.qsReal : item.payload?.refReal;
+                return [real == null ? '—' : `${real.toFixed(1)} / 10`, n];
+              }} />
             <Radar name={refLabel} dataKey="ref" stroke={COMP_COLOR} fill={COMP_COLOR} fillOpacity={0.1} strokeWidth={2.5} strokeOpacity={0.9} isAnimationActive={false} />
             <Radar name={nombre} dataKey="qs" stroke={color} fill={color} fillOpacity={0.3} strokeWidth={3} isAnimationActive={false} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -213,6 +226,7 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
       </div>
       )}
       <p className="text-[10px] text-muted-foreground text-center">Rechazo, preocupación y descrédito invertidos: más extenso = mejor.</p>
+      <p className="text-[10px] text-muted-foreground text-center mt-0.5">Cada dimensión se escala a la horquilla real de los hospitales comparados para apreciar diferencias de décimas; pasa el ratón para ver la nota real (0–10).</p>
     </div>
   );
 }

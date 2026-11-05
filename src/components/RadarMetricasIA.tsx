@@ -1,3 +1,4 @@
+import { radarDomain } from '@/lib/metricas';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
 export interface MetricaIA {
@@ -38,7 +39,7 @@ interface Props {
   size?: number;
 }
 
-export default function RadarMetricasIA({ series, size = 320 }: Props) {
+export default function RadarMetricasIA({ series, size = 384 }: Props) {
   // Construir el dataset que entiende Recharts: una fila por métrica con un campo por serie.
   const data = METRICAS_CANONICAS.map(m => {
     const row: Record<string, number | string> = { metric: m.label, fullMark: 10 };
@@ -51,10 +52,10 @@ export default function RadarMetricasIA({ series, size = 320 }: Props) {
   return (
     <div style={{ width: '100%', height: size }}>
       <ResponsiveContainer width="100%" height="100%">
-        <RadarChart data={data} outerRadius="72%">
-          <PolarGrid stroke="hsl(var(--border))" />
+        <RadarChart data={data} outerRadius="80%">
+          <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
           <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-          <PolarRadiusAxis angle={90} domain={[3, 9]} tickCount={7} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} stroke="hsl(var(--border))" />
+          <PolarRadiusAxis angle={90} domain={radarDomain(data as Array<Record<string, unknown>>)} tickCount={14} tickFormatter={(v: number) => v.toFixed(1)} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} stroke="hsl(var(--border))" />
           {series.map(s => (
             <Radar
               key={s.key}
