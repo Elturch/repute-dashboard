@@ -1,4 +1,3 @@
-import { radarDomain } from '@/lib/metricas';
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { externalSupabase } from "@/integrations/external-supabase/client";

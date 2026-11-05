@@ -1,4 +1,3 @@
-import { radarDomain } from '@/lib/metricas';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { Wrench, HelpCircle, ChevronDown } from 'lucide-react';
 import { useMemo, useState } from 'react';

@@ -1,4 +1,3 @@
-import { radarDomain } from '@/lib/metricas';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
 export interface MetricaIA {
