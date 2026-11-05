@@ -1,4 +1,4 @@
-import { radarDomain } from '@/lib/metricas';
+import { radarDomain, radarTicks, radarTickLabel } from '@/lib/metricas';
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { externalSupabase } from "@/integrations/external-supabase/client";
@@ -388,7 +388,7 @@ function SignalDetailSheet({ signal, onClose }: { signal: SocialSignal | null; o
                   <RadarChart data={metricas} cx="50%" cy="50%" outerRadius="80%">
                     <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                    <PolarRadiusAxis angle={90} domain={domain} tickCount={domain[1] - domain[0] + 1} tickFormatter={(v: number) => String(v)} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
+                    <PolarRadiusAxis angle={90} domain={domain} ticks={radarTicks(domain)} tickFormatter={radarTickLabel} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                     <Radar name="Valor" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.25} strokeWidth={2} />
                   </RadarChart>
                 </ResponsiveContainer>

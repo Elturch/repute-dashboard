@@ -37,3 +37,7 @@ describe('métricas unificadas', () => {
     expect(fmtNotaIA(6.6666)).toBe('6.7');
   });
 });
+
+import { radarTicks as _rt } from './metricas';
+import { test as _t, expect as _e } from 'vitest';
+_t('radarTicks cada 0,5', () => { _e(_rt([5, 9])).toEqual([5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9]); });

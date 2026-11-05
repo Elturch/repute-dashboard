@@ -1,7 +1,7 @@
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { Wrench, HelpCircle, ChevronDown } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { contarLiderazgo, radarDomain } from '@/lib/metricas';
+import { contarLiderazgo, radarDomain, radarTicks, radarTickLabel } from '@/lib/metricas';
 
 export interface PerfilBucket {
   label: string;
@@ -179,7 +179,7 @@ export default function PerfilReputacionalIA({
                 dataKey="metric"
                 tick={(props: any) => <ColoredAxisTick {...props} statusMap={statusMap} />}
               />
-              <PolarRadiusAxis angle={90} domain={domain} tickCount={domain[1] - domain[0] + 1} tickFormatter={(v: number) => String(v)} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} stroke="hsl(var(--border))" />
+              <PolarRadiusAxis angle={90} domain={domain} ticks={radarTicks(domain)} tickFormatter={radarTickLabel} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} stroke="hsl(var(--border))" />
 
               <Radar name="Total"
                      dataKey="total"
