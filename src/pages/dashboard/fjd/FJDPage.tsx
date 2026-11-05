@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import InfoTip from '@/components/InfoTip';
+import { infoForLabel, INFO } from '@/lib/infoTexts';
 import { Star, ExternalLink, AlertTriangle } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -418,7 +420,7 @@ function KpiCard({
   };
   return (
     <div className={`rounded-xl border ${accentMap[accent]} p-5`}>
-      <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">{label}</p>
+      <p className="flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">{label}<InfoTip text={infoForLabel(label)} /></p>
       <p className="text-3xl font-semibold tabular-nums">{value}</p>
     </div>
   );
@@ -506,7 +508,7 @@ function MetricBar({
   const barColor = positive ? "bg-emerald-500" : "bg-red-500";
   return (
     <div className="flex items-center gap-2 text-[11px]">
-      <span className="w-20 text-muted-foreground truncate">{label}</span>
+      <span className="w-20 flex items-center gap-1 text-muted-foreground"><span className="truncate">{label}</span><InfoTip text={infoForLabel(label)} /></span>
       <div className="flex-1 h-1.5 rounded bg-foreground/5 overflow-hidden">
         {value != null && (
           <div className={`h-full ${barColor}`} style={{ width: `${pct}%` }} />

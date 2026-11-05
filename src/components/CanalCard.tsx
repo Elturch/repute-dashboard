@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import InfoTip from '@/components/InfoTip';
+import { infoForLabel, INFO } from '@/lib/infoTexts';
 import type { IconType } from 'react-icons';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -109,7 +111,7 @@ export default function CanalCard({
       <div className="p-5 space-y-6 relative flex-1">
         {/* Tarta con competencia */}
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Reparto de menciones con competencia</p>
+          <p className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Reparto de menciones con competencia <InfoTip text={INFO.reparto} /></p>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -164,7 +166,7 @@ export default function CanalCard({
 function Ind({ label, value, sub, accent, info }: { label: string; value: string; sub?: string; accent?: boolean; info?: boolean }) {
   return (
     <div className="bg-card px-4 py-3">
-      <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">{label}{info && <RiesgoRealInfo />}</p>
+      <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">{label}<InfoTip text={infoForLabel(label)} /></p>
       <p className={`text-xl font-bold tabular-nums mt-1 ${accent ? 'text-primary' : ''}`}>{value}</p>
       {sub && <p className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">{sub}</p>}
     </div>

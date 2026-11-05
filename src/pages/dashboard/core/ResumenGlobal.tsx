@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import InfoTip from '@/components/InfoTip';
+import { infoForLabel, INFO } from '@/lib/infoTexts';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -148,7 +150,7 @@ function StatCard({ title, value, sub, icon, loading }: {
         {loading ? <Skeleton className="h-20 w-full" /> : (
           <>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{title}</span>
+              <span className="flex items-center gap-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">{title}<InfoTip text={infoForLabel(String(title))} /></span>
               <span className="text-muted-foreground">{icon}</span>
             </div>
             <div>{value}</div>
