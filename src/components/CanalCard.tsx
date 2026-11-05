@@ -4,10 +4,9 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, ResponsiveContainer,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend,
 } from 'recharts';
 import { aggregateKpi, type KpiRow, type AggregatedKpi } from '@/hooks/useKpiCanal';
-import { fmtNotaIA, fmtPctRiesgo, pctRiesgoReal, contarLiderazgo, radarAxisPos } from '@/lib/metricas';
+import { fmtNotaIA, fmtPctRiesgo, pctRiesgoReal, contarLiderazgo } from '@/lib/metricas';
 import RiesgoRealInfo from '@/components/RiesgoRealInfo';
 import RadarDimensiones from '@/components/RadarDimensiones';
 
