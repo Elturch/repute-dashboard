@@ -39,7 +39,7 @@ interface Props {
   size?: number;
 }
 
-export default function RadarMetricasIA({ series, size = 320 }: Props) {
+export default function RadarMetricasIA({ series, size = 384 }: Props) {
   // Construir el dataset que entiende Recharts: una fila por métrica con un campo por serie.
   const data = METRICAS_CANONICAS.map(m => {
     const row: Record<string, number | string> = { metric: m.label, fullMark: 10 };

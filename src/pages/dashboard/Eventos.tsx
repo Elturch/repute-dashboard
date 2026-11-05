@@ -353,7 +353,7 @@ function EventoDetailSheet({ evento, onClose }: { evento: Evento | null; onClose
             <div>
               <p className="text-xs text-muted-foreground mb-2">Métricas Emocionales</p>
               <div className="relative">
-                <ResponsiveContainer width="100%" height={280}>
+                <ResponsiveContainer width="100%" height={384}>
                   <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="80%">
                     <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />

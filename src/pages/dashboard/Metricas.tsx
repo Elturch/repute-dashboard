@@ -247,7 +247,7 @@ const Metricas = () => {
             </CardHeader>
             <CardContent className="flex justify-center">
               <div className="w-full max-w-[500px]">
-                <ResponsiveContainer width="100%" height={420}>
+                <ResponsiveContainer width="100%" height={480}>
                   <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="80%">
                     <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
