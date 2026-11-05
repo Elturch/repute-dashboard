@@ -1,6 +1,4 @@
-import { radarDomain, radarTicks, radarTickLabel } from '@/lib/metricas';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
-
+import RadarDimensiones from '@/components/RadarDimensiones';
 export interface MetricaIA {
   metric: string;
   value: number | null;
@@ -35,48 +33,17 @@ export interface RadarSerie {
 
 interface Props {
   series: RadarSerie[];
-  /** Tamaño en px (cuadrado). Por defecto 320. */
+  /** Tamaño en px (se ignora; tamaño unificado h-96). */
   size?: number;
 }
 
-export default function RadarMetricasIA({ series, size = 384 }: Props) {
-  // Construir el dataset que entiende Recharts: una fila por métrica con un campo por serie.
-  const data = METRICAS_CANONICAS.map(m => {
-    const row: Record<string, number | string> = { metric: m.label, fullMark: 10 };
-    series.forEach(s => {
-      row[s.key] = s.values[m.key] ?? 0;
-    });
-    return row;
-  });
-
-  const domain = radarDomain(data.flatMap(row => series.map(s => Number(row[s.key]))));
+/** Envoltorio compatible: delega en el radar único RadarDimensiones. */
+export default function RadarMetricasIA({ series }: Props) {
+  const prot = series.find(s => s.highlight) ?? series[0];
+  if (!prot) return null;
+  const otros = series.filter(s => s !== prot).map(s => ({ label: s.label, promedios: s.values }));
   return (
-    <div style={{ width: '100%', height: size }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <RadarChart data={data} outerRadius="80%">
-          <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
-          <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-          <PolarRadiusAxis angle={90} domain={domain} ticks={radarTicks(domain) as any} tickFormatter={radarTickLabel} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} stroke="hsl(var(--border))" />
-          {series.map(s => (
-            <Radar
-              key={s.key}
-              name={s.label}
-              dataKey={s.key}
-              stroke={s.color}
-              fill={s.color}
-              fillOpacity={s.highlight ? 0.35 : 0.1}
-              strokeWidth={s.highlight ? 3 : 2.5}
-              strokeOpacity={s.highlight ? 1 : 0.9}
-            />
-          ))}
-          <Tooltip
-            contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 11 }}
-            itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
-            labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
-            formatter={(v: number) => (typeof v === 'number' ? v.toFixed(2) : v)}
-          />
-        </RadarChart>
-      </ResponsiveContainer>
-    </div>
+    <RadarDimensiones entidad={{ label: prot.label, promedios: prot.values }}
+      referencia={otros[0]} comparables={otros.slice(1)} ambito="las entidades comparadas" />
   );
 }
