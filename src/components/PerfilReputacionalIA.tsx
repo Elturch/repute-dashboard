@@ -30,8 +30,8 @@ const COLOR_FLAT     = '#9ca3af';
 const COLOR_BAD      = '#ef4444';
 
 const RADAR_TOTAL = '#f59e0b';
-const RADAR_QS    = '#10b981';
-const RADAR_SINQS = '#3b82f6';
+const RADAR_QS    = 'hsl(217, 91%, 60%)';
+const RADAR_SINQS = 'hsl(var(--muted-foreground))';
 
 const GLOSARIO: Record<string, string> = {
   influencia:  'Alcance y capacidad de la mención para llegar a audiencia relevante.',
@@ -77,8 +77,6 @@ export default function PerfilReputacionalIA({
   comparables = [],
   conjuntoLabel = 'Conjunto (media de grupos)',
 }: Props) {
-  const [compLabel, setCompLabel] = useState<string>('');
-  const comp = comparables.find(c => c.label === compLabel) ?? null;
   const summary = useMemo(() => {
     let atencion = 0;
     for (const m of ALL_METRICAS) {
@@ -122,7 +120,7 @@ export default function PerfilReputacionalIA({
         Perfil reputacional IA{contextLabel ? ` · ${contextLabel}` : ''}
       </p>
 
-      <div className="px-7 py-6 mb-6 rounded-xl border border-[#10b981]/20 bg-[#10b981]/[0.05]">
+      <div className="px-7 py-6 mb-6 rounded-xl border border-primary/20 bg-primary/[0.05]">
         <p className="text-[32px] font-semibold leading-tight text-foreground">
           <span style={{ color: RADAR_QS }}>{highlightLabel} lidera</span> en{' '}
           <span className="tabular-nums" style={{ color: RADAR_QS }}>{summary.lidera}</span> de{' '}
