@@ -97,7 +97,6 @@ const Benchmarking = () => {
   });
 
   const domain = radarDomain(radarData.flatMap(row => groups.map(g => Number(row[g.key]))));
-  const ticks = Array.from({ length: domain[1] - domain[0] + 1 }, (_, i) => domain[0] + i);
   return (
     <div className="space-y-6">
       <div>
@@ -144,7 +143,7 @@ const Benchmarking = () => {
                 <RadarChart data={radarData} outerRadius="80%">
                   <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
                   <PolarAngleAxis dataKey="metric" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                  <PolarRadiusAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} domain={domain} tickCount={ticks.length} ticks={ticks} tickFormatter={(v: number) => String(v)} />
+                  <PolarRadiusAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} domain={domain} tickCount={domain[1] - domain[0] + 1} tickFormatter={(v: number) => String(v)} />
                   {[...groups].sort((a, b) => Number(!!a.primary) - Number(!!b.primary)).map((g, i) => (
                     <Radar key={g.key} name={g.label} dataKey={g.key}
                       stroke={getColor(g, i)} fill={getColor(g, i)}

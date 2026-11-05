@@ -321,7 +321,6 @@ function EventoDetailSheet({ evento, onClose }: { evento: Evento | null; onClose
   const hasMetrics = metricas.some((m) => m.value != null);
   const radarData = metricas.map((m) => ({ subject: m.metric, value: m.value ?? 0, fullMark: 10 }));
   const domain = radarDomain(radarData.map(d => d.value));
-  const ticks = Array.from({ length: domain[1] - domain[0] + 1 }, (_, i) => domain[0] + i);
 
   return (
     <Sheet open={!!evento} onOpenChange={(open) => !open && onClose()}>
@@ -359,7 +358,7 @@ function EventoDetailSheet({ evento, onClose }: { evento: Evento | null; onClose
                   <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="80%">
                     <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                    <PolarRadiusAxis angle={90} domain={domain} tickCount={ticks.length} ticks={ticks} tickFormatter={(v: number) => String(v)} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
+                    <PolarRadiusAxis angle={90} domain={domain} tickCount={domain[1] - domain[0] + 1} tickFormatter={(v: number) => String(v)} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                     <Radar name="Valor" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.25} strokeWidth={2} />
                   </RadarChart>
                 </ResponsiveContainer>

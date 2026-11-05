@@ -186,7 +186,6 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
     return { metric: d.label, qs: qsR, ref: refR, qsReal: agg.promedios[d.key] ?? null, refReal: ref.promedios[d.key] ?? null };
   });
   const domain = radarDomain(data.flatMap(d => [d.qs, d.ref]));
-  const ticks = Array.from({ length: domain[1] - domain[0] + 1 }, (_, i) => domain[0] + i);
   return (
     <div aria-label={`Radar ${short} en ${canal}`}>
       <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
@@ -207,7 +206,7 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
           <RadarChart data={data} outerRadius="80%">
             <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
             <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-            <PolarRadiusAxis angle={90} domain={domain} tickCount={ticks.length} ticks={ticks} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} />
+            <PolarRadiusAxis angle={90} domain={domain} tickCount={domain[1] - domain[0] + 1} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} />
             <RTooltip
               contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, color: 'hsl(var(--foreground))', fontSize: 12 }}
               formatter={(_v: number, n: string, item: { dataKey?: string; payload?: { qsReal: number | null; refReal: number | null } }) => {

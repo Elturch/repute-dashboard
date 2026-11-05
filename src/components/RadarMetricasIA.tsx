@@ -50,14 +50,13 @@ export default function RadarMetricasIA({ series, size = 384 }: Props) {
   });
 
   const domain = radarDomain(data.flatMap(row => series.map(s => Number(row[s.key]))));
-  const ticks = Array.from({ length: domain[1] - domain[0] + 1 }, (_, i) => domain[0] + i);
   return (
     <div style={{ width: '100%', height: size }}>
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart data={data} outerRadius="80%">
           <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
           <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-          <PolarRadiusAxis angle={90} domain={domain} tickCount={ticks.length} ticks={ticks} tickFormatter={(v: number) => String(v)} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} stroke="hsl(var(--border))" />
+          <PolarRadiusAxis angle={90} domain={domain} tickCount={domain[1] - domain[0] + 1} tickFormatter={(v: number) => String(v)} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} stroke="hsl(var(--border))" />
           {series.map(s => (
             <Radar
               key={s.key}
