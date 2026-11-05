@@ -204,7 +204,7 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
           <RadarChart data={data} outerRadius="80%">
             <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
             <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-            <PolarRadiusAxis angle={90} domain={[0, 100]} tickCount={14} tick={false} axisLine={false} />
+            <PolarRadiusAxis angle={90} domain={[3, 9]} tickCount={7} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} />
             <RTooltip
               contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, color: 'hsl(var(--foreground))', fontSize: 12 }}
               formatter={(_v: number, n: string, item: { dataKey?: string; payload?: { qsReal: number | null; refReal: number | null } }) => {
@@ -219,7 +219,6 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
       </div>
       )}
       <p className="text-[10px] text-muted-foreground text-center">Rechazo, preocupación y descrédito invertidos: más extenso = mejor.</p>
-      <p className="text-[10px] text-muted-foreground text-center mt-0.5">Cada dimensión se escala a la horquilla real de los hospitales comparados para apreciar diferencias de décimas; pasa el ratón para ver la nota real (0–10).</p>
     </div>
   );
 }
