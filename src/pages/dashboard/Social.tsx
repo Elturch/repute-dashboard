@@ -1,3 +1,4 @@
+import { radarDomain } from '@/lib/metricas';
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { externalSupabase } from "@/integrations/external-supabase/client";
@@ -383,10 +384,10 @@ function SignalDetailSheet({ signal, onClose }: { signal: SocialSignal | null; o
               <p className="text-xs text-muted-foreground mb-2">Métricas Emocionales</p>
               <div className="relative">
                 <ResponsiveContainer width="100%" height={260}>
-                  <RadarChart data={metricas} cx="50%" cy="50%" outerRadius="70%">
-                    <PolarGrid stroke="hsl(var(--border))" />
+                  <RadarChart data={metricas} cx="50%" cy="50%" outerRadius="80%">
+                    <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                    <PolarRadiusAxis angle={90} domain={[3, 9]} tickCount={7} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
+                    <PolarRadiusAxis angle={90} domain={radarDomain(metricas as Array<Record<string, unknown>>)} tickCount={14} tickFormatter={(v: number) => v.toFixed(1)} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                     <Radar name="Valor" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.25} strokeWidth={2} />
                   </RadarChart>
                 </ResponsiveContainer>
