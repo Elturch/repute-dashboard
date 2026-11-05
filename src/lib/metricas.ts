@@ -52,15 +52,3 @@ export function contarLiderazgo(
   }
   return n;
 }
-
-/** Dominio radial ajustado al rango real de las series pintadas (min−0.2, max+0.2 dentro de 0–10). */
-export function radarDomain(data: Array<Record<string, unknown>>): [number, number] {
-  const vals: number[] = [];
-  data.forEach(r => Object.entries(r).forEach(([k, v]) => {
-    if (k !== 'fullMark' && typeof v === 'number' && Number.isFinite(v)) vals.push(v);
-  }));
-  if (!vals.length) return [0, 10];
-  const lo = Math.max(0, Math.floor((Math.min(...vals) - 0.2) * 10) / 10);
-  const hi = Math.min(10, Math.ceil((Math.max(...vals) + 0.2) * 10) / 10);
-  return hi > lo ? [lo, hi] : [0, 10];
-}

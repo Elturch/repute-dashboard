@@ -182,14 +182,7 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
   const lidera = contarLiderazgo(agg.promedios, resto.promedios);
   const data = DIMS.map(d => {
     const inv = (v: number | null | undefined) => v == null ? null : (d.positive ? v : 10 - v);
-    // Escalado por eje a la horquilla real de los comparados en este canal
-    const vals: number[] = [];
-    porGrupo.forEach(g => { if (g.menciones > 0) { const x = inv(g.promedios[d.key]); if (x != null) vals.push(x); } });
-    const qsR = inv(agg.promedios[d.key]); const refR = inv(ref.promedios[d.key]);
-    [qsR, refR].forEach(x => { if (x != null) vals.push(x); });
-    const min = vals.length ? Math.min(...vals) : 0; const max = vals.length ? Math.max(...vals) : 10;
-    const norm = (x: number | null) => x == null ? null : (max === min ? 50 : (x - min) / (max - min) * 100);
-    return { metric: d.label, qs: norm(qsR), ref: norm(refR), qsReal: agg.promedios[d.key] ?? null, refReal: ref.promedios[d.key] ?? null };
+    return { metric: d.label, qs: qsR, ref: refR, qsReal: agg.promedios[d.key] ?? null, refReal: ref.promedios[d.key] ?? null };
   });
   return (
     <div aria-label={`Radar ${short} en ${canal}`}>
