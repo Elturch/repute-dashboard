@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { makePieLabel } from '@/lib/pieLabels';
 import InfoTip from '@/components/InfoTip';
 import { infoForLabel, INFO } from '@/lib/infoTexts';
 import type { IconType } from 'react-icons';
@@ -112,10 +113,11 @@ export default function CanalCard({
         {/* Tarta con competencia */}
         <div>
           <p className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Reparto de menciones con competencia <InfoTip text={INFO.reparto} /></p>
-          <div className="h-56">
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={pieData} dataKey="count" nameKey="grupo" innerRadius="45%" outerRadius="85%" paddingAngle={1} stroke="hsl(var(--card))" strokeWidth={2} isAnimationActive={false}>
+              <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+                <Pie data={pieData} dataKey="count" nameKey="grupo" innerRadius="34%" outerRadius="58%" paddingAngle={1} stroke="hsl(var(--card))" strokeWidth={2} isAnimationActive={false}
+                  labelLine={false} label={makePieLabel(pieData.map(f => ({ value: f.count })))}>
                   {pieData.map(f => (
                     <Cell key={f.grupo} fill={colorDe(f.grupo) ?? COMP_COLOR}
                       fillOpacity={colorDe(f.grupo) ? 1 : 0.35 + 0.55 * (1 - others.indexOf(f) / Math.max(others.length, 1))} />
