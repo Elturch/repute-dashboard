@@ -72,3 +72,10 @@ export function radarTicks(domain: readonly [number, number]): number[] {
 
 /** Etiqueta solo los enteros del radar. */
 export const radarTickLabel = (v: number): string => (Number.isInteger(v) ? String(v) : '');
+
+/** Posición relativa en un eje de radar: 10 + 85·frac, rango [10,95]; 50 si sin horquilla o sin dato. */
+export function radarAxisPos(v: number | null | undefined, axisMin: number, axisMax: number): number | null {
+  if (v == null || !isFinite(v)) return null;
+  const frac = axisMax > axisMin ? (v - axisMin) / (axisMax - axisMin) : 0.5;
+  return 10 + 85 * frac;
+}

@@ -7,7 +7,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend,
 } from 'recharts';
 import { aggregateKpi, type KpiRow, type AggregatedKpi } from '@/hooks/useKpiCanal';
-import { fmtNotaIA, fmtPctRiesgo, pctRiesgoReal, contarLiderazgo, radarDomain, radarTicks, radarTickLabel } from '@/lib/metricas';
+import { fmtNotaIA, fmtPctRiesgo, pctRiesgoReal, contarLiderazgo, radarAxisPos } from '@/lib/metricas';
 import RiesgoRealInfo from '@/components/RiesgoRealInfo';
 
 const QS_COLOR = 'hsl(217, 91%, 60%)';
@@ -182,10 +182,13 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
   const lidera = contarLiderazgo(agg.promedios, resto.promedios);
   const data = DIMS.map(d => {
     const inv = (v: number | null | undefined) => v == null ? null : (d.positive ? v : 10 - v);
+    const vals = Array.from(porGrupo.values()).filter(a => a.menciones > 0)
+      .map(a => inv(a.promedios[d.key])).filter((v): v is number => v != null && isFinite(v));
     const qsR = inv(agg.promedios[d.key]); const refR = inv(ref.promedios[d.key]);
-    return { metric: d.label, qs: qsR, ref: refR, qsReal: agg.promedios[d.key] ?? null, refReal: ref.promedios[d.key] ?? null };
+    const all = [...vals, ...[qsR, refR].filter((v): v is number => v != null)];
+    const axisMin = all.length ? Math.min(...all) : 0; const axisMax = all.length ? Math.max(...all) : 0;
+    return { metric: d.label, qs: radarAxisPos(qsR, axisMin, axisMax), ref: radarAxisPos(refR, axisMin, axisMax), qsReal: agg.promedios[d.key] ?? null, refReal: ref.promedios[d.key] ?? null };
   });
-  const domain = radarDomain(data.flatMap(d => [d.qs, d.ref]));
   return (
     <div aria-label={`Radar ${short} en ${canal}`}>
       <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
@@ -206,7 +209,7 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
           <RadarChart data={data} outerRadius="80%">
             <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
             <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-            <PolarRadiusAxis angle={90} domain={domain} ticks={radarTicks(domain) as any} tickFormatter={radarTickLabel} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} />
+            <PolarRadiusAxis angle={90} domain={[0, 100]} tickCount={9} tick={false} axisLine={false} />
             <RTooltip
               contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, color: 'hsl(var(--foreground))', fontSize: 12 }}
               formatter={(_v: number, n: string, item: { dataKey?: string; payload?: { qsReal: number | null; refReal: number | null } }) => {
@@ -220,7 +223,7 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
         </ResponsiveContainer>
       </div>
       )}
-      <p className="text-[10px] text-muted-foreground text-center">Rechazo, preocupación y descrédito invertidos: más extenso = mejor.</p>
+      <p className="text-[10px] text-muted-foreground text-center">Cada dimensión se escala a la horquilla real de los hospitales de este canal: cuanto más hacia fuera, mejor posición relativa. Así una diferencia de décimas se aprecia; la nota real (0–10) aparece al pasar el ratón. (Rechazo, preocupación y descrédito invertidos.)</p>
     </div>
   );
 }

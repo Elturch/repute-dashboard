@@ -41,3 +41,13 @@ describe('métricas unificadas', () => {
 import { radarTicks as _rt } from './metricas';
 import { test as _t, expect as _e } from 'vitest';
 _t('radarTicks cada 0,5', () => { _e(_rt([5, 9])).toEqual([5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9]); });
+
+import { radarAxisPos } from './metricas';
+describe('radarAxisPos', () => {
+  it('mapea min→10, max→95, medio→52.5, plano→52.5', () => {
+    expect(radarAxisPos(5.9, 5.9, 7.9)).toBeCloseTo(10);
+    expect(radarAxisPos(7.9, 5.9, 7.9)).toBeCloseTo(95);
+    expect(radarAxisPos(6.9, 5.9, 7.9)).toBeCloseTo(52.5);
+    expect(radarAxisPos(6, 6, 6)).toBeCloseTo(52.5);
+  });
+});
