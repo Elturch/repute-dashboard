@@ -141,7 +141,7 @@ const Benchmarking = () => {
                 <RadarChart data={radarData}>
                   <PolarGrid stroke="hsl(var(--border))" />
                   <PolarAngleAxis dataKey="metric" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                  <PolarRadiusAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} domain={[0, 10]} />
+                  <PolarRadiusAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} domain={[3, 9]} tickCount={7} />
                   {[...groups].sort((a, b) => Number(!!a.primary) - Number(!!b.primary)).map((g, i) => (
                     <Radar key={g.key} name={g.label} dataKey={g.key}
                       stroke={getColor(g, i)} fill={getColor(g, i)}
