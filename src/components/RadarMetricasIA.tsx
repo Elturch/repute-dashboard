@@ -1,4 +1,4 @@
-import { radarDomain } from '@/lib/metricas';
+import { radarDomain, radarTicks, radarTickLabel } from '@/lib/metricas';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
 export interface MetricaIA {
@@ -56,7 +56,7 @@ export default function RadarMetricasIA({ series, size = 384 }: Props) {
         <RadarChart data={data} outerRadius="80%">
           <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
           <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-          <PolarRadiusAxis angle={90} domain={domain} tickCount={domain[1] - domain[0] + 1} tickFormatter={(v: number) => String(v)} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} stroke="hsl(var(--border))" />
+          <PolarRadiusAxis angle={90} domain={domain} ticks={radarTicks(domain) as any} tickFormatter={radarTickLabel} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} stroke="hsl(var(--border))" />
           {series.map(s => (
             <Radar
               key={s.key}

@@ -62,3 +62,13 @@ export function contarLiderazgo(
   }
   return n;
 }
+
+/** Anillos del radar cada 0,5 dentro del dominio dinámico. */
+export function radarTicks(domain: readonly [number, number]): number[] {
+  const ticks: number[] = [];
+  for (let v = domain[0]; v <= domain[1] + 1e-9; v += 0.5) ticks.push(Math.round(v * 2) / 2);
+  return ticks;
+}
+
+/** Etiqueta solo los enteros del radar. */
+export const radarTickLabel = (v: number): string => (Number.isInteger(v) ? String(v) : '');
