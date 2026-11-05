@@ -1,7 +1,7 @@
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
+import RadarDimensiones from '@/components/RadarDimensiones';
 import { Wrench, HelpCircle, ChevronDown } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { contarLiderazgo, radarDomain, radarTicks, radarTickLabel } from '@/lib/metricas';
+import { contarLiderazgo } from '@/lib/metricas';
 
 export interface PerfilBucket {
   label: string;
@@ -30,8 +30,8 @@ const COLOR_FLAT     = '#9ca3af';
 const COLOR_BAD      = '#ef4444';
 
 const RADAR_TOTAL = '#f59e0b';
-const RADAR_QS    = '#10b981';
-const RADAR_SINQS = '#3b82f6';
+const RADAR_QS    = 'hsl(217, 91%, 60%)';
+const RADAR_SINQS = 'hsl(var(--muted-foreground))';
 
 const GLOSARIO: Record<string, string> = {
   influencia:  'Alcance y capacidad de la mención para llegar a audiencia relevante.',
@@ -77,8 +77,6 @@ export default function PerfilReputacionalIA({
   comparables = [],
   conjuntoLabel = 'Conjunto (media de grupos)',
 }: Props) {
-  const [compLabel, setCompLabel] = useState<string>('');
-  const comp = comparables.find(c => c.label === compLabel) ?? null;
   const summary = useMemo(() => {
     let atencion = 0;
     for (const m of ALL_METRICAS) {
@@ -116,27 +114,13 @@ export default function PerfilReputacionalIA({
     );
   }
 
-  const radarData = ALL_METRICAS.map(m => {
-    const totalRaw = total.promedios[m.key];
-    const qsRaw    = highlight.promedios[m.key];
-    const sinqsRaw = (comp ?? resto).promedios[m.key];
-    return {
-      metric: m.label,
-      total: totalRaw == null ? null : (m.positive ? totalRaw : 10 - totalRaw),
-      qs:    qsRaw    == null ? null : (m.positive ? qsRaw    : 10 - qsRaw),
-      sinqs: sinqsRaw == null ? null : (m.positive ? sinqsRaw : 10 - sinqsRaw),
-      fullMark: 10,
-    };
-  });
-
-  const domain = radarDomain(radarData.flatMap(d => [d.total, d.qs, d.sinqs]));
   return (
     <section className="mt-12">
       <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground mb-4 font-medium">
         Perfil reputacional IA{contextLabel ? ` · ${contextLabel}` : ''}
       </p>
 
-      <div className="px-7 py-6 mb-6 rounded-xl border border-[#10b981]/20 bg-[#10b981]/[0.05]">
+      <div className="px-7 py-6 mb-6 rounded-xl border border-primary/20 bg-primary/[0.05]">
         <p className="text-[32px] font-semibold leading-tight text-foreground">
           <span style={{ color: RADAR_QS }}>{highlightLabel} lidera</span> en{' '}
           <span className="tabular-nums" style={{ color: RADAR_QS }}>{summary.lidera}</span> de{' '}
@@ -152,71 +136,14 @@ export default function PerfilReputacionalIA({
       </div>
 
       <div className="bg-foreground/[0.02] border border-border rounded-xl p-6 mb-6">
-        {comparables.length > 0 && (
-          <div className="flex items-center justify-end gap-2 mb-3 text-xs">
-            <label htmlFor="perfil-comparar" className="uppercase tracking-wider text-muted-foreground">Comparar {highlightLabel} con</label>
-            <select
-              id="perfil-comparar"
-              value={compLabel}
-              onChange={e => setCompLabel(e.target.value)}
-              className="rounded-md border border-border bg-card px-2.5 py-1.5 text-sm text-foreground"
-            >
-              <option value="">{conjuntoLabel}</option>
-              {comparables.map(c => <option key={c.label} value={c.label}>{c.label}</option>)}
-            </select>
-          </div>
-        )}
-        <div className="flex items-center justify-center gap-10 mb-4 flex-wrap">
-          <LegendItem color={RADAR_TOTAL} label="GRUPOS HOSPITALARIOS (TOTAL)" />
-          <LegendItem color={RADAR_QS} label={highlightLabel.toUpperCase()} bold />
-          <LegendItem color={RADAR_SINQS} label={comp ? comp.label.toUpperCase() : `SIN ${highlightLabel === 'Quirónsalud' ? 'QS' : highlightLabel.toUpperCase()}`} />
-        </div>
-        <div className="w-full" style={{ height: 540 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="80%">
-              <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
-              <PolarAngleAxis
-                dataKey="metric"
-                tick={(props: any) => <ColoredAxisTick {...props} statusMap={statusMap} />}
-              />
-              <PolarRadiusAxis angle={90} domain={domain} ticks={radarTicks(domain) as any} tickFormatter={radarTickLabel} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} stroke="hsl(var(--border))" />
-
-              <Radar name="Total"
-                     dataKey="total"
-                     stroke={RADAR_TOTAL}
-                     fill={RADAR_TOTAL}
-                     fillOpacity={0.18}
-                     strokeWidth={3}
-                     strokeOpacity={0.9} />
-
-              <Radar name={comp ? comp.label : 'Sin QS'}
-                     dataKey="sinqs"
-                     stroke={RADAR_SINQS}
-                     fill={RADAR_SINQS}
-                     fillOpacity={0.28}
-                     strokeWidth={2.5}
-                     strokeOpacity={0.9} />
-
-              <Radar name={highlightLabel}
-                     dataKey="qs"
-                     stroke={RADAR_QS}
-                     fill={RADAR_QS}
-                     fillOpacity={0.42}
-                     strokeWidth={3.5} />
-            </RadarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="text-[12px] text-muted-foreground text-center mt-3 leading-relaxed space-y-1.5">
-          <p>
-            <span className="text-[#22c55e] font-bold">↑</span> junto a la métrica = <span className="text-foreground font-semibold">más alto es mejor</span>
-            <span className="mx-3 text-muted-foreground">·</span>
-            <span className="text-[#ef4444] font-bold">↓</span> = <span className="text-foreground font-semibold">más bajo es mejor</span>
-          </p>
-          <p>
-            Métricas negativas invertidas en el radar para que <span className="font-bold text-foreground">"más extenso = mejor"</span> siempre. Valores reales junto a cada eje.<br/>
-            Color del eje: <span className="text-[#22c55e] font-bold">verde</span> si {highlightLabel} lidera, <span className="text-[#ef4444] font-bold">rojo</span> si está por debajo.
-          </p>
-        </div>
+        <RadarDimensiones contexto={contextLabel}
+          short={highlightLabel === 'Quirónsalud' ? 'QS' : highlightLabel}
+          entidad={{ label: highlightLabel, promedios: highlight.promedios, menciones: highlight.menciones }}
+          referencia={{ label: comparables.length ? conjuntoLabel : resto.label, promedios: resto.promedios }}
+          comparables={comparables}
+          normalizarCon={[total]}
+          resto={resto.promedios}
+          />
       </div>
 
       <NumericTable

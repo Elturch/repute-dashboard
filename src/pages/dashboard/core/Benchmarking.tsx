@@ -1,9 +1,8 @@
-import { radarDomain, radarTicks, radarTickLabel } from '@/lib/metricas';
+import RadarDimensiones from '@/components/RadarDimensiones';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Trophy, Shield } from "lucide-react";
 import { type GroupAggregated } from "@/hooks/useBenchmarkData";
 import { useBenchmarkSegmentos } from "@/hooks/useBenchmarkSegmentos";
@@ -85,18 +84,9 @@ const Benchmarking = () => {
   const qs = groups.find(g => g.primary);
   const qsNotaPos = notaRanked.findIndex(g => g.primary) + 1;
 
-  // Radar: all 9 real metrics + nota
-  const radarMetrics = [
-    { key: 'nota_media', label: 'Nota' },
-    ...REAL_METRICS,
-  ];
-  const radarData = radarMetrics.map(m => {
-    const entry: Record<string, string | number> = { metric: m.label };
-    groups.forEach(g => { entry[g.key] = Number((g as any)[m.key]) || 0; });
-    return entry;
-  });
-
-  const domain = radarDomain(radarData.flatMap(row => groups.map(g => Number(row[g.key]))));
+  const toEnt = (g: GroupAggregated) => ({ label: g.label, promedios: Object.fromEntries(REAL_METRICS.map(m => [m.key, Number((g as any)[m.key])])) as Record<string, number> });
+  const otros = groups.filter(g => !g.primary);
+  const mediaOtros = { label: 'Media resto de grupos', promedios: Object.fromEntries(REAL_METRICS.map(m => [m.key, otros.length ? otros.reduce((t, g) => t + (Number((g as any)[m.key]) || 0), 0) / otros.length : null])) as Record<string, number | null> };
   return (
     <div className="space-y-6">
       <div>
@@ -139,21 +129,10 @@ const Benchmarking = () => {
         <TabsContent value="radar">
           <Card className="border-border/50">
             <CardContent className="pt-6">
-              <ResponsiveContainer width="100%" height={420}>
-                <RadarChart data={radarData} outerRadius="80%">
-                  <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
-                  <PolarAngleAxis dataKey="metric" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                  <PolarRadiusAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} domain={domain} ticks={radarTicks(domain) as any} tickFormatter={radarTickLabel} />
-                  {[...groups].sort((a, b) => Number(!!a.primary) - Number(!!b.primary)).map((g, i) => (
-                    <Radar key={g.key} name={g.label} dataKey={g.key}
-                      stroke={getColor(g, i)} fill={getColor(g, i)}
-                      fillOpacity={g.primary ? 0.3 : 0.04} strokeWidth={g.primary ? 4 : 2.5}
-                      strokeOpacity={g.primary ? 1 : 0.85} />
-                  ))}
-                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--foreground))" }} />
-                  <Legend wrapperStyle={{ color: "hsl(var(--muted-foreground))", fontSize: 12 }} />
-                </RadarChart>
-              </ResponsiveContainer>
+              {qs && (
+                <RadarDimensiones short="QS" contexto="Benchmarking"
+                  entidad={toEnt(qs)} referencia={mediaOtros} comparables={otros.map(toEnt)} resto={mediaOtros.promedios} />
+              )}
             </CardContent>
           </Card>
         </TabsContent>

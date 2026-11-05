@@ -1,4 +1,4 @@
-import { radarDomain, radarTicks, radarTickLabel } from '@/lib/metricas';
+import RadarDimensiones from '@/components/RadarDimensiones';
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { externalSupabase } from "@/integrations/external-supabase/client";
@@ -11,8 +11,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-} from "recharts";
+  } from "recharts";
 import { ExternalLink, Signal, Eye, Globe, BarChart3 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -344,7 +343,6 @@ function SignalDetailSheet({ signal, onClose }: { signal: SocialSignal | null; o
     { subject: "Influencia", value: signal.m_influencia ?? 0 },
   ];
   const hasMetrics = metricas.some((m) => m.value > 0);
-  const domain = radarDomain(metricas.map(d => d.value));
 
   return (
     <Sheet open={!!signal} onOpenChange={(open) => !open && onClose()}>
@@ -384,14 +382,7 @@ function SignalDetailSheet({ signal, onClose }: { signal: SocialSignal | null; o
             <div>
               <p className="text-xs text-muted-foreground mb-2">Métricas Emocionales</p>
               <div className="relative">
-                <ResponsiveContainer width="100%" height={384}>
-                  <RadarChart data={metricas} cx="50%" cy="50%" outerRadius="80%">
-                    <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                    <PolarRadiusAxis angle={90} domain={domain} ticks={radarTicks(domain) as any} tickFormatter={radarTickLabel} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
-                    <Radar name="Valor" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.25} strokeWidth={2} />
-                  </RadarChart>
-                </ResponsiveContainer>
+                <RadarDimensiones heightClass="h-96" entidad={{ label: 'Valor', promedios: { influencia: signal.m_influencia, fiabilidad: signal.m_fiabilidad, afinidad: signal.m_afinidad, admiracion: signal.m_admiracion, impacto: signal.m_impacto, rechazo: signal.m_rechazo, preocupacion: signal.m_preocupacion, descredito: signal.m_descredito } }} />
                 {signal.m_nota_ponderada != null && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="text-center">
