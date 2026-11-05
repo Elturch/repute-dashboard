@@ -179,7 +179,7 @@ export default function PerfilReputacionalIA({
                 dataKey="metric"
                 tick={(props: any) => <ColoredAxisTick {...props} statusMap={statusMap} />}
               />
-              <PolarRadiusAxis angle={90} domain={domain} ticks={radarTicks(domain)} tickFormatter={radarTickLabel} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} stroke="hsl(var(--border))" />
+              <PolarRadiusAxis angle={90} domain={domain} ticks={radarTicks(domain) as any} tickFormatter={radarTickLabel} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} stroke="hsl(var(--border))" />
 
               <Radar name="Total"
                      dataKey="total"

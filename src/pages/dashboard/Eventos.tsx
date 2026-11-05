@@ -358,7 +358,7 @@ function EventoDetailSheet({ evento, onClose }: { evento: Evento | null; onClose
                   <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="80%">
                     <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                    <PolarRadiusAxis angle={90} domain={domain} ticks={radarTicks(domain)} tickFormatter={radarTickLabel} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
+                    <PolarRadiusAxis angle={90} domain={domain} ticks={radarTicks(domain) as any} tickFormatter={radarTickLabel} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                     <Radar name="Valor" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.25} strokeWidth={2} />
                   </RadarChart>
                 </ResponsiveContainer>

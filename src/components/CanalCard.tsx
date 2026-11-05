@@ -206,7 +206,7 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
           <RadarChart data={data} outerRadius="80%">
             <PolarGrid gridType="polygon" stroke="hsl(var(--border))" />
             <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-            <PolarRadiusAxis angle={90} domain={domain} ticks={radarTicks(domain)} tickFormatter={radarTickLabel} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} />
+            <PolarRadiusAxis angle={90} domain={domain} ticks={radarTicks(domain) as any} tickFormatter={radarTickLabel} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} />
             <RTooltip
               contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, color: 'hsl(var(--foreground))', fontSize: 12 }}
               formatter={(_v: number, n: string, item: { dataKey?: string; payload?: { qsReal: number | null; refReal: number | null } }) => {
