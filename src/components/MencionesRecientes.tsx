@@ -1,4 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
+import InfoTip from '@/components/InfoTip';
+import { INFO } from '@/lib/infoTexts';
 import { useEffect, useState } from 'react';
 import { externalSupabase } from '@/integrations/external-supabase/client';
 import { format } from 'date-fns';
@@ -286,6 +288,7 @@ function MencionCard({ m, cfg }: { m: Record<string, unknown>; cfg: MencionesCon
               >
                 {peligro}
               </span>
+              <InfoTip text={INFO.peligro} label="Qué es el nivel de peligro" />
             </>
           )}
           {url && (

@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import InfoTip from '@/components/InfoTip';
+import { infoForLabel, INFO } from '@/lib/infoTexts';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -389,7 +391,7 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
 function Kpi({ label, value, sub, highlight, info }: { label: string; value: string; sub?: string; highlight?: boolean; info?: boolean }) {
   return (
     <div className={`rounded-lg border p-4 ${highlight ? 'border-primary/40 bg-primary/5' : 'border-border bg-card'}`}>
-      <p className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">{label}{info && <RiesgoRealInfo />}</p>
+      <p className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">{label}<InfoTip text={infoForLabel(label)} /></p>
       <p className={`mt-2 text-3xl font-bold ${highlight ? 'text-primary' : 'text-foreground'}`}>{value}</p>
       {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
     </div>

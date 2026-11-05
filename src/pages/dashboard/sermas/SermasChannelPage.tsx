@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import InfoTip from '@/components/InfoTip';
+import { infoForLabel, INFO } from '@/lib/infoTexts';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -332,7 +334,7 @@ function SegmentCard({
   const c = TONE_CLASSES[tone];
   return (
     <div className={`rounded-lg border p-4 ${c.border} ${c.bg}`}>
-      <p className={`text-xs uppercase tracking-wider font-semibold ${c.accent}`}>{label}</p>
+      <p className={`flex items-center gap-1 text-xs uppercase tracking-wider font-semibold ${c.accent}`}>{label}<InfoTip text={INFO.menciones} /></p>
       {sub && <p className="mt-0.5 text-[10px] text-muted-foreground">{sub}</p>}
       {loading ? (
         <div className="mt-3 h-9 w-20 animate-pulse rounded bg-muted" />
@@ -343,7 +345,7 @@ function SegmentCard({
       )}
       <div className="mt-3 grid grid-cols-1 gap-2 text-[11px]">
         <div>
-          <p className="uppercase tracking-wider text-muted-foreground">Nota IA</p>
+          <p className="flex items-center gap-1 uppercase tracking-wider text-muted-foreground">Nota IA <InfoTip text={INFO.nota} /></p>
           <p className="mt-0.5 tabular-nums text-foreground">{stats ? fmtNotaIA(stats.notaMedia) : '—'}</p>
         </div>
       </div>

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import InfoTip from '@/components/InfoTip';
+import { infoForLabel, INFO } from '@/lib/infoTexts';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend, Tooltip as RTooltip, ResponsiveContainer,
 } from 'recharts';
@@ -89,8 +91,8 @@ export default function RadarDimensiones({
     <div aria-label={`Radar ${nombreCorto}${contexto ? ` en ${contexto}` : ''}`}>
       {ref && (
         <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-            Dimensiones IA · {nombreCorto} lidera en <span className="text-foreground font-semibold">{sinDatos ? 0 : lidera}</span> de 8
+          <p className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+            Dimensiones IA · {nombreCorto} lidera en <span className="text-foreground font-semibold">{sinDatos ? 0 : lidera}</span> de 8 <InfoTip text={INFO.radar} />
           </p>
           {opciones.length > 0 && (
             <select aria-label={`Comparar ${nombreCorto}${contexto ? ` en ${contexto}` : ''}`} value={comp} onChange={e => setComp(e.target.value)}

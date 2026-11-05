@@ -1,3 +1,4 @@
+import { makePieLabel } from '@/lib/pieLabels';
 import RadarDimensiones from '@/components/RadarDimensiones';
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -284,9 +285,9 @@ const Social = () => {
           <CardHeader><CardTitle className="text-base">Distribución por Plataforma</CardTitle></CardHeader>
           <CardContent>
             <div className="flex flex-col lg:flex-row items-center gap-6">
-              <ResponsiveContainer width={300} height={300}>
+              <ResponsiveContainer width={460} height={320}>
                 <PieChart>
-                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={110} strokeWidth={2} stroke="hsl(var(--background))">
+                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={90} strokeWidth={2} stroke="hsl(var(--background))" labelLine={false} label={makePieLabel(pieData)}>
                     {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                   </Pie>
                   <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", color: "hsl(var(--foreground))" }} />
