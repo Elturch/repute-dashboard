@@ -182,6 +182,7 @@ function RadarComparador({ canal, nombre, short, color, agg, resto, conjunto, co
   const lidera = contarLiderazgo(agg.promedios, resto.promedios);
   const data = DIMS.map(d => {
     const inv = (v: number | null | undefined) => v == null ? null : (d.positive ? v : 10 - v);
+    const qsR = inv(agg.promedios[d.key]); const refR = inv(ref.promedios[d.key]);
     return { metric: d.label, qs: qsR, ref: refR, qsReal: agg.promedios[d.key] ?? null, refReal: ref.promedios[d.key] ?? null };
   });
   return (
