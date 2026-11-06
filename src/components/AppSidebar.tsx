@@ -149,6 +149,69 @@ function readPersisted(id: string): boolean | null {
   }
 }
 
+function SubgrupoGroup({ subgrupo, collapsed, pathname }: { subgrupo: Subgrupo; collapsed: boolean; pathname: string }) {
+  const active = pathname === subgrupo.prefix || pathname.startsWith(subgrupo.prefix + "/");
+  const persisted = readPersisted(subgrupo.id);
+  const initialOpen = active || (persisted ?? false);
+  const [open, setOpen] = useState(initialOpen);
+
+  // Auto-open when nav changes into this subgrupo
+  useEffect(() => {
+    if (active && !open) setOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+
+  const handleChange = (next: boolean) => {
+    setOpen(next);
+    try { localStorage.setItem(storageKey(subgrupo.id), next ? "1" : "0"); } catch { /* noop */ }
+  };
+
+  return (
+    <SidebarMenuItem>
+      <Collapsible open={collapsed ? true : open} onOpenChange={collapsed ? undefined : handleChange}>
+        {!collapsed && (
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="group/subgrupo flex items-center w-full pl-5 pr-2 py-1 text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors"
+            >
+              <SidebarGroupLabel className="flex-1 flex items-center gap-1.5 px-0 text-[13px] cursor-pointer">
+                <span className="flex-1 text-left">{subgrupo.titulo}</span>
+                <span className="text-[10px] opacity-50 mr-1">({subgrupo.links.length})</span>
+                <ChevronRight
+                  className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? "rotate-90" : ""}`}
+                />
+              </SidebarGroupLabel>
+            </button>
+          </CollapsibleTrigger>
+        )}
+        <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+          <SidebarMenu className={collapsed ? "" : "ml-5 border-l border-sidebar-border"}>
+            {subgrupo.links.map(link => {
+              const LinkIcon = link.icon;
+              return (
+                <SidebarMenuItem key={link.url}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={link.url}
+                      end={link.end}
+                      className={collapsed ? "hover:bg-sidebar-accent/50 text-[14px]" : "pl-5 hover:bg-sidebar-accent/50 text-[14px]"}
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                    >
+                      <LinkIcon className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>{link.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+        </CollapsibleContent>
+      </Collapsible>
+    </SidebarMenuItem>
+  );
+}
+
 function BloqueGroup({ bloque, collapsed, pathname }: { bloque: Bloque; collapsed: boolean; pathname: string }) {
   const active = isBloqueActive(bloque, pathname);
   const persisted = readPersisted(bloque.id);
@@ -167,7 +230,9 @@ function BloqueGroup({ bloque, collapsed, pathname }: { bloque: Bloque; collapse
   };
 
   const Icon = bloque.icon;
-  const count = bloque.links.length;
+  const count = bloque.subgrupos
+    ? bloque.subgrupos.reduce((n, s) => n + s.links.length, 0)
+    : bloque.links.length;
 
   return (
     <SidebarGroup>
