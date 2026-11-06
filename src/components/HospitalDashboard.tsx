@@ -578,7 +578,7 @@ function CanalCard({ ch }: { ch: CanalBehavior }) {
           <CanalIcon canal={ch.canal} className="h-4 w-4" />
           <span className="text-sm font-medium text-foreground/70">{ch.label}</span>
         </div>
-        <p className="text-xs text-muted-foreground">Sin menciones en 30 días</p>
+        <p className="text-xs text-muted-foreground">Sin menciones en el periodo seleccionado</p>
       </div>
     );
   }

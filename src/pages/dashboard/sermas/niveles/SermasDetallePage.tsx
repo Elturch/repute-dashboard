@@ -11,6 +11,7 @@ import type { Canal } from '@/hooks/useCanalData';
 import { NIVELES, isNivelId, rowsNivel, hospitalesOrdenados } from '@/lib/sermasNiveles';
 import { fmtNotaIA, fmtPctRiesgo, pctRiesgoReal } from '@/lib/metricas';
 import { CANALES } from './canales';
+import HospitalDashboard from '@/components/HospitalDashboard';
 
 const fmt = (n: number) => (n ?? 0).toLocaleString('es-ES');
 
@@ -25,6 +26,14 @@ function cfgLista(canal: Canal, segmento: MencionesConfig['segmento']): Mencione
 }
 
 export default function SermasDetallePage() {
+  const { nivel: n, slug: s } = useParams();
+  if (isNivelId(n) && s && s !== 'conjunto' && NIVELES[n].destacados.some(d => d.slug === s)) {
+    return <HospitalDashboard key={`${n}-${s}`} nivelId={n} slug={s} />;
+  }
+  return <ConjuntoPage />;
+}
+
+function ConjuntoPage() {
   const { nivel: nivelId, slug } = useParams();
   const { desde, hasta } = usePeriod();
   const { data: kpiRows, isLoading } = useKpiCanalGlobal();
