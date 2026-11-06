@@ -9,14 +9,17 @@ import {
 import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from "react-icons/si";
 import { FaXTwitter, FaLinkedin } from "react-icons/fa6";
 import { Newspaper } from "lucide-react";
-import { useFJDMenciones, type FJDMencion, type FJDCanal } from "@/hooks/useFJDMenciones";
+import { useQuery } from "@tanstack/react-query";
+import { externalSupabase } from "@/integrations/external-supabase/client";
+import type { FJDMencion, FJDCanal } from "@/hooks/useFJDMenciones";
+import { ALL_CANALES, type VCanalRow } from "@/hooks/useCanalData";
+import { usePeriod } from "@/contexts/PeriodContext";
+import { NIVELES, rowsNivel, hospitalesOrdenados, type NivelId, type NivelConfig, type HospitalDestacado } from "@/lib/sermasNiveles";
 import { fmtNotaIA } from "@/lib/metricas";
 import PerfilReputacionalIA, { type PerfilBucket } from "@/components/PerfilReputacionalIA";
 import FjdVsSermasBlock from "@/components/FjdVsSermasBlock";
 import {
   useKpiCanalGlobal,
-  filterByGrupo,
-  filterByGestionLike,
   aggregateKpi,
   toPerfilBucket,
 } from "@/hooks/useKpiCanal";
@@ -251,17 +254,17 @@ export default function HospitalDashboard({ nivelId, slug }: { nivelId: NivelId;
       <header className="space-y-2">
         <div className="flex items-center gap-3">
           <Star className="h-7 w-7 text-amber-500 fill-amber-500/30" />
-          <h1 className="text-3xl font-bold tracking-tight">Fundación Jiménez Díaz</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{hospital.nombre}</h1>
         </div>
         <p className="text-sm text-amber-600">
-          Hospital público gestionado por Quirónsalud · SERMAS
+          Hospital público gestionado por Quirónsalud · SERMAS · {nivel.label} · {periodoTxt}
         </p>
       </header>
 
       {/* Loading / error */}
       {isLoading && (
         <div className="rounded-lg border border-border bg-foreground/[0.02] p-6 text-sm text-muted-foreground">
-          Cargando menciones de FJD…
+          Cargando menciones de {hospital.short}…
         </div>
       )}
       {error && (
@@ -273,7 +276,7 @@ export default function HospitalDashboard({ nivelId, slug }: { nivelId: NivelId;
       {!isLoading && !error && (
         <>
           {/* KPIs */}
-          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <KpiCard label="Menciones totales" value={stats.total.toLocaleString()} accent="amber" />
             <KpiCard
               label="Nota IA"
@@ -294,13 +297,19 @@ export default function HospitalDashboard({ nivelId, slug }: { nivelId: NivelId;
               }
               accent="blue"
             />
+            <KpiCard
+              label="Posición"
+              value={nivelStats && nivelStats.agg.menciones ? `#${nivelStats.rank}` : "—"}
+              sub={nivelStats ? `de ${nivelStats.nHosp} hospitales · ${nivel.label.toLowerCase()}` : undefined}
+              accent="amber"
+            />
           </section>
 
           {/* Distribución por canal */}
           <section className="rounded-xl border border-border bg-foreground/[0.02] p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium">
-                Distribución por canal · 30 días
+                Distribución por canal · {periodoTxt}
               </h2>
             </div>
             <div style={{ height: 280 }}>
@@ -333,10 +342,10 @@ export default function HospitalDashboard({ nivelId, slug }: { nivelId: NivelId;
           <section className="rounded-xl border border-border bg-foreground/[0.02] p-5">
             <div className="mb-4">
               <h2 className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium">
-                Comportamiento por canal · 30 días
+                Comportamiento por canal · {periodoTxt}
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Cómo se percibe FJD en cada canal. <span className="text-emerald-400">↑ positivas: más alto es mejor</span> · <span className="text-red-400">↓ negativas: más bajo es mejor</span>
+                Cómo se percibe {hospital.short} en cada canal. <span className="text-emerald-400">↑ positivas: más alto es mejor</span> · <span className="text-red-400">↓ negativas: más bajo es mejor</span>
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
@@ -349,7 +358,7 @@ export default function HospitalDashboard({ nivelId, slug }: { nivelId: NivelId;
           {/* Evolución */}
           <section className="rounded-xl border border-border bg-foreground/[0.02] p-5">
             <h2 className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium mb-4">
-              Evolución temporal · 30 días
+              Evolución temporal · {periodoTxt}
             </h2>
             <div style={{ height: 320 }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -379,12 +388,14 @@ export default function HospitalDashboard({ nivelId, slug }: { nivelId: NivelId;
 
           {/* Perfil reputacional IA */}
           <PerfilReputacionalIA
-            contextLabel="FJD vs hospitales SERMAS · 30 días"
-            highlightLabel="FJD"
+            contextLabel={`${hospital.short} vs hospitales de ${nivel.label.toLowerCase()} · ${periodoTxt}`}
+            highlightLabel={hospital.short}
             total={perfilBuckets?.total ?? perfilEmpty}
             highlight={perfilBuckets?.highlight ?? perfilEmpty}
             resto={perfilBuckets?.resto ?? perfilEmpty}
             highlightColor="#f59e0b"
+            comparables={perfilBuckets?.comparables ?? []}
+            conjuntoLabel={`Resto ${nivel.label.toLowerCase()}`}
           />
 
           {/* Top menciones */}
@@ -433,7 +444,7 @@ export default function HospitalDashboard({ nivelId, slug }: { nivelId: NivelId;
             </div>
           </section>
 
-          <FjdVsSermasBlock />
+          {hospital.slug === "fjd" && <FjdVsSermasBlock />}
         </>
       )}
     </div>
@@ -441,10 +452,11 @@ export default function HospitalDashboard({ nivelId, slug }: { nivelId: NivelId;
 }
 
 function KpiCard({
-  label, value, accent,
+  label, value, accent, sub,
 }: {
   label: string;
   value: string;
+  sub?: string;
   accent: "amber" | "emerald" | "blue" | "red" | "orange";
 }) {
   const accentMap: Record<string, string> = {
@@ -458,6 +470,7 @@ function KpiCard({
     <div className={`rounded-xl border ${accentMap[accent]} p-5`}>
       <p className="flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">{label}<InfoTip text={infoForLabel(label)} /></p>
       <p className="text-3xl font-semibold tabular-nums">{value}</p>
+      {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
     </div>
   );
 }
