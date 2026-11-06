@@ -1,0 +1,643 @@
+import { useMemo, useState } from "react";
+import InfoTip from '@/components/InfoTip';
+import { infoForLabel, INFO } from '@/lib/infoTexts';
+import { Star, ExternalLink, AlertTriangle } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  LineChart, Line, Legend, Cell,
+} from "recharts";
+import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from "react-icons/si";
+import { FaXTwitter, FaLinkedin } from "react-icons/fa6";
+import { Newspaper } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { externalSupabase } from "@/integrations/external-supabase/client";
+import type { FJDMencion, FJDCanal } from "@/hooks/useFJDMenciones";
+import { ALL_CANALES, type VCanalRow } from "@/hooks/useCanalData";
+import { usePeriod } from "@/contexts/PeriodContext";
+import { NIVELES, rowsNivel, hospitalesOrdenados, type NivelId, type NivelConfig, type HospitalDestacado } from "@/lib/sermasNiveles";
+import { fmtNotaIA } from "@/lib/metricas";
+import PerfilReputacionalIA, { type PerfilBucket } from "@/components/PerfilReputacionalIA";
+import FjdVsSermasBlock from "@/components/FjdVsSermasBlock";
+import {
+  useKpiCanalGlobal,
+  aggregateKpi,
+  toPerfilBucket,
+} from "@/hooks/useKpiCanal";
+
+const CANAL_ORDER: FJDCanal[] = [
+  "tiktok", "mybusiness", "medios", "instagram", "twitter", "facebook", "linkedin",
+];
+
+const CANAL_LABEL: Record<FJDCanal, string> = {
+  medios: "Medios",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  facebook: "Facebook",
+  linkedin: "LinkedIn",
+  twitter: "X / Twitter",
+  mybusiness: "MyBusiness",
+};
+
+const CANAL_COLOR: Record<FJDCanal, string> = {
+  medios: "#6b7280",
+  instagram: "#ec4899",
+  tiktok: "#06b6d4",
+  facebook: "#3b82f6",
+  linkedin: "#0a66c2",
+  twitter: "#1d9bf0",
+  mybusiness: "#22c55e",
+};
+
+function CanalIcon({ canal, className }: { canal: FJDCanal; className?: string }) {
+  const cls = className ?? "h-4 w-4";
+  switch (canal) {
+    case "medios": return <Newspaper className={cls} />;
+    case "instagram": return <SiInstagram className={cls} />;
+    case "tiktok": return <SiTiktok className={cls} />;
+    case "facebook": return <SiFacebook className={cls} />;
+    case "linkedin": return <FaLinkedin className={cls} />;
+    case "twitter": return <FaXTwitter className={cls} />;
+    case "mybusiness": return <SiGoogle className={cls} />;
+  }
+}
+
+const PELIGRO_LEVELS = ["BAJO", "MEDIO", "ALTO", "CRÍTICO"] as const;
+type PeligroLevel = typeof PELIGRO_LEVELS[number];
+
+function peligroBadgeColor(p: string | null): string {
+  switch ((p ?? "").toUpperCase()) {
+    case "CRÍTICO": case "CRITICO": return "bg-red-500/15 text-red-400 border-red-500/30";
+    case "ALTO": return "bg-orange-500/15 text-orange-400 border-orange-500/30";
+    case "MEDIO": return "bg-yellow-500/15 text-yellow-400 border-yellow-500/30";
+    case "BAJO": return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+    default: return "bg-foreground/5 text-muted-foreground border-border";
+  }
+}
+
+function relativeDate(iso: string): string {
+  const d = new Date(iso);
+  const diffMs = Date.now() - d.getTime();
+  const days = Math.floor(diffMs / 86400000);
+  if (days <= 0) {
+    const hours = Math.floor(diffMs / 3600000);
+    if (hours <= 0) return "hace un momento";
+    return `hace ${hours} h`;
+  }
+  if (days === 1) return "hace 1 día";
+  return `hace ${days} días`;
+}
+
+function avg(nums: (number | null | undefined)[]): number | null {
+  const xs = nums.filter((n): n is number => typeof n === "number" && !isNaN(n));
+  if (!xs.length) return null;
+  return xs.reduce((a, b) => a + b, 0) / xs.length;
+}
+
+const EMPTY_PROMEDIOS: PerfilBucket["promedios"] = {
+  influencia: null, fiabilidad: null, afinidad: null, admiracion: null,
+  impacto: null, rechazo: null, preocupacion: null, descredito: null,
+};
+
+/** Menciones del hospital en el periodo: canal_items por canal, filtrado a su titularidad y aliases. */
+function useHospitalMenciones(nivel: NivelConfig, hospital: HospitalDestacado) {
+  const { desde, hasta } = usePeriod();
+  return useQuery({
+    queryKey: ["hospital-menciones", hospital.slug, desde, hasta],
+    queryFn: async (): Promise<FJDMencion[]> => {
+      const porCanal = await Promise.all(ALL_CANALES.map(async (canal) => {
+        const out: FJDMencion[] = [];
+        for (let page = 0; page < 5; page++) {
+          const { data, error } = await externalSupabase
+            .rpc("canal_items", { p_canal: canal, p_desde: desde, p_hasta: hasta })
+            .select("*")
+            .eq("titularidad", nivel.titularidad)
+            .in("grupo_hospitalario", hospital.aliases)
+            .order("fecha", { ascending: false })
+            .range(page * 1000, page * 1000 + 999);
+          if (error) throw error;
+          const rows = (data ?? []) as VCanalRow[];
+          rows.forEach(r => out.push({ ...r, canal: canal as FJDCanal, fecha: r.fecha }));
+          if (rows.length < 1000) break;
+        }
+        return out;
+      }));
+      return porCanal.flat().sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+    },
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export default function HospitalDashboard({ nivelId, slug }: { nivelId: NivelId; slug: string }) {
+  const nivel = NIVELES[nivelId];
+  const hospital = nivel.destacados.find(d => d.slug === slug)!;
+  const { desde, hasta } = usePeriod();
+  const periodoTxt = `${desde} → ${hasta}`;
+  const { data, isLoading, error } = useHospitalMenciones(nivel, hospital);
+  const menciones = data ?? [];
+
+  // KPIs, posición y comparables desde kpi_canal (period-aware), dentro de la titularidad del nivel.
+  const { data: kpiRows } = useKpiCanalGlobal();
+  const nivelStats = useMemo(() => {
+    if (!kpiRows) return null;
+    const rows = rowsNivel(kpiRows, nivel);
+    const target = rows.filter(r => r.grupo_hospitalario === hospital.nombre);
+    const resto = rows.filter(r => r.grupo_hospitalario !== hospital.nombre);
+    const grupos = hospitalesOrdenados(rows, [hospital.nombre]);
+    const comparables = grupos.filter(g => g !== hospital.nombre)
+      .map(g => toPerfilBucket(g, aggregateKpi(rows.filter(r => r.grupo_hospitalario === g))))
+      .filter(b => b.menciones > 0);
+    return {
+      agg: aggregateKpi(target),
+      rank: grupos.indexOf(hospital.nombre) + 1,
+      nHosp: grupos.length,
+      total: toPerfilBucket(`Total ${nivel.label.toLowerCase()}`, aggregateKpi(rows)),
+      highlight: toPerfilBucket(hospital.short, aggregateKpi(target)),
+      resto: toPerfilBucket(`Resto ${nivel.label.toLowerCase()}`, aggregateKpi(resto)),
+      comparables,
+    };
+  }, [kpiRows, nivel, hospital]);
+  const fjdKpi = nivelStats?.agg ?? null;
+  const perfilBuckets = nivelStats;
+
+  const [filtroCanal, setFiltroCanal] = useState<"all" | FJDCanal>("all");
+  const [filtroRiesgo, setFiltroRiesgo] = useState<"all" | PeligroLevel>("all");
+  const [busqueda, setBusqueda] = useState("");
+
+  // KPIs
+  const stats = useMemo(() => {
+    // Total y % riesgo vienen de la vista materializada (números reales, no capados).
+    const total = fjdKpi?.menciones ?? menciones.length;
+    const notaIaMedia = fjdKpi?.notaMedia ?? avg(menciones.map(m => m.nota_media));
+    const pctAlto = fjdKpi?.pctRiesgoReal ?? 0;
+    const mb = menciones.filter(m => m.canal === "mybusiness");
+    const mbCount = mb.length;
+    const mbRating = avg(mb.map(m => m.rating ?? m.nota_media));
+    return { total, notaIaMedia, pctAlto, mbCount, mbRating };
+  }, [menciones, fjdKpi]);
+
+  // Distribución por canal
+  const distribucion = useMemo(() => {
+    const counts: Record<FJDCanal, number> = {
+      medios: 0, instagram: 0, tiktok: 0, facebook: 0, linkedin: 0, twitter: 0, mybusiness: 0,
+    };
+    menciones.forEach(m => { if (counts[m.canal] != null) counts[m.canal]++; });
+    return CANAL_ORDER
+      .map(c => ({ canal: c, label: CANAL_LABEL[c], count: counts[c], color: CANAL_COLOR[c] }))
+      .sort((a, b) => b.count - a.count);
+  }, [menciones]);
+
+  // Comportamiento por canal: medias de métricas IA + % riesgo
+  const comportamientoCanal = useMemo(() => {
+    return CANAL_ORDER.map(c => {
+      const rows = menciones.filter(m => m.canal === c);
+      const count = rows.length;
+      const altoCount = rows.filter(m => {
+        const p = (m.peligro ?? "").toUpperCase().replace("CRITICO", "CRÍTICO");
+        return p === "ALTO" || p === "CRÍTICO";
+      }).length;
+      const ratingRows = c === "mybusiness" ? rows.map(m => m.rating ?? m.nota_media) : [];
+      return {
+        canal: c,
+        label: CANAL_LABEL[c],
+        color: CANAL_COLOR[c],
+        count,
+        pctAlto: count > 0 ? (altoCount / count) * 100 : 0,
+        nota: avg(rows.map(m => m.nota_media)),
+        afinidad: avg(rows.map(m => m.afinidad)),
+        fiabilidad: avg(rows.map(m => m.fiabilidad)),
+        admiracion: avg(rows.map(m => m.admiracion)),
+        impacto: avg(rows.map(m => m.impacto)),
+        preocupacion: avg(rows.map(m => m.preocupacion)),
+        rechazo: avg(rows.map(m => m.rechazo)),
+        descredito: avg(rows.map(m => m.descredito)),
+        rating: c === "mybusiness" ? avg(ratingRows) : null,
+      };
+    });
+  }, [menciones]);
+
+  // Evolución temporal pivoteada
+  const evolucion = useMemo(() => {
+    const byDay: Record<string, Record<string, number>> = {};
+    menciones.forEach(m => {
+      const day = m.fecha.slice(0, 10);
+      if (!byDay[day]) byDay[day] = {};
+      byDay[day][m.canal] = (byDay[day][m.canal] ?? 0) + 1;
+    });
+    return Object.keys(byDay)
+      .sort()
+      .map(day => ({ fecha: day, ...byDay[day] }));
+  }, [menciones]);
+
+  const perfilEmpty: PerfilBucket = { label: "—", menciones: 0, promedios: EMPTY_PROMEDIOS };
+
+  // Top menciones filtradas
+  const filteredMenciones = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    return menciones.filter(m => {
+      if (filtroCanal !== "all" && m.canal !== filtroCanal) return false;
+      if (filtroRiesgo !== "all") {
+        const p = (m.peligro ?? "").toUpperCase().replace("CRITICO", "CRÍTICO");
+        if (p !== filtroRiesgo) return false;
+      }
+      if (q) {
+        const blob = `${m.titulo ?? ""} ${m.texto ?? ""}`.toLowerCase();
+        if (!blob.includes(q)) return false;
+      }
+      return true;
+    }).slice(0, 30);
+  }, [menciones, filtroCanal, filtroRiesgo, busqueda]);
+
+  return (
+    <div className="p-6 space-y-8 text-foreground">
+      {/* Header */}
+      <header className="space-y-2">
+        <div className="flex items-center gap-3">
+          <Star className="h-7 w-7 text-amber-500 fill-amber-500/30" />
+          <h1 className="text-3xl font-bold tracking-tight">{hospital.nombre}</h1>
+        </div>
+        <p className="text-sm text-amber-600">
+          Hospital público gestionado por Quirónsalud · SERMAS · {nivel.label} · {periodoTxt}
+        </p>
+      </header>
+
+      {/* Loading / error */}
+      {isLoading && (
+        <div className="rounded-lg border border-border bg-foreground/[0.02] p-6 text-sm text-muted-foreground">
+          Cargando menciones de {hospital.short}…
+        </div>
+      )}
+      {error && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+          Error cargando datos: {(error as Error).message}
+        </div>
+      )}
+
+      {!isLoading && !error && (
+        <>
+          {/* KPIs */}
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <KpiCard label="Menciones totales" value={stats.total.toLocaleString()} accent="amber" />
+            <KpiCard
+              label="Nota IA"
+              value={fmtNotaIA(stats.notaIaMedia)}
+              accent="emerald"
+            />
+            <KpiCard
+              label="Riesgo alto + crítico"
+              value={`${stats.pctAlto.toFixed(1)}%`}
+              accent={stats.pctAlto >= 15 ? "red" : stats.pctAlto >= 5 ? "orange" : "emerald"}
+            />
+            <KpiCard
+              label="Reseñas Google"
+              value={
+                stats.mbRating != null
+                  ? `${stats.mbCount} · ★ ${stats.mbRating.toFixed(1)}`
+                  : `${stats.mbCount}`
+              }
+              accent="blue"
+            />
+            <KpiCard
+              label="Posición"
+              value={nivelStats && nivelStats.agg.menciones ? `#${nivelStats.rank}` : "—"}
+              sub={nivelStats ? `de ${nivelStats.nHosp} hospitales · ${nivel.label.toLowerCase()}` : undefined}
+              accent="amber"
+            />
+          </section>
+
+          {/* Distribución por canal */}
+          <section className="rounded-xl border border-border bg-foreground/[0.02] p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium">
+                Distribución por canal · {periodoTxt}
+              </h2>
+            </div>
+            <div style={{ height: 280 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={distribucion} layout="vertical" margin={{ left: 30, right: 40 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                  <XAxis type="number" stroke="#6b7280" fontSize={11} />
+                  <YAxis type="category" dataKey="label" stroke="#9ca3af" fontSize={12} width={90} />
+                  <Tooltip
+                    contentStyle={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6 }}
+                    cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                  />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                    {distribucion.map((d, i) => (
+                      <Cell key={i} fill={d.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            {distribucion.find(d => d.canal === "linkedin" && d.count === 0) && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-amber-400">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                LinkedIn 0 · pendiente de arreglar identificador en el slug
+              </div>
+            )}
+          </section>
+
+          {/* Comportamiento por canal */}
+          <section className="rounded-xl border border-border bg-foreground/[0.02] p-5">
+            <div className="mb-4">
+              <h2 className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium">
+                Comportamiento por canal · {periodoTxt}
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Cómo se percibe {hospital.short} en cada canal. <span className="text-emerald-400">↑ positivas: más alto es mejor</span> · <span className="text-red-400">↓ negativas: más bajo es mejor</span>
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+              {comportamientoCanal.map(ch => (
+                <CanalCard key={ch.canal} ch={ch} />
+              ))}
+            </div>
+          </section>
+
+          {/* Evolución */}
+          <section className="rounded-xl border border-border bg-foreground/[0.02] p-5">
+            <h2 className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium mb-4">
+              Evolución temporal · {periodoTxt}
+            </h2>
+            <div style={{ height: 320 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={evolucion}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="fecha" stroke="#6b7280" fontSize={11} />
+                  <YAxis stroke="#6b7280" fontSize={11} />
+                  <Tooltip
+                    contentStyle={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6 }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  {CANAL_ORDER.map(c => (
+                    <Line
+                      key={c}
+                      type="monotone"
+                      dataKey={c}
+                      stroke={CANAL_COLOR[c]}
+                      strokeWidth={1.6}
+                      dot={false}
+                      name={CANAL_LABEL[c]}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
+
+          {/* Perfil reputacional IA */}
+          <PerfilReputacionalIA
+            contextLabel={`${hospital.short} vs hospitales de ${nivel.label.toLowerCase()} · ${periodoTxt}`}
+            highlightLabel={hospital.short}
+            total={perfilBuckets?.total ?? perfilEmpty}
+            highlight={perfilBuckets?.highlight ?? perfilEmpty}
+            resto={perfilBuckets?.resto ?? perfilEmpty}
+            highlightColor="#f59e0b"
+            comparables={perfilBuckets?.comparables ?? []}
+            conjuntoLabel={`Resto ${nivel.label.toLowerCase()}`}
+          />
+
+          {/* Top menciones */}
+          <section className="rounded-xl border border-border bg-foreground/[0.02] p-5">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <h2 className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium">
+                Menciones recientes
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                <select
+                  value={filtroCanal}
+                  onChange={(e) => setFiltroCanal(e.target.value as "all" | FJDCanal)}
+                  className="bg-foreground/5 border border-border rounded px-2 py-1 text-xs text-foreground"
+                >
+                  <option value="all">Todos los canales</option>
+                  {CANAL_ORDER.map(c => (
+                    <option key={c} value={c}>{CANAL_LABEL[c]}</option>
+                  ))}
+                </select>
+                <select
+                  value={filtroRiesgo}
+                  onChange={(e) => setFiltroRiesgo(e.target.value as "all" | PeligroLevel)}
+                  className="bg-foreground/5 border border-border rounded px-2 py-1 text-xs text-foreground"
+                >
+                  <option value="all">Todos los riesgos</option>
+                  {PELIGRO_LEVELS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+                <input
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  placeholder="Buscar…"
+                  className="bg-foreground/5 border border-border rounded px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3 max-h-[720px] overflow-y-auto pr-2">
+              {filteredMenciones.length === 0 && (
+                <div className="text-sm text-muted-foreground py-8 text-center">
+                  No hay menciones con esos filtros.
+                </div>
+              )}
+              {filteredMenciones.map(m => (
+                <MencionCard key={`${m.canal}-${m.id}`} m={m} />
+              ))}
+            </div>
+          </section>
+
+          {hospital.slug === "fjd" && <FjdVsSermasBlock />}
+        </>
+      )}
+    </div>
+  );
+}
+
+function KpiCard({
+  label, value, accent, sub,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  accent: "amber" | "emerald" | "blue" | "red" | "orange";
+}) {
+  const accentMap: Record<string, string> = {
+    amber: "border-amber-500/30 bg-amber-500/5 text-amber-400",
+    emerald: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400",
+    blue: "border-blue-500/30 bg-blue-500/5 text-blue-400",
+    red: "border-red-500/30 bg-red-500/5 text-red-400",
+    orange: "border-orange-500/30 bg-orange-500/5 text-orange-400",
+  };
+  return (
+    <div className={`rounded-xl border ${accentMap[accent]} p-5`}>
+      <p className="flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">{label}<InfoTip text={infoForLabel(label)} /></p>
+      <p className="text-3xl font-semibold tabular-nums">{value}</p>
+      {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
+    </div>
+  );
+}
+
+function MencionCard({ m }: { m: FJDMencion }) {
+  const showImage = m.imagen && (m.canal === "medios" || m.canal === "instagram" || m.canal === "facebook");
+  return (
+    <a
+      href={m.url ?? "#"}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block rounded-lg border border-border bg-foreground/[0.02] hover:bg-foreground/[0.05] transition p-4"
+    >
+      <div className="flex gap-4">
+        {showImage && (
+          <img
+            src={m.imagen!}
+            alt=""
+            className="w-24 h-24 object-cover rounded border border-border flex-shrink-0"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+          />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1.5 text-xs text-muted-foreground">
+            <CanalIcon canal={m.canal} className="h-3.5 w-3.5" />
+            <span>{CANAL_LABEL[m.canal]}</span>
+            {m.fuente && <><span>·</span><span className="truncate">{m.fuente}</span></>}
+            <span>·</span>
+            <span>{relativeDate(m.fecha)}</span>
+            {m.peligro && (
+              <span className={`ml-auto text-[10px] px-2 py-0.5 rounded border ${peligroBadgeColor(m.peligro)}`}>
+                {m.peligro}
+              </span>
+            )}
+          </div>
+          {m.titulo && (
+            <h3 className="text-sm font-semibold text-foreground/90 mb-1 line-clamp-2">{m.titulo}</h3>
+          )}
+          {m.texto && (
+            <p className="text-xs text-muted-foreground line-clamp-2">
+              {m.texto.length > 200 ? m.texto.slice(0, 200) + "…" : m.texto}
+            </p>
+          )}
+          {m.url && (
+            <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground">
+              <ExternalLink className="h-3 w-3" /> Abrir
+            </div>
+          )}
+        </div>
+      </div>
+    </a>
+  );
+}
+
+type CanalBehavior = {
+  canal: FJDCanal;
+  label: string;
+  color: string;
+  count: number;
+  pctAlto: number;
+  nota: number | null;
+  afinidad: number | null;
+  fiabilidad: number | null;
+  admiracion: number | null;
+  impacto: number | null;
+  preocupacion: number | null;
+  rechazo: number | null;
+  descredito: number | null;
+  rating: number | null;
+};
+
+function notaColorClass(n: number | null): string {
+  if (n == null) return "text-muted-foreground";
+  if (n >= 7) return "text-red-400";
+  if (n >= 5) return "text-orange-400";
+  if (n >= 3) return "text-yellow-400";
+  return "text-emerald-400";
+}
+
+function MetricBar({
+  label, value, positive,
+}: { label: string; value: number | null; positive: boolean }) {
+  const pct = value != null ? Math.min(Math.max(value, 0), 10) * 10 : 0;
+  const barColor = positive ? "bg-emerald-500" : "bg-red-500";
+  return (
+    <div className="flex items-center gap-2 text-[11px]">
+      <span className="w-20 flex items-center gap-1 text-muted-foreground"><span className="truncate">{label}</span><InfoTip text={infoForLabel(label)} /></span>
+      <div className="flex-1 h-1.5 rounded bg-foreground/5 overflow-hidden">
+        {value != null && (
+          <div className={`h-full ${barColor}`} style={{ width: `${pct}%` }} />
+        )}
+      </div>
+      <span className="w-8 text-right font-mono tabular-nums text-foreground/80">
+        {value != null ? value.toFixed(1) : "—"}
+      </span>
+    </div>
+  );
+}
+
+function CanalCard({ ch }: { ch: CanalBehavior }) {
+  if (ch.count === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-foreground/[0.01] p-4 opacity-60">
+        <div className="flex items-center gap-2 mb-2">
+          <CanalIcon canal={ch.canal} className="h-4 w-4" />
+          <span className="text-sm font-medium text-foreground/70">{ch.label}</span>
+        </div>
+        <p className="text-xs text-muted-foreground">Sin menciones en el periodo seleccionado</p>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg border border-border bg-foreground/[0.03] p-4 space-y-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span style={{ color: ch.color }}><CanalIcon canal={ch.canal} className="h-4 w-4" /></span>
+          <span className="text-sm font-semibold text-foreground">{ch.label}</span>
+        </div>
+        <span className="text-xs font-mono tabular-nums text-muted-foreground">
+          {ch.count.toLocaleString()}
+        </span>
+      </div>
+
+      {/* Resumen */}
+      <div className="grid grid-cols-2 gap-2 text-xs border-y border-border py-2">
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Nota IA</p>
+          <p className={`font-mono font-semibold ${notaColorClass(ch.nota)}`}>
+            {ch.nota != null ? `${ch.nota.toFixed(2)} / 10` : "—"}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Riesgo alto+crít</p>
+          <p className={`font-mono font-semibold ${ch.pctAlto >= 15 ? "text-red-400" : ch.pctAlto >= 5 ? "text-orange-400" : "text-emerald-400"}`}>
+            {ch.pctAlto.toFixed(1)}%
+          </p>
+        </div>
+      </div>
+
+      {/* Métricas positivas */}
+      <div className="space-y-1.5">
+        <p className="text-[10px] uppercase tracking-wider text-emerald-400/80">
+          ↑ Positivas
+        </p>
+        <MetricBar label="Afinidad" value={ch.afinidad} positive />
+        <MetricBar label="Fiabilidad" value={ch.fiabilidad} positive />
+        <MetricBar label="Admiración" value={ch.admiracion} positive />
+        <MetricBar label="Impacto" value={ch.impacto} positive />
+      </div>
+
+      {/* Métricas negativas */}
+      <div className="space-y-1.5">
+        <p className="text-[10px] uppercase tracking-wider text-red-400/80">
+          ↓ Negativas
+        </p>
+        <MetricBar label="Preocupación" value={ch.preocupacion} positive={false} />
+        <MetricBar label="Rechazo" value={ch.rechazo} positive={false} />
+        <MetricBar label="Descrédito" value={ch.descredito} positive={false} />
+      </div>
+
+      {/* Rating específico MyBusiness */}
+      {ch.canal === "mybusiness" && ch.rating != null && (
+        <div className="pt-2 border-t border-border text-xs text-amber-400">
+          ★ {ch.rating.toFixed(2)} · {ch.count} reseñas
+        </div>
+      )}
+    </div>
+  );
+}
