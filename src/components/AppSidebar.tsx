@@ -1,7 +1,7 @@
 import {
   Home, BarChart3, Network, Radio, Building2, TrendingUp, ShieldAlert, Search,
   FileText, Download, BookOpen, Settings, Users, ShieldCheck, Server,
-  ChevronRight, Newspaper, LayoutDashboard, Star, Award, Tv,
+  ChevronRight, Newspaper, LayoutDashboard, Star, Tv,
 } from "lucide-react";
 import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from "react-icons/si";
 import { FaXTwitter, FaLinkedin } from "react-icons/fa6";
