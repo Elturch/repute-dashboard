@@ -4,7 +4,7 @@
  */
 
 export const RIESGO_REAL_TOOLTIP =
-  'Riesgo real: porcentaje de menciones del periodo clasificadas como peligro medio-alto, alto o crítico sobre el total de menciones. A mayor porcentaje, más proporción de conversación dañina.';
+  'Riesgo real = (menciones de peligro medio-alto + alto + crítico) ÷ total de menciones × 100. Porcentaje de menciones del periodo clasificadas como peligro medio-alto, alto o crítico. A mayor porcentaje, más proporción de conversación dañina.';
 
 /** Nota IA: escala 0–10, 1 decimal. */
 export function fmtNotaIA(n: number | null | undefined): string {

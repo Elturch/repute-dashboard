@@ -284,7 +284,7 @@ export default function HospitalDashboard({ nivelId, slug }: { nivelId: NivelId;
               accent="emerald"
             />
             <KpiCard
-              label="Riesgo alto + crítico"
+              label="Riesgo real"
               value={`${stats.pctAlto.toFixed(1)}%`}
               accent={stats.pctAlto >= 15 ? "red" : stats.pctAlto >= 5 ? "orange" : "emerald"}
             />
@@ -598,13 +598,13 @@ function CanalCard({ ch }: { ch: CanalBehavior }) {
       {/* Resumen */}
       <div className="grid grid-cols-2 gap-2 text-xs border-y border-border py-2">
         <div>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Nota IA</p>
+          <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">Nota IA<InfoTip text={INFO.nota} /></p>
           <p className={`font-mono font-semibold ${notaColorClass(ch.nota)}`}>
             {ch.nota != null ? `${ch.nota.toFixed(2)} / 10` : "—"}
           </p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Riesgo alto+crít</p>
+          <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">Riesgo alto+crít<InfoTip text={INFO.riesgoAltoCritico} /></p>
           <p className={`font-mono font-semibold ${ch.pctAlto >= 15 ? "text-red-400" : ch.pctAlto >= 5 ? "text-orange-400" : "text-emerald-400"}`}>
             {ch.pctAlto.toFixed(1)}%
           </p>
