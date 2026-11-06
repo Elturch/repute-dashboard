@@ -258,26 +258,34 @@ function BloqueGroup({ bloque, collapsed, pathname }: { bloque: Bloque; collapse
         )}
         <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
           <SidebarGroupContent>
-            <SidebarMenu>
-              {bloque.links.map(link => {
-                const LinkIcon = link.icon;
-                return (
-                  <SidebarMenuItem key={link.url}>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={link.url}
-                        end={link.end}
-                        className="hover:bg-sidebar-accent/50 text-[14px]"
-                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                      >
-                        <LinkIcon className="mr-2 h-4 w-4" />
-                        {!collapsed && <span>{link.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
+            {bloque.subgrupos ? (
+              <SidebarMenu>
+                {bloque.subgrupos.map(s => (
+                  <SubgrupoGroup key={s.id} subgrupo={s} collapsed={collapsed} pathname={pathname} />
+                ))}
+              </SidebarMenu>
+            ) : (
+              <SidebarMenu>
+                {bloque.links.map(link => {
+                  const LinkIcon = link.icon;
+                  return (
+                    <SidebarMenuItem key={link.url}>
+                      <SidebarMenuButton asChild>
+                        <NavLink
+                          to={link.url}
+                          end={link.end}
+                          className="hover:bg-sidebar-accent/50 text-[14px]"
+                          activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                        >
+                          <LinkIcon className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>{link.title}</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            )}
           </SidebarGroupContent>
         </CollapsibleContent>
       </Collapsible>
