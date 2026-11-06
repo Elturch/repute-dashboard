@@ -95,31 +95,67 @@ const EMPTY_PROMEDIOS: PerfilBucket["promedios"] = {
   impacto: null, rechazo: null, preocupacion: null, descredito: null,
 };
 
-export default function FJDPage() {
-  const { data, isLoading, error } = useFJDMenciones();
+/** Menciones del hospital en el periodo: canal_items por canal, filtrado a su titularidad y aliases. */
+function useHospitalMenciones(nivel: NivelConfig, hospital: HospitalDestacado) {
+  const { desde, hasta } = usePeriod();
+  return useQuery({
+    queryKey: ["hospital-menciones", hospital.slug, desde, hasta],
+    queryFn: async (): Promise<FJDMencion[]> => {
+      const porCanal = await Promise.all(ALL_CANALES.map(async (canal) => {
+        const out: FJDMencion[] = [];
+        for (let page = 0; page < 5; page++) {
+          const { data, error } = await externalSupabase
+            .rpc("canal_items", { p_canal: canal, p_desde: desde, p_hasta: hasta })
+            .select("*")
+            .eq("titularidad", nivel.titularidad)
+            .in("grupo_hospitalario", hospital.aliases)
+            .order("fecha", { ascending: false })
+            .range(page * 1000, page * 1000 + 999);
+          if (error) throw error;
+          const rows = (data ?? []) as VCanalRow[];
+          rows.forEach(r => out.push({ ...r, canal: canal as FJDCanal, fecha: r.fecha }));
+          if (rows.length < 1000) break;
+        }
+        return out;
+      }));
+      return porCanal.flat().sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+    },
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export default function HospitalDashboard({ nivelId, slug }: { nivelId: NivelId; slug: string }) {
+  const nivel = NIVELES[nivelId];
+  const hospital = nivel.destacados.find(d => d.slug === slug)!;
+  const { desde, hasta } = usePeriod();
+  const periodoTxt = `${desde} → ${hasta}`;
+  const { data, isLoading, error } = useHospitalMenciones(nivel, hospital);
   const menciones = data ?? [];
 
-  // KPIs agregados para FJD desde la vista materializada (191 filas, sin riesgo de cap).
+  // KPIs, posición y comparables desde kpi_canal (period-aware), dentro de la titularidad del nivel.
   const { data: kpiRows } = useKpiCanalGlobal();
-  const fjdKpi = useMemo(() => {
+  const nivelStats = useMemo(() => {
     if (!kpiRows) return null;
-    const fjdRows = filterByGrupo(kpiRows, ['Hospital Fundación Jiménez Díaz', 'Fundación Jiménez Díaz']);
-    return aggregateKpi(fjdRows);
-  }, [kpiRows]);
-
-  // Comparativa FJD vs hospitales SERMAS (la base correcta, no el total del mercado).
-  const perfilBuckets = useMemo(() => {
-    if (!kpiRows) return null;
-    const FJD_GRUPOS = ['Hospital Fundación Jiménez Díaz', 'Fundación Jiménez Díaz'];
-    const sermasRows = filterByGestionLike(kpiRows, 'SERMAS%');
-    const fjdRows = sermasRows.filter(r => FJD_GRUPOS.includes(r.grupo_hospitalario ?? ''));
-    const restoRows = sermasRows.filter(r => !FJD_GRUPOS.includes(r.grupo_hospitalario ?? ''));
+    const rows = rowsNivel(kpiRows, nivel);
+    const target = rows.filter(r => r.grupo_hospitalario === hospital.nombre);
+    const resto = rows.filter(r => r.grupo_hospitalario !== hospital.nombre);
+    const grupos = hospitalesOrdenados(rows, [hospital.nombre]);
+    const comparables = grupos.filter(g => g !== hospital.nombre)
+      .map(g => toPerfilBucket(g, aggregateKpi(rows.filter(r => r.grupo_hospitalario === g))))
+      .filter(b => b.menciones > 0);
     return {
-      total: toPerfilBucket('Total SERMAS', aggregateKpi(sermasRows)),
-      highlight: toPerfilBucket('FJD', aggregateKpi(fjdRows)),
-      resto: toPerfilBucket('Resto SERMAS', aggregateKpi(restoRows)),
+      agg: aggregateKpi(target),
+      rank: grupos.indexOf(hospital.nombre) + 1,
+      nHosp: grupos.length,
+      total: toPerfilBucket(`Total ${nivel.label.toLowerCase()}`, aggregateKpi(rows)),
+      highlight: toPerfilBucket(hospital.short, aggregateKpi(target)),
+      resto: toPerfilBucket(`Resto ${nivel.label.toLowerCase()}`, aggregateKpi(resto)),
+      comparables,
     };
-  }, [kpiRows]);
+  }, [kpiRows, nivel, hospital]);
+  const fjdKpi = nivelStats?.agg ?? null;
+  const perfilBuckets = nivelStats;
 
   const [filtroCanal, setFiltroCanal] = useState<"all" | FJDCanal>("all");
   const [filtroRiesgo, setFiltroRiesgo] = useState<"all" | PeligroLevel>("all");
