@@ -68,11 +68,6 @@ const catsalutLinks: LinkItem[] = [
   { title: "Reseñas Google", url: "/dashboard/catsalut/mybusiness", icon: SiGoogle },
 ];
 
-const fjdLinks: LinkItem[] = [
-  { title: "Fundación Jiménez Díaz", url: "/dashboard/fjd", icon: Star },
-  { title: "Alta complejidad", url: "/dashboard/alta-complejidad", icon: Award },
-];
-
 
 const coreLinks: LinkItem[] = [
   { title: "Resumen global", url: "/dashboard", icon: Home, end: true },
@@ -115,7 +110,6 @@ const bloques: Bloque[] = [
       { id: "sermas_baja", titulo: "Baja complejidad", prefix: "/dashboard/sermas/baja", links: sermasNivel("baja", "Baja complejidad", [["Hospital Infanta Elena", "huie"]]) },
     ],
   },
-  { id: "fjd", titulo: "Hospitales destacados", icon: Star, iconClassName: "text-amber-500", prefix: "/dashboard/fjd", links: fjdLinks },
   { id: "modotv", titulo: "Modo TV", icon: Tv, prefix: "/dashboard/modo-tv", links: [{ title: "Gestión de paneles", url: "/dashboard/modo-tv", icon: Tv }] },
 ];
 
