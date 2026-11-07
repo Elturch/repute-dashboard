@@ -5,7 +5,7 @@ export type MentionSegment = SegmentoFiltro & { grupos?: string[] };
 
 /** Always use the clean corpus; segment filters are additional, never a substitute. */
 export function cleanMentionQuery(canal: Canal, desde: string, hasta: string, segmento: MentionSegment = {}) {
-  let query = externalSupabase.rpc('canal_items', { p_canal: canal, p_desde: desde, p_hasta: hasta }).select('*', { count: 'exact' });
+  let query = externalSupabase.rpc('canal_items', { p_canal: canal, p_desde: desde, p_hasta: hasta }, { count: 'exact' }).select('*');
   if (segmento.titularidad) query = Array.isArray(segmento.titularidad)
     ? query.in('titularidad', segmento.titularidad) : query.eq('titularidad', segmento.titularidad);
   if (segmento.gestionLike) query = query.ilike('gestion_hospitalaria', segmento.gestionLike);
