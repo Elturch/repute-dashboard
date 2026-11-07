@@ -78,8 +78,8 @@ export function ChannelPage({ channelKey, channelLabel, icon }: ChannelPageProps
     );
   }
 
-  const peligroPct = data.peligroAltoPct;
-  const avgNota = data.avgNota;
+  const peligroPct = data.peligroAltoPct.toFixed(1);
+  const avgNota = Number(data.avgNota.toFixed(1));
 
   return (
     <div className="space-y-6">
