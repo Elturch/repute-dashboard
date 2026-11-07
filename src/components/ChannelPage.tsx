@@ -1,13 +1,17 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ExternalLink, BarChart3, List, Users } from "lucide-react";
+import { BarChart3, List, Users } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useChannelData } from "@/hooks/useChannelData";
-import { DateRangeFilter } from "@/components/DateRangeFilter";
-import { METRIC_KEYS, METRIC_LABELS, riesgoBadgeVariant } from "@/lib/data-aggregation";
+import MencionesRecientes from "@/components/MencionesRecientes";
+import InfoTip from "@/components/InfoTip";
+import { INFO } from "@/lib/infoTexts";
+import { usePeriod } from "@/contexts/PeriodContext";
+import { channelCanal } from "@/hooks/useChannelData";
+import { METRIC_KEYS, METRIC_LABELS } from "@/lib/data-aggregation";
 import { format, parseISO, startOfWeek } from "date-fns";
 
 interface ChannelPageProps {
@@ -29,19 +33,8 @@ function MetricCell({ value }: { value: number }) {
 
 export function ChannelPage({ channelKey, channelLabel, icon }: ChannelPageProps) {
   const { data, isLoading } = useChannelData(channelKey);
-  const [dateFrom, setDateFrom] = useState<Date | undefined>();
-  const [dateTo, setDateTo] = useState<Date | undefined>();
-
-  const filtered = useMemo(() => {
-    if (!data) return [];
-    return data.mentions.filter(m => {
-      if (!m.date) return !dateFrom; // include dateless only if no filter
-      const d = new Date(m.date);
-      if (dateFrom && d < dateFrom) return false;
-      if (dateTo && d > dateTo) return false;
-      return true;
-    });
-  }, [data, dateFrom, dateTo]);
+  const { desde, hasta } = usePeriod();
+  const filtered = data?.mentions ?? [];
 
   const timeSeriesData = useMemo(() => {
     if (!filtered.length) return [];
@@ -85,11 +78,8 @@ export function ChannelPage({ channelKey, channelLabel, icon }: ChannelPageProps
     );
   }
 
-  const peligroAlto = filtered.filter(m => m.peligro.includes('alto') || m.peligro.includes('criti')).length;
-  const peligroPct = filtered.length ? +((peligroAlto / filtered.length) * 100).toFixed(1) : 0;
-  const avgNota = filtered.length
-    ? +(filtered.reduce((s, m) => s + (m.nota ?? 0), 0) / filtered.filter(m => m.nota != null).length).toFixed(1)
-    : 0;
+  const peligroPct = data.peligroAltoPct;
+  const avgNota = data.avgNota;
 
   return (
     <div className="space-y-6">
@@ -101,18 +91,18 @@ export function ChannelPage({ channelKey, channelLabel, icon }: ChannelPageProps
             {channelLabel}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {filtered.length.toLocaleString()} menciones · {data.groups.length} grupos
+            {data.totalCount.toLocaleString()} menciones · {data.groups.length} grupos
           </p>
         </div>
-        <DateRangeFilter from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); }} />
+        <p className="text-xs text-muted-foreground">{desde} → {hasta}</p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card className="border-border/50">
           <CardContent className="pt-4 pb-3 text-center">
-            <p className="text-2xl font-bold text-foreground">{filtered.length.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">Menciones</p>
+            <p className="text-2xl font-bold text-foreground">{data.totalCount.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">Menciones <InfoTip text={INFO.validez} label="Criterio de validez de menciones" /></p>
           </CardContent>
         </Card>
         <Card className="border-border/50">
@@ -212,61 +202,7 @@ export function ChannelPage({ channelKey, channelLabel, icon }: ChannelPageProps
 
         {/* Individual mentions */}
         <TabsContent value="mentions">
-          <Card className="border-border/50 overflow-x-auto">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">
-                Últimas menciones ({Math.min(filtered.length, 200)} de {filtered.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="max-h-[600px] overflow-y-auto">
-                <table className="w-full text-xs">
-                  <thead className="sticky top-0 bg-card z-10">
-                    <tr className="border-b border-border/50">
-                      <th className="text-left py-2 px-2 text-muted-foreground">Fecha</th>
-                      <th className="text-left py-2 px-2 text-muted-foreground">Titular / Texto</th>
-                      <th className="text-left py-2 px-2 text-muted-foreground">Medio</th>
-                      <th className="text-left py-2 px-2 text-muted-foreground">Grupo</th>
-                      <th className="text-right py-2 px-2 text-muted-foreground">Nota</th>
-                      <th className="text-center py-2 px-2 text-muted-foreground">Riesgo</th>
-                      <th className="text-center py-2 px-2 text-muted-foreground">URL</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.slice(0, 200).map((m, i) => (
-                      <tr key={i} className="border-b border-border/10 hover:bg-muted/20">
-                        <td className="py-1.5 px-2 text-muted-foreground whitespace-nowrap">
-                          {m.date ? (() => { try { return format(parseISO(m.date), 'dd/MM/yy'); } catch { return m.date.slice(0, 10); } })() : '—'}
-                        </td>
-                        <td className="py-1.5 px-2 text-foreground max-w-[300px] truncate" title={m.titular ?? ''}>
-                          {m.titular ? (m.titular.length > 80 ? m.titular.slice(0, 80) + '…' : m.titular) : '—'}
-                        </td>
-                        <td className="py-1.5 px-2 text-muted-foreground max-w-[120px] truncate">{m.medio ?? '—'}</td>
-                        <td className="py-1.5 px-2 text-muted-foreground max-w-[100px] truncate">{m.groupLabel}</td>
-                        <td className={`text-right py-1.5 px-2 font-mono ${(m.nota ?? 0) >= 7 ? 'text-green-400' : (m.nota ?? 0) >= 5 ? 'text-yellow-400' : 'text-red-400'}`}>
-                          {m.nota != null ? m.nota.toFixed(1) : '—'}
-                        </td>
-                        <td className="text-center py-1.5 px-2">
-                          {m.peligro ? (
-                            <Badge variant={riesgoBadgeVariant(m.peligro)} className="text-[9px]">
-                              {m.peligro.slice(0, 6)}
-                            </Badge>
-                          ) : '—'}
-                        </td>
-                        <td className="text-center py-1.5 px-2">
-                          {m.url ? (
-                            <a href={m.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80">
-                              <ExternalLink className="h-3.5 w-3.5 inline" />
-                            </a>
-                          ) : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <MencionesRecientes cfg={{ canal: channelCanal(channelKey), campoFecha: 'fecha', campoTitulo: 'titulo', campoSnippet: 'texto', campoImagen: 'imagen', campoMedio: 'fuente', campoUrl: 'url', campoPeligro: 'peligro' }} contextLabel={channelLabel} />
         </TabsContent>
       </Tabs>
     </div>
