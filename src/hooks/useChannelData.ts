@@ -1,7 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
-import { externalSupabase } from '@/integrations/external-supabase/client';
-import { normalize, avg, type NormalizedRow, type RawRow } from '@/lib/data-aggregation';
-import { GROUP_VIEWS } from '@/hooks/useGroupChannels';
+import { avg, type NormalizedRow } from '@/lib/data-aggregation';
+import { cleanMentionQuery } from '@/lib/mention-query';
+import { usePeriod } from '@/contexts/PeriodContext';
+import { useKpiCanalGlobal, aggregateKpi, filterByCanal } from '@/hooks/useKpiCanal';
+import type { Canal, VCanalRow } from '@/hooks/useCanalData';
+
+export function channelCanal(key: string): Canal {
+  if (key === 'noticias') return 'medios';
+  if (key === 'medios' || key === 'instagram' || key === 'tiktok' || key === 'facebook' || key === 'linkedin' || key === 'twitter' || key === 'mybusiness') return key;
+  throw new Error(`Canal desconocido: ${key}`);
+}
 
 export interface ChannelMention extends NormalizedRow {
   groupKey: string;
@@ -34,14 +42,13 @@ export interface ChannelData {
   peligroAltoPct: number;
 }
 
-async function fetchView(view: string): Promise<RawRow[]> {
-  try {
-    const { data, error } = await externalSupabase.from(view).select('*').limit(1000);
-    if (error) throw error;
-    return data ?? [];
-  } catch {
-    return [];
-  }
+function toMention(row: VCanalRow): ChannelMention {
+  return {
+    ...row, nota: row.nota_media, peligro: (row.peligro ?? '').toLowerCase(), date: row.fecha,
+    compromiso: null, rating: null, medio: row.fuente, titular: row.titulo ?? row.texto,
+    termino: null, grupo: row.grupo_hospitalario,
+    groupKey: row.grupo_hospitalario ?? 'sin-grupo', groupLabel: row.grupo_hospitalario ?? 'Sin grupo',
+  };
 }
 
 function summarizeGroup(groupKey: string, groupLabel: string, rows: NormalizedRow[]): ChannelGroupSummary {
@@ -64,49 +71,40 @@ function summarizeGroup(groupKey: string, groupLabel: string, rows: NormalizedRo
 }
 
 export function useChannelData(channelKey: string) {
-  return useQuery<ChannelData>({
-    queryKey: ['channel_detail', channelKey],
+  const canal = channelCanal(channelKey);
+  const { desde, hasta } = usePeriod();
+  const kpi = useKpiCanalGlobal();
+  const items = useQuery({
+    queryKey: ['channel_detail_clean', canal, desde, hasta],
     queryFn: async () => {
       const allMentions: ChannelMention[] = [];
-      const groups: ChannelGroupSummary[] = [];
-
-      const fetches = Object.entries(GROUP_VIEWS).map(async ([gk, config]) => {
-        const viewDef = config.views.find(v => v.key === channelKey);
-        if (!viewDef) return;
-        const raw = await fetchView(viewDef.view);
-        const normalized = raw.map(r => {
-          const n = normalize(r);
-          return { ...n, groupKey: gk, groupLabel: config.label } as ChannelMention;
-        });
-        allMentions.push(...normalized);
-        if (normalized.length > 0) {
-          groups.push(summarizeGroup(gk, config.label, normalized));
-        }
-      });
-
-      await Promise.all(fetches);
-
-      const peligroAlto = allMentions.filter(m => m.peligro.includes('alto') || m.peligro.includes('criti')).length;
-
-      // Sort mentions by date descending
-      allMentions.sort((a, b) => {
-        const da = a.date ? new Date(a.date).getTime() : 0;
-        const db = b.date ? new Date(b.date).getTime() : 0;
-        return db - da;
-      });
-
-      // Sort groups by count descending
-      groups.sort((a, b) => b.count - a.count);
-
-      return {
-        channelKey,
-        mentions: allMentions,
-        groups,
-        totalCount: allMentions.length,
-        avgNota: avg(allMentions.map(m => m.nota)),
-        peligroAltoPct: allMentions.length ? +((peligroAlto / allMentions.length) * 100).toFixed(1) : 0,
-      };
+      for (let page = 0; ; page++) {
+        const { data, error } = await cleanMentionQuery(canal, desde, hasta)
+          .order('fecha', { ascending: false }).order('id', { ascending: false })
+          .range(page * 1000, page * 1000 + 999);
+        if (error) throw error;
+        const rows = (data ?? []) as VCanalRow[];
+        allMentions.push(...rows.map(toMention));
+        if (rows.length < 1000) break;
+      }
+      return allMentions;
     },
     staleTime: 5 * 60 * 1000,
   });
+  const rows = filterByCanal(kpi.data ?? [], canal);
+  const agg = aggregateKpi(rows);
+  const names = [...new Set(rows.map(r => r.grupo_hospitalario ?? 'Sin grupo'))];
+  const groups = names.map(name => {
+    const group = aggregateKpi(rows.filter(r => (r.grupo_hospitalario ?? 'Sin grupo') === name));
+    return {
+      ...summarizeGroup(name, name, []), count: group.menciones, nota: group.notaMedia ?? 0,
+      ...Object.fromEntries(Object.entries(group.promedios).map(([key, value]) => [key, value ?? 0])),
+      peligroAltoPct: group.pctRiesgoReal,
+    } as ChannelGroupSummary;
+  }).sort((a, b) => b.count - a.count);
+  const data: ChannelData | undefined = items.data && kpi.data && !kpi.isPlaceholderData ? {
+    channelKey, mentions: items.data, groups, totalCount: agg.menciones,
+    avgNota: agg.notaMedia ?? 0, peligroAltoPct: agg.pctRiesgoReal,
+  } : undefined;
+  return { ...items, data, isLoading: items.isLoading || kpi.isFetching && !data, error: items.error ?? kpi.error };
 }

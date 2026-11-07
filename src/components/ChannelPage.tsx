@@ -114,7 +114,7 @@ export function ChannelPage({ channelKey, channelLabel, icon }: ChannelPageProps
         <Card className="border-border/50">
           <CardContent className="pt-4 pb-3 text-center">
             <p className="text-2xl font-bold text-red-400">{peligroPct}%</p>
-            <p className="text-xs text-muted-foreground">Peligro alto</p>
+            <p className="text-xs text-muted-foreground">Riesgo real <InfoTip text={INFO.riesgo} /></p>
           </CardContent>
         </Card>
         <Card className="border-border/50">
