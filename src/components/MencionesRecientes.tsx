@@ -2,7 +2,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import InfoTip from '@/components/InfoTip';
 import { INFO } from '@/lib/infoTexts';
 import { useEffect, useState } from 'react';
-import { externalSupabase } from '@/integrations/external-supabase/client';
+import { cleanMentionQuery, type MentionSegment } from '@/lib/mention-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ExternalLink, ImageOff, Filter, X } from 'lucide-react';
@@ -10,7 +10,7 @@ import { usePeriod } from '@/contexts/PeriodContext';
 import type { Canal } from '@/hooks/useCanalData';
 
 export interface MencionesConfig {
-  tabla: string;
+  tabla?: string;
   campoFecha: string;
   campoTitulo?: string;
   campoSnippet: string;
@@ -22,14 +22,13 @@ export interface MencionesConfig {
   /** Filtros adicionales con .eq */
   filtros?: { campo: string; valor: string }[];
   /** Si se indica, la lista sale de rpc('canal_items') filtrada por el periodo global. */
-  canal?: Canal;
+  canal: Canal;
   /** Filtro de segmento para canal_items (mismo criterio que los KPIs de la página). */
-  segmento?: { titularidad?: string; gestionLike?: string; grupos?: string[] };
+  segmento?: MentionSegment;
 }
 
 /** Columnas normalizadas que devuelve canal_items (iguales que las antiguas v_canal_*). */
 function normalizarCfg(cfg: MencionesConfig): MencionesConfig {
-  if (!cfg.canal) return cfg;
   return {
     ...cfg,
     campoFecha: 'fecha',
@@ -71,41 +70,17 @@ function peligroColor(p: string | null | undefined): string {
 interface FetchOpts { riesgo: string; medio: string; desde: string; hasta: string }
 
 async function fetchPage(cfg: MencionesConfig, pageParam: number, opts: FetchOpts) {
-  if (cfg.canal) {
-    let r = externalSupabase
-      .rpc('canal_items', { p_canal: cfg.canal, p_desde: opts.desde, p_hasta: opts.hasta })
-      .select('*');
-    if (cfg.segmento?.titularidad) r = r.eq('titularidad', cfg.segmento.titularidad);
-    if (cfg.segmento?.gestionLike) r = r.ilike('gestion_hospitalaria', cfg.segmento.gestionLike);
-    if (cfg.segmento?.grupos?.length) r = r.in('grupo_hospitalario', cfg.segmento.grupos);
+    let r = cleanMentionQuery(cfg.canal, opts.desde, opts.hasta, cfg.segmento);
     if (opts.riesgo) r = r.ilike('peligro', `%${opts.riesgo}%`);
     if (opts.medio)  r = r.ilike('fuente', `%${opts.medio}%`);
     r = r.order('fecha', { ascending: false }).order('id', { ascending: false })
       .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
-    const { data, error } = await r;
+    const { data, error, count } = await r;
     if (error) {
       console.error('[MencionesRecientes] canal_items', cfg.canal, error);
       throw error;
     }
-    return (data ?? []) as Record<string, any>[];
-  }
-  let q = externalSupabase
-    .from(cfg.tabla)
-    .select('*')
-    .order('id', { ascending: false });
-  if (cfg.campoPresenciaMarca) {
-    q = q.gte(cfg.campoPresenciaMarca, 30);
-  }
-  q = q.range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
-  if (cfg.filtros) cfg.filtros.forEach(f => { q = q.eq(f.campo, f.valor); });
-  if (opts.riesgo) q = q.ilike(cfg.campoPeligro, `%${opts.riesgo}%`);
-  if (opts.medio)  q = q.ilike(cfg.campoMedio,   `%${opts.medio}%`);
-  const { data, error } = await q;
-  if (error) {
-    console.error('[MencionesRecientes]', cfg.tabla, error);
-    throw error;
-  }
-  return (data ?? []) as Record<string, any>[];
+    return { items: (data ?? []) as Record<string, unknown>[], total: count };
 }
 
 export default function MencionesRecientes({ cfg: cfgIn, contextLabel }: { cfg: MencionesConfig; contextLabel?: string }) {
@@ -122,24 +97,26 @@ export default function MencionesRecientes({ cfg: cfgIn, contextLabel }: { cfg: 
   }, [medioInput]);
 
   const { data, fetchNextPage, hasNextPage, isFetching, isLoading, error } = useInfiniteQuery({
-    queryKey: ['menciones', cfg.canal ?? cfg.tabla, JSON.stringify(cfg.segmento ?? cfg.filtros ?? []), riesgo, medio, desde, hasta],
+    queryKey: ['menciones-limpias', cfg.canal, cfg.segmento ?? {}, riesgo, medio, desde, hasta],
     initialPageParam: 0,
     queryFn: ({ pageParam }) => fetchPage(cfg, pageParam as number, { riesgo, medio, desde, hasta }),
-    getNextPageParam: (lastPage, allPages) => lastPage.length === PAGE_SIZE ? allPages.length : undefined,
+    getNextPageParam: (lastPage, allPages) => lastPage.items.length === PAGE_SIZE && (lastPage.total == null || allPages.length * PAGE_SIZE < lastPage.total) ? allPages.length : undefined,
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
 
-  const items = data?.pages.flat() ?? [];
+  const items = data?.pages.flatMap(p => p.items) ?? [];
+  const total = data?.pages[0]?.total;
   const hayFiltros = !!riesgo || !!medio;
 
   return (
     <section data-tv-hide className="space-y-4 tv-hide">
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <h2 className="text-xs uppercase tracking-wider text-muted-foreground">
+        <h2 className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
           Menciones recientes{contextLabel ? ` · ${contextLabel}` : ''}
+          <InfoTip text={INFO.validez} label="Criterio de validez de menciones" />
         </h2>
         {hayFiltros && (
           <button
@@ -204,6 +181,7 @@ export default function MencionesRecientes({ cfg: cfgIn, contextLabel }: { cfg: 
       )}
 
       {/* Lista */}
+      {total != null && <p className="text-xs text-muted-foreground">Mostrando {items.length.toLocaleString('es-ES')} de {total.toLocaleString('es-ES')} menciones{hayFiltros ? ' filtradas' : ''}</p>}
       {isLoading ? (
         <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
           <span className="w-2 h-2 rounded-full bg-[#3b82f6] animate-pulse" />

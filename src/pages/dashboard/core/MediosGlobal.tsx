@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useNoticiasGeneralFiltradas } from "@/hooks/useAuxiliaryData";
-import { normalize, avg, METRIC_KEYS, METRIC_LABELS, type RawRow } from "@/lib/data-aggregation";
+import { useChannelData, type ChannelMention } from "@/hooks/useChannelData";
+import { avg, METRIC_KEYS, METRIC_LABELS } from "@/lib/data-aggregation";
+import MencionesRecientes from "@/components/MencionesRecientes";
 
 interface MedioAgg {
   medio: string;
@@ -19,19 +20,20 @@ function MetricCell({ value }: { value: number }) {
 }
 
 const MediosGlobal = () => {
-  const { data: noticias, isLoading } = useNoticiasGeneralFiltradas(1000);
+  const { data, isLoading } = useChannelData('noticias');
+  const noticias = data?.mentions;
 
   const medios = useMemo(() => {
     if (!noticias?.length) return [];
-    const map = new Map<string, RawRow[]>();
+    const map = new Map<string, ChannelMention[]>();
     for (const n of noticias) {
-      const medio = n.Paper || n.medio_plataforma || 'Desconocido';
+      const medio = n.medio || 'Desconocido';
       if (!map.has(medio)) map.set(medio, []);
-      map.get(medio)!.push(n);
+      map.get(medio)?.push(n);
     }
     const result: MedioAgg[] = [];
     for (const [medio, rows] of map) {
-      const normalized = rows.map(normalize);
+      const normalized = rows;
       const nota = avg(normalized.map(r => r.nota));
       const metrics: Record<string, number> = {};
       for (const k of METRIC_KEYS) metrics[k] = avg(normalized.map(r => r[k]));
@@ -52,7 +54,7 @@ const MediosGlobal = () => {
     );
   }
 
-  const totalNoticias = noticias?.length ?? 0;
+  const totalNoticias = data?.totalCount ?? 0;
   const top20 = medios.slice(0, 20);
   const totalRiesgoAlto = medios.reduce((s, m) => s + m.riesgoAlto, 0);
 
@@ -123,6 +125,7 @@ const MediosGlobal = () => {
           </div>
         </CardContent>
       </Card>
+      <MencionesRecientes cfg={{ canal: 'medios', campoFecha: 'fecha', campoTitulo: 'titulo', campoSnippet: 'texto', campoImagen: 'imagen', campoMedio: 'fuente', campoUrl: 'url', campoPeligro: 'peligro' }} contextLabel="Medios" />
     </div>
   );
 };

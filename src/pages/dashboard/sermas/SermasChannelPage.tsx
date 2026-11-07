@@ -9,89 +9,15 @@ import { AlertTriangle } from 'lucide-react';
 import RiesgoRealInfo from '@/components/RiesgoRealInfo';
 import { fmtNotaIA, fmtPctRiesgo, pctRiesgoReal } from '@/lib/metricas';
 import PerfilReputacionalIA, { type PerfilBucket } from '@/components/PerfilReputacionalIA';
-import MencionesRecientes, { type MencionesConfig } from '@/components/MencionesRecientes';
+import MencionesRecientes from '@/components/MencionesRecientes';
 import { type Canal } from '@/hooks/useCanalData';
 import {
   useKpiCanalGlobal, filterByCanal, filterByGestionLike, filterByGestionExacta,
   aggregateKpi, toPerfilBucket, type KpiRow,
 } from '@/hooks/useKpiCanal';
 
-/* MENCIONES — sin tocar (cada canal mantiene su tabla rápida con id DESC). */
-const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
-  noticias: {
-    tabla: 'noticias_general_filtradas',
-    campoFecha: 'Date',
-    campoTitulo: 'Title',
-    campoSnippet: 'Description',
-    campoImagen: 'Image_url',
-    campoMedio: 'Paper',
-    campoUrl: 'url',
-    campoPeligro: 'Peligro_reputacional',
-    campoPresenciaMarca: 'Presencia_de_marca',
-    filtros: [{ campo: 'titularidad', valor: 'Sanidad Pública AC' }],
-  },
-  instagram: {
-    tabla: 'ig_posts_general_filtrada',
-    campoFecha: 'date_posted',
-    campoTitulo: 'asunto',
-    campoSnippet: 'post_content',
-    campoMedio: 'user_posted',
-    campoUrl: 'imput_url',
-    campoPeligro: 'peligro_reputacional',
-    campoPresenciaMarca: 'presencia_marca',
-  },
-  x_twitter: {
-    tabla: 'x_twitter_posts_general_filtrado',
-    campoFecha: 'date_posted',
-    campoTitulo: 'asunto',
-    campoSnippet: 'description',
-    campoMedio: 'user_name',
-    campoUrl: 'url',
-    campoPeligro: 'peligro_reputacional',
-    campoPresenciaMarca: 'presencia_marca',
-  },
-  tiktok: {
-    tabla: 'tiktok_posts_general_filtradas',
-    campoFecha: 'created_time',
-    campoTitulo: 'asunto',
-    campoSnippet: 'description',
-    campoMedio: 'user_name',
-    campoUrl: 'url',
-    campoPeligro: 'peligro_reputacional',
-    campoPresenciaMarca: 'presencia_marca',
-  },
-  facebook: {
-    tabla: 'fb_posts_general_filtradas',
-    campoFecha: 'date_posted',
-    campoTitulo: 'ia-asunto',
-    campoSnippet: 'content',
-    campoMedio: 'user_name',
-    campoUrl: 'url',
-    campoPeligro: 'peligro_reputacional',
-    campoPresenciaMarca: 'presencia_marca',
-  },
-  linkedin: {
-    tabla: 'linkedin_gh_filtradas',
-    campoFecha: 'posted_date',
-    campoTitulo: 'asunto_ia',
-    campoSnippet: 'texto',
-    campoMedio: 'termino',
-    campoUrl: 'url',
-    campoPeligro: 'peligro_reputacional',
-    campoPresenciaMarca: 'presencia_marca',
-  },
-  mybusiness: {
-    tabla: 'my_business_reviews',
-    campoFecha: 'iso_date',
-    campoTitulo: 'tipo_review',
-    campoSnippet: 'snipet',
-    campoMedio: 'user_name',
-    campoUrl: 'link_url',
-    campoPeligro: 'peligro_reputacional',
-    campoPresenciaMarca: 'presencia_marca',
-    filtros: [{ campo: 'titularidad', valor: 'Sanidad Pública AC' }],
-  },
-};
+
+
 
 export type SermasCanalKey = 'noticias' | 'instagram' | 'x_twitter' | 'tiktok' | 'facebook' | 'linkedin' | 'mybusiness';
 
@@ -298,8 +224,8 @@ export default function SermasChannelPage({ cfg }: { cfg: SermasChannelConfig })
         />
       )}
 
-      {stats && MENCIONES_BY_CHANNEL[cfg.canal] && (
-        <MencionesRecientes cfg={{ ...(MENCIONES_BY_CHANNEL[cfg.canal] as MencionesConfig), canal: CANAL_MAP[cfg.canal], segmento: { gestionLike: 'SERMAS%' } }} contextLabel={cfg.short} />
+      {stats && (
+        <MencionesRecientes cfg={{ campoFecha: 'fecha', campoTitulo: 'titulo', campoSnippet: 'texto', campoImagen: 'imagen', campoMedio: 'fuente', campoUrl: 'url', campoPeligro: 'peligro', canal: CANAL_MAP[cfg.canal], segmento: { gestionLike: 'SERMAS%' } }} contextLabel={cfg.short} />
       )}
 
       <div className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-muted/30 p-4 text-xs text-muted-foreground md:grid-cols-2">

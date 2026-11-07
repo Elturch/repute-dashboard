@@ -14,89 +14,15 @@ import { AlertTriangle } from 'lucide-react';
 import RiesgoRealInfo from '@/components/RiesgoRealInfo';
 import { fmtNotaIA, fmtPctRiesgo, pctRiesgoReal } from '@/lib/metricas';
 import PerfilReputacionalIA, { type PerfilBucket } from '@/components/PerfilReputacionalIA';
-import MencionesRecientes, { type MencionesConfig } from '@/components/MencionesRecientes';
+import MencionesRecientes from '@/components/MencionesRecientes';
 import { type Canal } from '@/hooks/useCanalData';
 import {
   useKpiCanalGlobal, filterByTitularidad, filterByCanal, filterByGrupo,
   aggregateKpi, toPerfilBucket, type KpiRow,
 } from '@/hooks/useKpiCanal';
 
-/* ─────────────── MENCIONES por canal (sin tocar — siguen sus tablas rápidas) ─────────────── */
-const MENCIONES_BY_CHANNEL: Record<string, MencionesConfig | null> = {
-  medios: {
-    tabla: 'noticias_general_filtradas',
-    campoFecha: 'Date',
-    campoTitulo: 'Title',
-    campoSnippet: 'Description',
-    campoImagen: 'Image_url',
-    campoMedio: 'Paper',
-    campoUrl: 'url',
-    campoPeligro: 'Peligro_reputacional',
-    campoPresenciaMarca: 'Presencia_de_marca',
-    filtros: [{ campo: 'titularidad', valor: 'Privado' }],
-  },
-  instagram: {
-    tabla: 'ig_posts_general_filtrada',
-    campoFecha: 'date_posted',
-    campoTitulo: 'asunto',
-    campoSnippet: 'post_content',
-    campoMedio: 'user_posted',
-    campoUrl: 'imput_url',
-    campoPeligro: 'peligro_reputacional',
-    campoPresenciaMarca: 'presencia_marca',
-  },
-  twitter: {
-    tabla: 'x_twitter_posts_general_filtrado',
-    campoFecha: 'date_posted',
-    campoTitulo: 'asunto',
-    campoSnippet: 'description',
-    campoMedio: 'user_name',
-    campoUrl: 'url',
-    campoPeligro: 'peligro_reputacional',
-    campoPresenciaMarca: 'presencia_marca',
-  },
-  tiktok: {
-    tabla: 'tiktok_posts_general_filtradas',
-    campoFecha: 'created_time',
-    campoTitulo: 'asunto',
-    campoSnippet: 'description',
-    campoMedio: 'user_name',
-    campoUrl: 'url',
-    campoPeligro: 'peligro_reputacional',
-    campoPresenciaMarca: 'presencia_marca',
-  },
-  facebook: {
-    tabla: 'fb_posts_general_filtradas',
-    campoFecha: 'date_posted',
-    campoTitulo: 'ia-asunto',
-    campoSnippet: 'content',
-    campoMedio: 'user_name',
-    campoUrl: 'url',
-    campoPeligro: 'peligro_reputacional',
-    campoPresenciaMarca: 'presencia_marca',
-  },
-  linkedin: {
-    tabla: 'linkedin_gh_filtradas',
-    campoFecha: 'posted_date',
-    campoTitulo: 'asunto_ia',
-    campoSnippet: 'texto',
-    campoMedio: 'termino',
-    campoUrl: 'url',
-    campoPeligro: 'peligro_reputacional',
-    campoPresenciaMarca: 'presencia_marca',
-  },
-  mybusiness: {
-    tabla: 'my_business_reviews',
-    campoFecha: 'iso_date',
-    campoTitulo: 'tipo_review',
-    campoSnippet: 'snipet',
-    campoMedio: 'user_name',
-    campoUrl: 'link_url',
-    campoPeligro: 'peligro_reputacional',
-    campoPresenciaMarca: 'presencia_marca',
-    filtros: [{ campo: 'titularidad', valor: 'Privado' }],
-  },
-};
+
+
 
 /** Configuración de un canal privado. Mantiene compatibilidad con los wrappers existentes. */
 export type PrivadosChannelConfig = {
@@ -368,8 +294,8 @@ export default function PrivadosChannelPage({ cfg }: { cfg: PrivadosChannelConfi
       )}
 
       {/* Menciones recientes (lazy-load) */}
-      {stats && MENCIONES_BY_CHANNEL[cfg.key] && (
-        <MencionesRecientes cfg={{ ...(MENCIONES_BY_CHANNEL[cfg.key] as MencionesConfig), canal: cfg.key as Canal, segmento: { titularidad: 'Privado' } }} contextLabel={cfg.label} />
+      {stats && (
+        <MencionesRecientes cfg={{ campoFecha: 'fecha', campoTitulo: 'titulo', campoSnippet: 'texto', campoImagen: 'imagen', campoMedio: 'fuente', campoUrl: 'url', campoPeligro: 'peligro', canal: cfg.key as Canal, segmento: { titularidad: 'Privado' } }} contextLabel={cfg.label} />
       )}
 
       {/* Footer */}

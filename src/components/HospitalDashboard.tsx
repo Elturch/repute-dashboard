@@ -10,7 +10,7 @@ import { SiInstagram, SiTiktok, SiFacebook, SiGoogle } from "react-icons/si";
 import { FaXTwitter, FaLinkedin } from "react-icons/fa6";
 import { Newspaper } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { externalSupabase } from "@/integrations/external-supabase/client";
+import { cleanMentionQuery } from '@/lib/mention-query';
 import type { FJDMencion, FJDCanal } from "@/hooks/useFJDMenciones";
 import { ALL_CANALES, type VCanalRow } from "@/hooks/useCanalData";
 import { usePeriod } from "@/contexts/PeriodContext";
@@ -106,13 +106,10 @@ function useHospitalMenciones(nivel: NivelConfig, hospital: HospitalDestacado) {
     queryFn: async (): Promise<FJDMencion[]> => {
       const porCanal = await Promise.all(ALL_CANALES.map(async (canal) => {
         const out: FJDMencion[] = [];
-        for (let page = 0; page < 5; page++) {
-          const { data, error } = await externalSupabase
-            .rpc("canal_items", { p_canal: canal, p_desde: desde, p_hasta: hasta })
-            .select("*")
-            .eq("titularidad", nivel.titularidad)
-            .in("grupo_hospitalario", hospital.aliases)
+        for (let page = 0; ; page++) {
+          const { data, error } = await cleanMentionQuery(canal, desde, hasta, { titularidad: nivel.titularidad, grupos: hospital.aliases })
             .order("fecha", { ascending: false })
+            .order("id", { ascending: false })
             .range(page * 1000, page * 1000 + 999);
           if (error) throw error;
           const rows = (data ?? []) as VCanalRow[];
@@ -402,7 +399,7 @@ export default function HospitalDashboard({ nivelId, slug }: { nivelId: NivelId;
           <section className="rounded-xl border border-border bg-foreground/[0.02] p-5">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
               <h2 className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium">
-                Menciones recientes
+                Menciones recientes <InfoTip text={INFO.validez} label="Criterio de validez de menciones" />
               </h2>
               <div className="flex flex-wrap gap-2">
                 <select

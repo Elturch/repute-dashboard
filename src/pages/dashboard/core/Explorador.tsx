@@ -7,7 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, ExternalLink, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { externalSupabase } from "@/integrations/external-supabase/client";
+import { cleanMentionQuery } from "@/lib/mention-query";
+import { ALL_CANALES } from "@/hooks/useCanalData";
+import { usePeriod } from "@/contexts/PeriodContext";
+import InfoTip from "@/components/InfoTip";
+import { INFO } from "@/lib/infoTexts";
 import { riesgoBadgeVariant } from "@/lib/data-aggregation";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { safeFormat } from "@/lib/safe-format";
@@ -58,57 +62,34 @@ interface Filters {
   to?: string;
 }
 
-function buildQuery(f: Filters) {
-  let query = externalSupabase
-    .from("v_explorador")
-    .select("*", { count: "exact" })
-    .order("fecha", { ascending: false });
-
-  const q = sanitizeQuery(f.search);
-  if (q) query = query.or(`texto.ilike.%${q}%,termino.ilike.%${q}%`);
-  if (f.canal !== "all") query = query.eq("canal", f.canal);
-  if (f.titularidad !== "all") query = query.eq("titularidad", f.titularidad);
-  if (f.peligro === "alto") query = query.or("peligro_reputacional.ilike.%alto%,peligro_reputacional.ilike.%crit%");
-  else if (f.peligro === "medio") query = query.ilike("peligro_reputacional", "%medio%");
-  else if (f.peligro === "bajo") query = query.ilike("peligro_reputacional", "%bajo%");
-  if (f.from) query = query.gte("fecha", f.from);
-  if (f.to) query = query.lte("fecha", f.to);
-
-  return query;
-}
-
 function useExplorerPage(filters: Filters, page: number) {
+  const { desde, hasta } = usePeriod();
   return useQuery<{ rows: ExplorerRow[]; count: number }>({
-    queryKey: ["explorador", filters, page],
+    queryKey: ["explorador-limpio", filters, page, desde, hasta],
     queryFn: async () => {
-      const from = page * PAGE_SIZE;
-      const { data, error, count } = await buildQuery(filters).range(from, from + PAGE_SIZE - 1);
-      if (error) throw error;
-      return { rows: (data ?? []) as ExplorerRow[], count: count ?? 0 };
+      const channels = ALL_CANALES.filter(c => filters.canal === 'all' || filters.canal === c);
+      const end = (page + 1) * PAGE_SIZE;
+      const results = await Promise.all(channels.map(async canal => {
+        let query = cleanMentionQuery(canal, desde, hasta, filters.titularidad === 'all' ? {} : { titularidad: filters.titularidad });
+        const search = sanitizeQuery(filters.search);
+        if (search) query = query.or(`texto.ilike.%${search}%,titulo.ilike.%${search}%,grupo_hospitalario.ilike.%${search}%`);
+        if (filters.peligro === 'alto') query = query.or('peligro.ilike.%alto%,peligro.ilike.%crit%');
+        else if (filters.peligro !== 'all') query = query.ilike('peligro', `%${filters.peligro}%`);
+        if (filters.from) query = query.gte('fecha', filters.from);
+        if (filters.to) query = query.lte('fecha', filters.to);
+        const { data, error, count } = await query.order('fecha', { ascending: false }).order('id', { ascending: false }).range(0, end - 1);
+        if (error) throw error;
+        return { rows: (data ?? []).map(r => ({ ...r, canal, termino: r.grupo_hospitalario, peligro_reputacional: r.peligro }) as ExplorerRow), count: count ?? 0 };
+      }));
+      const all = results.flatMap(r => r.rows).sort((a, b) => (b.fecha ?? '').localeCompare(a.fecha ?? '') || `${b.canal}-${b.id}`.localeCompare(`${a.canal}-${a.id}`));
+      return { rows: all.slice(page * PAGE_SIZE, end), count: results.reduce((sum, r) => sum + r.count, 0) };
     },
     staleTime: 60 * 1000,
   });
 }
 
-/** Rango de fechas del corpus completo (min y max). */
-function useCorpusRange() {
-  return useQuery<{ min: string | null; max: string | null }>({
-    queryKey: ["explorador_corpus_range"],
-    queryFn: async () => {
-      const [maxRes, minRes] = await Promise.all([
-        externalSupabase.from("v_explorador").select("fecha").order("fecha", { ascending: false }).limit(1),
-        externalSupabase.from("v_explorador").select("fecha").order("fecha", { ascending: true }).limit(1),
-      ]);
-      return {
-        max: (maxRes.data?.[0] as { fecha: string } | undefined)?.fecha ?? null,
-        min: (minRes.data?.[0] as { fecha: string } | undefined)?.fecha ?? null,
-      };
-    },
-    staleTime: 30 * 60 * 1000,
-  });
-}
-
 const Explorador = () => {
+  const { desde, hasta } = usePeriod();
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [canal, setCanal] = useState("all");
@@ -138,10 +119,9 @@ const Explorador = () => {
   useEffect(() => {
     setPage(0);
     setAccumulated([]);
-  }, [filters]);
+  }, [filters, desde, hasta]);
 
   const { data, isLoading, isFetching } = useExplorerPage(filters, page);
-  const { data: corpus } = useCorpusRange();
 
   useEffect(() => {
     if (!data) return;
@@ -156,12 +136,10 @@ const Explorador = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">
-          Explorador de menciones · {isLoading ? "…" : total.toLocaleString("es-ES")} resultados
+          Explorador de menciones · {isLoading ? "…" : total.toLocaleString("es-ES")} resultados <InfoTip text={INFO.validez} label="Criterio de validez de menciones" />
         </h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Corpus completo{corpus?.min && corpus?.max
-            ? ` · ${safeFormat(corpus.min, "dd MMM yyyy")} – ${safeFormat(corpus.max, "dd MMM yyyy")}`
-            : ""} · filtrado en servidor, paginación real de {PAGE_SIZE} en {PAGE_SIZE}
+          Periodo seleccionado · {desde} → {hasta}
         </p>
       </div>
 
