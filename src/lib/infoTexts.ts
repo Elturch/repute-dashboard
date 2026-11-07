@@ -1,6 +1,7 @@
 import { RIESGO_REAL_TOOLTIP } from '@/lib/metricas';
 
 export const INFO = {
+  validez: 'Se cuentan solo menciones válidas —con presencia real de la marca— publicadas en España. Se excluye ruido: ofertas de empleo, portales inmobiliarios, reservas de viaje y contenido de otros países o fuera de tema (deportes, política, espectáculos…).',
   total: 'Número de menciones válidas detectadas en este canal y periodo, tras filtrar ruido (empleo, contenido de otros países, directorios, etc.). Fuente: recogida automática + clasificación por IA.',
   menciones: 'Menciones válidas de este grupo en el canal y periodo.',
   cuota: 'Cuota = menciones del grupo ÷ total de menciones del canal × 100.',

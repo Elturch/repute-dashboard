@@ -402,7 +402,7 @@ export default function HospitalDashboard({ nivelId, slug }: { nivelId: NivelId;
           <section className="rounded-xl border border-border bg-foreground/[0.02] p-5">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
               <h2 className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium">
-                Menciones recientes
+                Menciones recientes <InfoTip text={INFO.validez} label="Criterio de validez de menciones" />
               </h2>
               <div className="flex flex-wrap gap-2">
                 <select
